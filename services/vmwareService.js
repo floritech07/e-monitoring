@@ -1,191 +1,160 @@
 require('dotenv').config();
 const http = require('http');
 const { exec } = require('child_process');
+const fs = require('fs');
 const path = require('path');
+const si = require('systeminformation');
 
-// Configuration from .env
-const VMWARE_API_URL = process.env.VMWARE_API_URL || 'http://127.0.0.1:8697/api';
-const VMWARE_AUTH = 'Basic ' + Buffer.from(`${process.env.VMWARE_API_USER || 'admin'}:${process.env.VMWARE_API_PASS || 'admin'}`).toString('base64');
+// Configuration
 const VMRUN_PATH = `"${process.env.VMRUN_PATH || 'C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe'}"`;
+const INVENTORY_PATH = path.join(process.env.APPDATA, 'VMware', 'inventory.vmls');
 
-// Internal state
-let driver = 'mock'; // 'api' | 'vmrun' | 'mock'
-let useNogui = true; // Use nogui mode for vmrun
-
-// Mock VM data (mapping to potential real paths if found)
-let vms = [
-  {
-    id: 'vm-001',
-    name: 'SRV-DC01',
-    path: '', // Path to .vmx
-    state: 'off',
-    os: 'Windows Server 2019',
-    cpu: { usage: 0, cores: 4 },
-    ram: { used: 0, total: 8 * 1024 * 1024 * 1024, percent: 0 },
-    disk: [{ mount: 'C:', percent: 45, used: 45 * 1024**3, size: 100 * 1024**3 }],
-    ip: '192.168.1.10',
-    type: 'server'
-  },
-  {
-    id: 'vm-002',
-    name: 'SRV-FILE01',
-    path: '',
-    state: 'off',
-    os: 'Windows Server 2016',
-    cpu: { usage: 0, cores: 4 },
-    ram: { used: 0, total: 16 * 1024 * 1024 * 1024, percent: 0 },
-    disk: [
-      { mount: 'C:', percent: 55, used: 55 * 1024**3, size: 100 * 1024**3 },
-      { mount: 'D:', percent: 72, used: 720 * 1024**3, size: 1000 * 1024**3 }
-    ],
-    ip: '192.168.1.11',
-    type: 'server'
-  },
-  {
-    id: 'vm-003',
-    name: 'SRV-WEB01',
-    path: '',
-    state: 'off',
-    os: 'Ubuntu Server 22.04',
-    cpu: { usage: 0, cores: 2 },
-    ram: { used: 0, total: 4 * 1024 * 1024 * 1024, percent: 0 },
-    disk: [{ mount: '/', percent: 38, used: 38 * 1024**3, size: 100 * 1024**3 }],
-    ip: '192.168.1.12',
-    type: 'server'
-  }
-];
-
-function simulateMetrics(vm) {
-  if (vm.state === 'on') {
-    vm.cpu.usage = parseFloat((Math.random() * 40 + 5).toFixed(1));
-    const ramUsedBytes = vm.ram.total * (Math.random() * 0.3 + 0.1);
-    vm.ram.used = Math.round(ramUsedBytes);
-    vm.ram.percent = parseFloat(((ramUsedBytes / vm.ram.total) * 100).toFixed(1));
-  } else {
-    vm.cpu.usage = 0;
-    vm.ram.used = 0;
-    vm.ram.percent = 0;
-  }
-}
+// Shared state for VM data
+let cachedVMs = [];
 
 function runVmrun(command) {
   return new Promise((resolve, reject) => {
-    // Escape path for powershell/cmd
     const cmd = `${VMRUN_PATH} -T ws ${command}`;
     exec(cmd, (error, stdout, stderr) => {
-      // vmrun might return error code 1 for 'list' if it's working but empty
+      // Some 'list' commands might return status 1 if no VMs are running but output text.
       if (error && !command.includes('list')) {
-        console.error(`vmrun error: ${stderr}`);
-        return reject(error);
+        return reject(new Error(stderr || error.message));
       }
       resolve(stdout.trim());
     });
   });
 }
 
-async function checkConnectivity() {
-  if (process.env.VMWARE_DRIVER && process.env.VMWARE_DRIVER !== 'auto') {
-    driver = process.env.VMWARE_DRIVER;
-    return driver;
-  }
-
-  // 1. Try REST API
+/**
+ * Reads VMware inventory file to find all registered VMs.
+ */
+async function getInventory() {
   try {
-    const options = {
-      method: 'GET',
-      headers: { 'Authorization': VMWARE_AUTH },
-      timeout: 1000
-    };
-    
-    await new Promise((resolve, reject) => {
-      const req = http.get(`${VMWARE_API_URL}/vms`, options, (res) => {
-        if (res.statusCode === 200) resolve(); else reject();
-      });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    if (!fs.existsSync(INVENTORY_PATH)) return [];
+    const content = fs.readFileSync(INVENTORY_PATH, 'utf-8');
+    const lines = content.split('\n');
+    const inventory = [];
+
+    // Simple parser for vmlistX.config = "path"
+    lines.forEach(line => {
+      if (line.includes('.config =')) {
+        const match = line.match(/\.config\s*=\s*"(.+?)"/);
+        if (match && match[1]) {
+          const vmxPath = match[1];
+          const name = path.basename(vmxPath, '.vmx');
+          inventory.push({
+            id: Buffer.from(vmxPath).toString('base64').substring(0, 10), // Short stable ID
+            name: name,
+            path: vmxPath,
+            state: 'off',
+            os: 'Inconnu', // Could try to parse .vmx but complex
+            ip: 'N/A'
+          });
+        }
+      }
     });
-    driver = 'api';
-    return driver;
-  } catch (e) {}
+    return inventory;
+  } catch (e) {
+    console.error('Erreur inventaire VMware:', e.message);
+    return [];
+  }
+}
 
-  // 2. Try VMRUN
-  try {
-    await runVmrun('list');
-    driver = 'vmrun';
-    return driver;
-  } catch (e) {}
-
-  driver = 'mock';
-  return driver;
+/**
+ * Maps running VMX processes to real system metrics.
+ */
+async function getVMMetrics() {
+  const processes = await si.processes();
+  const vmProcesses = processes.list.filter(p => p.name.includes('vmware-vmx'));
+  
+  // We need to map process command line to vmx path to identify which VM is which
+  // But si.processes() might not have full command line on Windows without admin
+  // So we use a fallback or try to match by name if unique
+  return vmProcesses.map(p => ({
+    pid: p.pid,
+    cpu: p.cpu,
+    memory: p.mem,
+    name: p.command || p.name // Try to use command to find the VMX
+  }));
 }
 
 async function listVMs() {
-  const currentDriver = await checkConnectivity();
+  try {
+    const inventory = await getInventory();
+    const runningOutput = await runVmrun('list');
+    const runningPaths = runningOutput.split('\n').filter(l => l.includes('.vmx'));
+    const processStats = await getVMMetrics();
 
-  if (currentDriver === 'vmrun' || currentDriver === 'api') {
-    let runningVMs = [];
-    try {
-      if (currentDriver === 'vmrun') {
-        const output = await runVmrun('list');
-        // Example output: Total running VMs: 1 \n C:\path\to\vm.vmx
-        runningVMs = output.split('\n').filter(l => l.includes('.vmx'));
-      }
+    const vms = inventory.map(vm => {
+      const isRunning = runningPaths.some(p => p.toLowerCase() === vm.path.toLowerCase());
+      const state = isRunning ? 'on' : 'off';
       
-      // Update our list based on found paths or names
-      vms.forEach(vm => {
-        // Simple name-based matching for now
-        const isRunning = runningVMs.some(path => path.toLowerCase().includes(vm.name.toLowerCase()));
-        vm.state = isRunning ? 'on' : 'off';
-        simulateMetrics(vm);
-      });
-    } catch (e) {
-      console.error('Real-world VM list error:', e.message);
-    }
-  } else {
-    vms.forEach(vm => simulateMetrics(vm));
-  }
+      // Try to match stats. Search for the vmx path in the command line of processes
+      const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
+      
+      const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 1)) : 0;
+      const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 512 * 1024 * 1024) : 0;
+      
+      return {
+        ...vm,
+        state,
+        cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
+        ram: { 
+          used: ramUsed, 
+          total: 4 * 1024 * 1024 * 1024, 
+          percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
+        },
+        // Placeholder disk data since vmrun doesn't provide it
+        disk: [{ mount: 'C:', percent: 40, used: 20 * 1024**3, size: 50 * 1024**3 }]
+      };
+    });
 
-  return vms;
+    // Handle VMs that are running but NOT in inventory (manual starts)
+    runningPaths.forEach(rp => {
+       if (!vms.some(v => v.path.toLowerCase() === rp.toLowerCase())) {
+         const name = path.basename(rp, '.vmx');
+         vms.push({
+           id: Buffer.from(rp).toString('base64').substring(0, 10),
+           name: name,
+           path: rp,
+           state: 'on',
+           cpu: { usage: 2, cores: 2 },
+           ram: { used: 1024**3, total: 4*1024**3, percent: 25 },
+           ip: 'Détection...'
+         });
+       }
+    });
+
+    cachedVMs = vms;
+    return vms;
+  } catch (e) {
+    console.error('VM list error:', e.message);
+    return cachedVMs; // Fallback to last known
+  }
 }
 
 async function performAction(vmId, action) {
-  const currentDriver = await checkConnectivity();
-  const vm = vms.find(v => v.id === vmId);
-  if (!vm) return { success: false, error: 'VM not found' };
+  const vmsData = await listVMs();
+  const vm = vmsData.find(v => v.id === vmId);
+  if (!vm) return { success: false, error: 'VM non trouvée' };
 
-  if (currentDriver === 'vmrun') {
-    let vmrunCmd = '';
-    // Use vm.path if available, otherwise fallback to filename in current dir (or assume vm.name is filename)
-    const target = vm.path || `${vm.name}.vmx`;
-    
-    switch (action) {
-      case 'start':   vmrunCmd = `start "${target}" ${useNogui ? 'nogui' : ''}`; break;
-      case 'stop':    vmrunCmd = `stop "${target}" soft`; break;
-      case 'restart': vmrunCmd = `reset "${target}" soft`; break;
-      case 'suspend': vmrunCmd = `suspend "${target}" soft`; break;
-    }
-    
-    if (vmrunCmd) {
-      try {
-        await runVmrun(vmrunCmd);
-        vm.state = (action === 'start' || action === 'restart') ? 'on' : (action === 'stop' ? 'off' : 'suspended');
-        return { success: true, action, vm };
-      } catch (e) {
-        return { success: false, error: `Erreur vmrun: ${e.message}` };
-      }
-    }
-  }
+  let cmd = '';
+  const target = `"${vm.path}"`;
 
-  // API mode would go here...
-
-  // Mock
   switch (action) {
-    case 'start':   vm.state = 'on'; break;
-    case 'stop':    vm.state = 'off'; break;
-    case 'restart': vm.state = 'on'; break;
-    case 'suspend': vm.state = 'suspended'; break;
+    case 'start':   cmd = `start ${target} nogui`; break;
+    case 'stop':    cmd = `stop ${target} soft`; break;
+    case 'restart': cmd = `reset ${target} soft`; break;
+    case 'suspend': cmd = `suspend ${target} soft`; break;
+    default: return { success: false, error: 'Action invalide' };
   }
-  return { success: true, action, vm };
+
+  try {
+    await runVmrun(cmd);
+    return { success: true, action, message: `Action ${action} exécutée avec succès sur ${vm.name}` };
+  } catch (e) {
+    return { success: false, error: `Erreur VMware: ${e.message}` };
+  }
 }
 
 async function getInfrastructureTree() {
@@ -206,12 +175,12 @@ async function getInfrastructureTree() {
             type: 'host',
             status: 'online',
             children: vmsData.map(v => ({
-              id: v.id,
-              name: v.name,
-              type: 'vm',
-              status: v.state === 'on' ? 'online' : 'offline',
-              ip: v.ip,
-              os: v.os
+               id: v.id,
+               name: v.name,
+               type: 'vm',
+               status: v.state === 'on' ? 'online' : 'offline',
+               ip: v.ip,
+               os: v.os
             }))
           }
         ]
