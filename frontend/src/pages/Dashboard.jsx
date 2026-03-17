@@ -345,11 +345,12 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
             <div className="card-footer-action">
               <button 
                 className="btn-premium-link" 
-                onClick={() => navigate('/infrastructure')}
+                onClick={() => navigate('/actions')}
               >
-                Gérer l'infrastructure réseau <ChevronRight size={14} />
+                Gérer et contrôler les machines <Zap size={14} />
               </button>
             </div>
+
           </div>
         </div>
 
