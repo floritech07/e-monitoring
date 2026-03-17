@@ -53,6 +53,10 @@ async function getInventory() {
           }
 
           const name = path.basename(vmxPath, '.vmx');
+          
+          // Filtrage : On ignore l'Hyperviseur ESXI comme demandé
+          if (name.toLowerCase().includes('esxi')) continue;
+
           inventory.push({
             id: Buffer.from(vmxPath).toString('base64').substring(0, 10),
             name: name,
@@ -61,6 +65,7 @@ async function getInventory() {
             os: guestOS,
             ip: 'N/A'
           });
+
         }
       }
     }
