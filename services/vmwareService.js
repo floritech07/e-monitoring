@@ -107,6 +107,12 @@ async function getVMMetrics() {
   }));
 }
 
+// Helper to normalize Windows paths for comparison
+function normalizePath(p) {
+  if (!p) return '';
+  return p.toLowerCase().replace(/\\/g, '/').replace(/\/+/g, '/').trim();
+}
+
 async function listVMs() {
   try {
     const inventory = await getInventory();
@@ -119,17 +125,19 @@ async function listVMs() {
       
     const processStats = await getVMMetrics();
 
+    // Map by normalized path to ensure uniqueness
+    const vmsMap = new Map();
+
     // 1. Process inventory VMs
-    const vms = inventory.map(vm => {
+    inventory.forEach(vm => {
       const isRunning = runningPaths.includes(vm.normPath);
       const state = isRunning ? 'on' : 'off';
       
-      // Attempt to find metrics
-      const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
+      const stats = processStats.find(s => normalizePath(s.name).includes(vm.name.toLowerCase()));
       const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 2)) : 0;
       const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 1024 * 1024 * 1024) : 0;
       
-      return {
+      const machine = {
         ...vm,
         state,
         cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
@@ -140,15 +148,17 @@ async function listVMs() {
         },
         disk: [{ mount: 'C:', percent: 12, used: 10 * 1024**3, size: 80 * 1024**3 }]
       };
+      
+      vmsMap.set(vm.normPath, machine);
     });
 
     // 2. Add running VMs that are NOT in inventory
     runningPaths.forEach(rp => {
-       if (!vms.some(v => v.normPath === rp)) {
+       if (!vmsMap.has(rp)) {
          const name = path.basename(rp).replace(/\.vmx$/i, '');
          if (name.toLowerCase().includes('esxi')) return;
 
-         vms.push({
+         vmsMap.set(rp, {
            id: Buffer.from(rp).toString('base64').substring(0, 10),
            name: name,
            path: rp,
@@ -162,14 +172,18 @@ async function listVMs() {
        }
     });
 
-    // Final clean up and cache
-    cachedVMs = vms.filter(v => v.name && !v.name.toLowerCase().includes('esxi'));
-    return cachedVMs;
+    // Final clean up and filter
+    const finalVMs = Array.from(vmsMap.values())
+      .filter(v => v.name && !v.name.toLowerCase().includes('esxi'));
+      
+    cachedVMs = finalVMs;
+    return finalVMs;
   } catch (e) {
     console.error('VM list error:', e.message);
     return cachedVMs;
   }
 }
+
 
 
 
