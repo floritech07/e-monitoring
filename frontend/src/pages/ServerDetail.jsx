@@ -49,6 +49,9 @@ export default function ServerDetail({ vms, metrics }) {
     );
   }
 
+  const isOn = vm.state === 'on';
+  const cpuData = Array.from({length: 20}, (_, i) => ({ t: i, v: isOn ? Math.max(0, (vm.cpu?.usage || 20) + (Math.random()-0.5)*10) : 0 }));
+
   return (
     <div className="fade-in">
       <div className="page-header">
@@ -57,25 +60,25 @@ export default function ServerDetail({ vms, metrics }) {
             <ArrowLeft size={14} />
           </button>
           <div>
-            <div className="page-title glow-text">{vm.name}</div>
-            <div className="page-subtitle">{vm.os} · {vm.ip}</div>
+            <div className="page-title glow-text">{vm.name} (VM VMware)</div>
+            <div className="page-subtitle">{vm.os} · {vm.ip || 'Pas d\'IP détectée'}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <span className={`status-badge ${vm.state === 'on' ? 'online' : 'offline'}`}>
-            {vm.state === 'on' ? 'OPÉRATIONNEL' : 'HORS LIGNE'}
+          <span className={`status-badge ${isOn ? 'online' : 'offline'}`}>
+            {isOn ? 'OPÉRATIONNEL' : 'HORS LIGNE'}
           </span>
-          <button className="btn btn-primary btn-sm"><Zap size={13} /> Actions</button>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('/actions')}>
+            <Zap size={13} /> Actions
+          </button>
         </div>
       </div>
 
       <div className="tabs-container">
         {[
           { id: 'overview', label: 'Vue d\'ensemble', icon: Activity },
-          { id: 'hardware', label: 'Hardware Physique', icon: Cpu },
-          { id: 'network', label: 'Interfaces Réseau', icon: Network },
-          { id: 'security', label: 'Sécurité & Logs', icon: Shield },
-          { id: 'config', label: 'Configuration', icon: Settings },
+          { id: 'hardware', label: 'Configuration VM', icon: Cpu },
+          { id: 'network', label: 'Réseau Virtuel', icon: Network },
         ].map(tab => (
           <div 
             key={tab.id}
@@ -91,94 +94,95 @@ export default function ServerDetail({ vms, metrics }) {
       {activeTab === 'overview' && (
         <div className="dashboard-grid">
           <div className="card glass-panel" style={{ gridColumn: 'span 2' }}>
-            <div className="card-title">Charge Temps Réel</div>
-            <div className="metric-grid" style={{ gridTemplateColumns: '1fr 1fr', padding: 0 }}>
-               <div className="metric-card" style={{ background: 'none', border: 'none' }}>
-                  <div className="metric-label">CPU</div>
-                  <div className="metric-value cpu-val">{vm.cpu?.usage ?? 0}%</div>
-                  <div className="progress-track"><div className={`progress-fill ${getProgressClass(vm.cpu?.usage ?? 0)}`} style={{ width: `${vm.cpu?.usage ?? 0}%` }} /></div>
+            <div className="card-title"><Activity size={13} /> Performance CPU de la VM</div>
+            
+            <div style={{ padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+               <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
+                 {isOn ? (vm.cpu?.usage || 0) : 0}% <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}>de charge actuelle</span>
                </div>
-               <div className="metric-card" style={{ background: 'none', border: 'none' }}>
-                  <div className="metric-label">RAM</div>
-                  <div className="metric-value ram-val">{vm.ram?.percent ?? 0}%</div>
-                  <div className="progress-track"><div className={`progress-fill ${getProgressClass(vm.ram?.percent ?? 0)}`} style={{ width: `${vm.ram?.percent ?? 0}%` }} /></div>
-               </div>
+               <div className="text-muted mt-1">{vm.cpu?.cores || 2} vCPUs alloués · Mode {vm.state === 'on' ? 'Temps Réel' : 'Statique'}</div>
             </div>
-            <div className="chart-wrapper" style={{ height: 180, marginTop: 24 }}>
+
+            <div className="chart-wrapper" style={{ height: 200, marginTop: 24 }}>
                <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={Array.from({length: 20}, (_, i) => ({ t: i, v: 20 + Math.random()*30 }))}>
-                   <Area type="monotone" dataKey="v" stroke="var(--accent)" fill="var(--accent-glow)" />
+                 <AreaChart data={cpuData}>
+                   <Area type="monotone" dataKey="v" stroke="var(--accent)" fill="var(--accent-glow)" isAnimationActive={false} />
                    <CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 3" />
                    <XAxis hide />
+                   <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickLine={false} axisLine={false} unit="%" />
                  </AreaChart>
                </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="card glass-panel">
-            <div className="card-title">Disques Locaux</div>
-            {vm.disk?.map((d, i) => (
-              <div key={i} style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                  <span>{d.mount}</span>
-                  <span className="text-muted">{d.percent}%</span>
-                </div>
-                <div className="progress-track"><div className="progress-fill low" style={{ width: `${d.percent}%` }} /></div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{formatBytes(d.used)} / {formatBytes(d.size)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card glass-panel">
+              <div className="card-title"><MemoryStick size={13} /> Mémoire Virtuelle (vRAM)</div>
+              <div style={{ fontSize: 32, fontWeight: 700, margin: '12px 0', color: isOn ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                {isOn ? (vm.ram?.percent || 0) : 0}%
               </div>
-            ))}
+              <div className="progress-track" style={{ marginBottom: 12 }}>
+                <div className={`progress-fill ${isOn ? 'accent' : ''}`} style={{ width: `${isOn ? (vm.ram?.percent || 0) : 0}%`, background: !isOn ? 'var(--border)' : undefined }} />
+              </div>
+              <div className="text-muted" style={{ fontSize: 11 }}>
+                {isOn ? `${formatBytes(vm.ram?.used)} utilisés` : 'VM éteinte - Ressources libérées'}
+              </div>
+            </div>
+
+            <div className="card glass-panel">
+              <div className="card-title"><HardDrive size={13} /> Stockage vDisk</div>
+              {vm.disk && vm.disk.length > 0 ? vm.disk.map((d, i) => (
+                <div key={i} style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span>{d.mount}</span>
+                    <span className="text-muted">{d.percent}%</span>
+                  </div>
+                  <div className="progress-track"><div className="progress-fill low" style={{ width: `${d.percent}%` }} /></div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{formatBytes(d.used)} / {formatBytes(d.size)}</div>
+                </div>
+              )) : (
+                <div className="text-muted" style={{ fontSize: 11, textAlign: 'center', padding: '20px 0' }}>
+                  <Shield size={24} style={{ opacity: 0.2, marginBottom: 8 }} />
+                  <br/>Informations disque non disponibles pour cette VM.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {activeTab === 'hardware' && (
         <div className="card glass-panel fade-in">
-          <div className="card-title">Détails du Matériel Physique</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+          <div className="card-title">Configuration Matérielle Virtuelle (VMX)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, padding: '10px 0' }}>
             <div>
-              <HardwareInfoLine label="Processeur" value={vm.cpu?.model || 'Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz'} icon={Cpu} />
-              <HardwareInfoLine label="Cœurs Logiques" value={`${vm.cpu?.cores || 4} vCPUs`} icon={Activity} />
-              <HardwareInfoLine label="Sockets" value="1 Socket détecté" icon={Zap} />
-              <HardwareInfoLine label="Architecture" value="x64 - Little Endian" icon={Settings} />
+              <HardwareInfoLine label="Processeur Virtuel" value={`${vm.cpu?.cores || 2} vCPUs`} icon={Cpu} />
+              <HardwareInfoLine label="Type d'OS Invité" value={vm.os || 'Inconnu'} icon={Monitor} />
+              <HardwareInfoLine label="Architecture" value="x64 - VMware Virtual Platform" icon={Settings} />
             </div>
             <div>
-              <HardwareInfoLine label="Mémoire Totale" value={formatBytes(vm.ram?.total)} icon={MemoryStick} />
-              <HardwareInfoLine label="Type de RAM" value="DDR4 Synchronous 2666 MHz" icon={MemoryStick} />
-              <HardwareInfoLine label="BIOS Version" value="SBEE-v2.1.0-HP" icon={Shield} />
-              <HardwareInfoLine label="Fabricant" value="VMware, Inc. / HP Enterprise" icon={Monitor} />
+              <HardwareInfoLine label="Mémoire Allouée" value={vm.ram?.total ? formatBytes(vm.ram.total) : '2.0 GB'} icon={MemoryStick} />
+              <HardwareInfoLine label="Version VMware Tools" value={isOn ? 'Installé (v12.4.0)' : 'Non détecté'} icon={Shield} />
+              <HardwareInfoLine label="Chemin VMX" value={vm.path?.split('\\').pop() || 'config.vmx'} icon={HardDrive} />
             </div>
-          </div>
-          
-          <div style={{ marginTop: 32 }}>
-            <div className="card-title" style={{ fontSize: 10 }}>Top Processus (Consommation)</div>
-            <table className="vm-table" style={{ marginTop: 12 }}>
-              <thead>
-                <tr><th>PID</th><th>Processus</th><th>Utilisateur</th><th>CPU</th><th>RAM</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>4122</td><td>sqlservr.exe</td><td>SYSTEM</td><td>12.4%</td><td>1.2 GB</td></tr>
-                <tr><td>1054</td><td>Explorer.EXE</td><td>DOMAIN/Admin</td><td>2.1%</td><td>450 MB</td></tr>
-                <tr><td>882</td><td>WmiPrvSE.exe</td><td>NETWORK SERVICE</td><td>1.8%</td><td>64 MB</td></tr>
-              </tbody>
-            </table>
           </div>
         </div>
       )}
 
       {activeTab === 'network' && (
         <div className="card glass-panel fade-in">
-          <div className="card-title">Adaptateurs Réseau & Débits</div>
+          <div className="card-title">Adaptateurs Réseau Virtuels (vNIC)</div>
           <table className="vm-table">
             <thead>
-              <tr><th>Interface</th><th>Adresse MAC</th><th>IPv4</th><th>VLAN</th><th>Débit Sortant</th></tr>
+              <tr><th>Interface</th><th>Mode</th><th>IPv4</th><th>VLAN/Switch</th><th>Statut</th></tr>
             </thead>
             <tbody>
               <tr>
-                <td><div className="flex" style={{ gap: 8, alignItems: 'center' }}><Network size={14} /> Ethernet 0</div></td>
-                <td className="mono">00:50:56:8b:2d:af</td>
-                <td className="mono">{vm.ip}</td>
-                <td>VLAN-SERVERS</td>
-                <td style={{ color: 'var(--success)' }}>12.4 Mbps</td>
+                <td><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Network size={14} /> vNet Adapter 0</div></td>
+                <td>NAT / Bridged</td>
+                <td className="mono">{vm.ip || 'Attente DHCP...'}</td>
+                <td>VM Network (Default)</td>
+                <td><span className={`status-badge ${isOn ? 'online' : 'offline'}`}>{isOn ? 'Connecté' : 'Câble débranché'}</span></td>
               </tr>
             </tbody>
           </table>
@@ -187,3 +191,4 @@ export default function ServerDetail({ vms, metrics }) {
     </div>
   );
 }
+
