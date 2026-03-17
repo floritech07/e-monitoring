@@ -6,8 +6,10 @@ const history = {
   ram: [],
   netRx: [],
   netTx: [],
-  timestamps: []
+  timestamps: [],
+  vms: {} // Map of vmId -> { cpu: [], ram: [] }
 };
+
 
 const MAX_HISTORY = 1000;
 
@@ -131,4 +133,25 @@ async function getHostMetrics() {
   };
 }
 
-module.exports = { getHostMetrics };
+function updateVMHistory(vms) {
+  if (!vms) return;
+  vms.forEach(vm => {
+    if (!history.vms[vm.id]) {
+      history.vms[vm.id] = { cpu: [], ram: [] };
+    }
+    history.vms[vm.id].cpu.push(vm.cpu?.usage || 0);
+    history.vms[vm.id].ram.push(vm.ram?.percent || 0);
+    
+    if (history.vms[vm.id].cpu.length > MAX_HISTORY) {
+      history.vms[vm.id].cpu.shift();
+      history.vms[vm.id].ram.shift();
+    }
+  });
+}
+
+function getVMHistory(vmId) {
+  return history.vms[vmId] || { cpu: [], ram: [] };
+}
+
+module.exports = { getHostMetrics, updateVMHistory, getVMHistory };
+

@@ -117,12 +117,22 @@ cron.schedule('*/3 * * * * *', async () => {
   try {
     const metrics = await metricsService.getHostMetrics();
     const vms = await vmwareService.listVMs();
-    const alerts = alertsService.evaluate(metrics, vms);
-    io.emit('metrics_update', { metrics, vms, alerts, timestamp: Date.now() });
+    
+    // Update individual VM history and attach it
+    metricsService.updateVMHistory(vms);
+    const vmsWithHistory = vms.map(vm => ({
+      ...vm,
+      history: metricsService.getVMHistory(vm.id)
+    }));
+    
+    const alerts = alertsService.evaluate(metrics, vmsWithHistory);
+    io.emit('metrics_update', { metrics, vms: vmsWithHistory, alerts, timestamp: Date.now() });
+
   } catch (e) {
     console.error('Broadcast error:', e.message);
   }
 });
+
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`SBEE Monitor backend running on port ${PORT}`));

@@ -61,13 +61,16 @@ export default function ServerDetail({ vms, metrics }) {
   if (!vm) return <div className="empty-state">Machine virtuelle introuvable.</div>;
 
   const isOn = vm.state === 'on';
-  const chartData = Array.from({length: 30}, (_, i) => ({
-    t: i,
-    CPU: isOn ? Math.max(0, (vm.cpu?.usage || 10) + (Math.random()-0.5)*15) : 0,
-    RAM: isOn ? Math.max(0, (vm.ram?.percent || 20) + (Math.random()-0.5)*10) : 0,
-    RX: isOn ? Math.floor(Math.random() * 5) : 0,
+  
+  // Construct real chart data based on history sent by backend
+  const chartData = (vm.history?.cpu || []).map((val, i) => ({
+    time: metrics?.timestamps?.[i] || '--:--',
+    CPU: val,
+    RAM: vm.history?.ram?.[i] || 0,
+    RX: isOn ? Math.floor(Math.random() * 5) : 0, // Simulated network as not tracked yet
     TX: isOn ? Math.floor(Math.random() * 2) : 0
-  }));
+  })).slice(-30); // Show last 30 points
+
 
   return (
     <div className="fade-in server-detail-dashboard">
@@ -202,8 +205,16 @@ export default function ServerDetail({ vms, metrics }) {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis hide />
+                    <XAxis 
+                      dataKey="time" 
+                      hide={false} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
+                      interval={Math.floor(chartData.length / 5)}
+                    />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
+
                     <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
                     <Area type="monotone" dataKey="CPU" stroke="#4f8ef7" strokeWidth={3} fill="url(#pCPU)" isAnimationActive={false} />
                     <Area type="monotone" dataKey="RAM" stroke="#22d3a3" strokeWidth={3} fill="url(#pRAM)" isAnimationActive={false} />
@@ -219,8 +230,16 @@ export default function ServerDetail({ vms, metrics }) {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis hide />
+                    <XAxis 
+                      dataKey="time" 
+                      hide={false} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
+                      interval={Math.floor(chartData.length / 5)}
+                    />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit=" Mb" />
+
                     <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
                     <Area type="monotone" dataKey="RX" stroke="#f59c23" fill="rgba(245, 156, 35, 0.1)" isAnimationActive={false} />
                     <Area type="monotone" dataKey="TX" stroke="#a78bfa" fill="rgba(167, 139, 250, 0.1)" isAnimationActive={false} />
