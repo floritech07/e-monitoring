@@ -78,10 +78,11 @@ export default function ServerDetail({ vms, metrics }) {
       time: timeLabel,
       CPU: val,
       RAM: vmRamHistory[i] || 0,
-      RX: isOn ? Math.floor(Math.random() * 8) + 1 : 0, // Simulated net
-      TX: isOn ? Math.floor(Math.random() * 3) + 1 : 0
+      RX: parseFloat(((vm.history?.netRx?.[i] || 0) / 1024 / 1024).toFixed(2)),
+      TX: parseFloat(((vm.history?.netTx?.[i] || 0) / 1024 / 1024).toFixed(2))
     };
   }).slice(-30);
+
 
   // If we have no history yet, show a loading placeholder in the chart
   const hasData = chartData.length > 0;
