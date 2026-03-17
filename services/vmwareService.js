@@ -36,29 +36,41 @@ async function getInventory() {
     const inventory = [];
 
     // Simple parser for vmlistX.config = "path"
-    lines.forEach(line => {
+    for (const line of lines) {
       if (line.includes('.config =')) {
         const match = line.match(/\.config\s*=\s*"(.+?)"/);
         if (match && match[1]) {
           const vmxPath = match[1];
+          if (!fs.existsSync(vmxPath)) continue;
+
+          let guestOS = 'Inconnu';
+          try {
+            const vmxContent = fs.readFileSync(vmxPath, 'utf8');
+            const osMatch = vmxContent.match(/guestOS\s*=\s*"(.+?)"/);
+            if (osMatch) guestOS = osMatch[1];
+          } catch (err) {
+            console.warn(`Impossible de lire le vmx: ${vmxPath}`);
+          }
+
           const name = path.basename(vmxPath, '.vmx');
           inventory.push({
-            id: Buffer.from(vmxPath).toString('base64').substring(0, 10), // Short stable ID
+            id: Buffer.from(vmxPath).toString('base64').substring(0, 10),
             name: name,
             path: vmxPath,
             state: 'off',
-            os: 'Inconnu', // Could try to parse .vmx but complex
+            os: guestOS,
             ip: 'N/A'
           });
         }
       }
-    });
+    }
     return inventory;
   } catch (e) {
     console.error('Erreur inventaire VMware:', e.message);
     return [];
   }
 }
+
 
 /**
  * Maps running VMX processes to real system metrics.
