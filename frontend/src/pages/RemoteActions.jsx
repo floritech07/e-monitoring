@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { 
   Zap, Play, Square, RefreshCw, PauseCircle, Camera, Power, 
   PowerOff, HardDrive, CheckCircle, XCircle, Loader, 
-  Monitor, Cpu, Activity, LayoutGrid, Terminal, ShieldAlert 
+  Monitor, Cpu, Activity, LayoutGrid, Terminal, ShieldAlert,
+  AlertTriangle 
 } from 'lucide-react';
+
 import { api } from '../api';
 import Modal from '../components/Modal';
 
