@@ -25,9 +25,10 @@ function VMActionCard({ vm, onAction }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
 
-  async function executeAction() {
-    if (!pendingAction) return;
-    const { action, label } = pendingAction;
+  async function executeAction(actionOverride = null) {
+    const actionData = actionOverride || pendingAction;
+    if (!actionData) return;
+    const { action, label } = actionData;
     
     setLoading(action);
     setResult(null);
@@ -48,13 +49,14 @@ function VMActionCard({ vm, onAction }) {
   }
 
   function requestAction(action, label) {
+    const actionData = { action, label };
     // Critical actions require confirmation
     if (action === 'stop' || action === 'restart') {
-      setPendingAction({ action, label });
+      setPendingAction(actionData);
       setModalOpen(true);
     } else {
-      setPendingAction({ action, label });
-      executeAction();
+      setPendingAction(actionData);
+      executeAction(actionData);
     }
   }
 
@@ -147,7 +149,7 @@ function VMActionCard({ vm, onAction }) {
       <Modal 
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)}
-        onConfirm={executeAction}
+        onConfirm={() => executeAction({ ...pendingAction, action: pendingAction?.action === 'stop' ? 'stop_hard' : pendingAction?.action })}
         title="Confirmation Critique"
         message={`Vous êtes sur le point d'envoyer la commande [${pendingAction?.label.toUpperCase()}] à la machine "${vm.name}".\n\nCette action peut entraîner une perte de données non sauvegardées sur le système invité.`}
         confirmLabel={pendingAction?.label === 'Arrêter' ? 'Forcer l\'arrêt' : 'Appliquer l\'action'}

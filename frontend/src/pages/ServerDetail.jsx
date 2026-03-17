@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Cpu, MemoryStick, HardDrive, Activity, 
-  Monitor, Shield, Network, Zap, Settings, Info 
+  Monitor, Shield, Network, Zap, Settings, Info,
+  Power, Square, RefreshCw, Loader, CheckCircle, XCircle
 } from 'lucide-react';
+import { api } from '../api';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
@@ -56,9 +58,35 @@ const MetricCircle = ({ value, label, subLabel, color, icon: Icon }) => {
 export default function ServerDetail({ vms, metrics }) {
   const { vmId } = useParams();
   const navigate = useNavigate();
+  const [actionLoading, setActionLoading] = useState(null);
+  const [actionResult, setActionResult] = useState(null);
   const vm = vms.find(v => v.id === vmId);
 
+  useEffect(() => {
+    if (actionResult) {
+      const timer = setTimeout(() => setActionResult(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionResult]);
+
   if (!vm) return <div className="empty-state">Machine virtuelle introuvable.</div>;
+
+  async function handleAction(action, label) {
+    setActionLoading(action);
+    setActionResult(null);
+    try {
+      const res = await api.vmAction(vm.id, action);
+      if (res.success) {
+        setActionResult({ success: true, message: `Action "${label}" réussie` });
+      } else {
+        setActionResult({ success: false, message: res.error || 'Échec de l\'action' });
+      }
+    } catch (err) {
+      setActionResult({ success: false, message: `Erreur: ${err.message}` });
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   const isOn = vm.state === 'on';
   
@@ -148,15 +176,52 @@ export default function ServerDetail({ vms, metrics }) {
                </div>
                
                <div style={{ marginTop: 28 }}>
-                 <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 14 }}>Actions Pré-configurées</div>
+                 <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 14 }}>Contrôle de l'Instance</div>
                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <button className="btn btn-ghost btn-sm" style={{ border: '1px solid var(--success-bg)', color: 'var(--success)', justifyContent: 'center' }} onClick={() => navigate('/actions')}>
-                      <Zap size={14} /> Power On
-                    </button>
-                    <button className="btn btn-ghost btn-sm" style={{ justifyContent: 'center' }} onClick={() => navigate('/actions')}>
-                      <Settings size={14} /> Paramètres
+                    {!isOn ? (
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ border: '1px solid var(--success-bg)', color: 'var(--success)', justifyContent: 'center' }} 
+                        onClick={() => handleAction('start', 'Démarrage')}
+                        disabled={!!actionLoading}
+                      >
+                        {actionLoading === 'start' ? <Loader size={14} className="rotate-animation" /> : <Zap size={14} />}
+                        Démarrer
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ border: '1px solid var(--danger-bg)', color: 'var(--danger)', justifyContent: 'center' }} 
+                        onClick={() => handleAction('stop', 'Arrêt')}
+                        disabled={!!actionLoading}
+                      >
+                        {actionLoading === 'stop' ? <Loader size={14} className="rotate-animation" /> : <Square size={14} />}
+                        Éteindre
+                      </button>
+                    )}
+                    <button 
+                      className="btn btn-ghost btn-sm" 
+                      style={{ justifyContent: 'center' }} 
+                      onClick={() => handleAction('restart', 'Redémarrage')}
+                      disabled={!isOn || !!actionLoading}
+                    >
+                      {actionLoading === 'restart' ? <Loader size={14} className="rotate-animation" /> : <RefreshCw size={14} />}
+                      Relancer
                     </button>
                  </div>
+                 
+                 {actionResult && (
+                   <div style={{ 
+                     marginTop: 12, padding: '8px 12px', borderRadius: 6, fontSize: 11,
+                     display: 'flex', alignItems: 'center', gap: 8,
+                     background: actionResult.success ? 'rgba(34, 211, 163, 0.1)' : 'rgba(242, 62, 66, 0.1)',
+                     color: actionResult.success ? 'var(--success)' : 'var(--danger)',
+                     border: `1px solid ${actionResult.success ? 'rgba(34, 211, 163, 0.2)' : 'rgba(242, 62, 66, 0.2)'}`
+                   }}>
+                     {actionResult.success ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                     {actionResult.message}
+                   </div>
+                 )}
                </div>
             </div>
           </div>

@@ -194,12 +194,13 @@ async function performAction(vmId, action) {
   let cmd = '';
   const target = `"${vm.path}"`;
 
-  switch (action) {
-    case 'start':   cmd = `start ${target}`; break;
 
-    case 'stop':    cmd = `stop ${target} soft`; break;
-    case 'restart': cmd = `reset ${target} soft`; break;
-    case 'suspend': cmd = `suspend ${target} soft`; break;
+  switch (action) {
+    case 'start':     cmd = `start ${target}`; break;
+    case 'stop':      cmd = `stop ${target} soft`; break;
+    case 'stop_hard': cmd = `stop ${target} hard`; break;
+    case 'restart':   cmd = `reset ${target} soft`; break;
+    case 'suspend':   cmd = `suspend ${target} soft`; break;
     default: return { success: false, error: 'Action invalide' };
   }
 
