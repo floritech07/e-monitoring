@@ -12,6 +12,14 @@ const INVENTORY_PATH = path.join(process.env.APPDATA, 'VMware', 'inventory.vmls'
 // Shared state for VM data
 let cachedVMs = [];
 
+// Helper to normalize Windows paths for comparison
+function normalizePath(p) {
+  if (!p) return '';
+  // Convert to absolute-like format, lowercase, forward slashes, and trim
+  return p.replace(/\\/g, '/').toLowerCase().trim();
+}
+
+
 function runVmrun(command) {
   return new Promise((resolve, reject) => {
     const cmd = `${VMRUN_PATH} -T ws ${command}`;
@@ -52,8 +60,8 @@ async function getInventory() {
             console.warn(`Impossible de lire le vmx: ${vmxPath}`);
           }
 
-          const name = path.basename(vmxPath, '.vmx');
           const normPath = normalizePath(vmxPath);
+          const name = path.basename(vmxPath).replace(/\.vmx$/i, '');
           
           // Filtrage : On ignore l'Hyperviseur ESXI comme demandé
           if (name.toLowerCase().includes('esxi')) continue;
@@ -62,10 +70,12 @@ async function getInventory() {
             id: Buffer.from(normPath).toString('base64').substring(0, 10),
             name: name,
             path: vmxPath,
+            normPath: normPath,
             state: 'off',
             os: guestOS,
             ip: 'N/A'
           });
+
 
 
         }
@@ -97,57 +107,52 @@ async function getVMMetrics() {
   }));
 }
 
-// Helper to normalize Windows paths for comparison
-function normalizePath(p) {
-  if (!p) return '';
-  return path.resolve(p).toLowerCase().replace(/\\/g, '/').trim();
-}
-
 async function listVMs() {
   try {
     const inventory = await getInventory();
     const runningOutput = await runVmrun('list');
+    
+    // Normalize all running paths
     const runningPaths = runningOutput.split('\n')
-      .filter(l => l.includes('.vmx'))
-      .map(p => p.trim());
+      .filter(l => l.toLowerCase().includes('.vmx'))
+      .map(p => normalizePath(p.trim()));
+      
     const processStats = await getVMMetrics();
 
-    const vms = inventory
-      .filter(vm => !vm.name.toLowerCase().includes('esxi')) // Final filter for ESXI
-      .map(vm => {
-        const normVmPath = normalizePath(vm.path);
-        const isRunning = runningPaths.some(p => normalizePath(p) === normVmPath);
-        const state = isRunning ? 'on' : 'off';
-        
-        const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
-        const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 1)) : 0;
-        const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 512 * 1024 * 1024) : 0;
-        
-        return {
-          ...vm,
-          state,
-          cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
-          ram: { 
-            used: ramUsed, 
-            total: 4 * 1024 * 1024 * 1024, 
-            percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
-          },
-          disk: [{ mount: 'C:', percent: 40, used: 20 * 1024**3, size: 50 * 1024**3 }]
-        };
-      });
+    // 1. Process inventory VMs
+    const vms = inventory.map(vm => {
+      const isRunning = runningPaths.includes(vm.normPath);
+      const state = isRunning ? 'on' : 'off';
+      
+      // Attempt to find metrics
+      const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
+      const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 2)) : 0;
+      const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 1024 * 1024 * 1024) : 0;
+      
+      return {
+        ...vm,
+        state,
+        cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
+        ram: { 
+          used: ramUsed, 
+          total: 4 * 1024 * 1024 * 1024, 
+          percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
+        },
+        disk: [{ mount: 'C:', percent: 12, used: 10 * 1024**3, size: 80 * 1024**3 }]
+      };
+    });
 
-    // Handle VMs that are running but NOT in inventory
+    // 2. Add running VMs that are NOT in inventory
     runningPaths.forEach(rp => {
-       const normRp = normalizePath(rp);
-       const name = path.basename(rp, '.vmx');
-       
-       if (name.toLowerCase().includes('esxi')) return; // Ensure ESXI is never shown
-       
-       if (!vms.some(v => normalizePath(v.path) === normRp)) {
+       if (!vms.some(v => v.normPath === rp)) {
+         const name = path.basename(rp).replace(/\.vmx$/i, '');
+         if (name.toLowerCase().includes('esxi')) return;
+
          vms.push({
-           id: Buffer.from(normRp).toString('base64').substring(0, 10),
+           id: Buffer.from(rp).toString('base64').substring(0, 10),
            name: name,
            path: rp,
+           normPath: rp,
            state: 'on',
            cpu: { usage: 2, cores: 2 },
            ram: { used: 1024**3, total: 4*1024**3, percent: 25 },
@@ -157,13 +162,15 @@ async function listVMs() {
        }
     });
 
-    cachedVMs = vms;
-    return vms;
+    // Final clean up and cache
+    cachedVMs = vms.filter(v => v.name && !v.name.toLowerCase().includes('esxi'));
+    return cachedVMs;
   } catch (e) {
     console.error('VM list error:', e.message);
     return cachedVMs;
   }
 }
+
 
 
 async function performAction(vmId, action) {
