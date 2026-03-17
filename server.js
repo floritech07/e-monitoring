@@ -42,11 +42,20 @@ app.post('/api/vms/:id/action', async (req, res) => {
   try {
     const { action } = req.body;
     const result = await vmwareService.performAction(req.params.id, action);
+    
+    if (result.success) {
+      // Log the action to the activity stream
+      const vms = await vmwareService.listVMs();
+      const vm = vms.find(v => v.id === req.params.id);
+      alertsService.addAlert('info', 'vm', `Cde [${action.toUpperCase()}] envoyée à la VM "${vm ? vm.name : req.params.id}"`, req.params.id);
+    }
+    
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 app.post('/api/host/action', (req, res) => {
   const { action } = req.body;

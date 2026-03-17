@@ -119,14 +119,22 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
   const [activityLogs, setActivityLogs] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  // Merge system logs from metrics and local activity logs
+  // Merge system logs from metrics, alerts, and local activity logs
   const displayLogs = useMemo(() => {
     const sysLogs = metrics?.logs || [];
-    return [...activityLogs, ...sysLogs].sort((a, b) => {
-      // Very rough sorting, real logs already come sorted by newest first
+    const alertLogs = alerts.map(a => ({
+      id: a.id,
+      time: new Date(a.timestamp).toLocaleTimeString('fr-FR'),
+      msg: a.message,
+      type: a.level
+    }));
+    
+    return [...activityLogs, ...alertLogs, ...sysLogs].sort((a, b) => {
+      // Very rough sorting by time if available, otherwise preserve order
       return 0; 
     }).slice(0, 20);
-  }, [metrics?.logs, activityLogs]);
+  }, [metrics?.logs, alerts, activityLogs]);
+
 
   const parseRangeToSeconds = (range) => {
     const value = parseInt(range);

@@ -78,11 +78,24 @@ function VMActionCard({ vm, onAction }) {
         </div>
 
         <div className="vm-badges">
+          {isOn && (
+            <div className="vm-mini-stats">
+              <div className="vms-stat">
+                <Cpu size={10} />
+                <span>{vm.cpu?.usage}%</span>
+              </div>
+              <div className="vms-stat">
+                <Activity size={10} />
+                <span>{vm.ram?.percent}%</span>
+              </div>
+            </div>
+          )}
           <div className={`status-badge-premium ${isOn ? 'online' : isSuspended ? 'suspended' : 'offline'}`}>
             <div className="dot" />
             {isOn ? 'ACTIF' : isSuspended ? 'SUSPENDU' : 'ARRÊTÉ'}
           </div>
         </div>
+
       </div>
 
       <div className="vm-action-controls">

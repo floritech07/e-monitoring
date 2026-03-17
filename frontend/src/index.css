@@ -1376,6 +1376,30 @@ html.light-mode .nav-item.active { background: rgba(58,123,232,0.1); }
 
 .term-line { margin-bottom: 6px; font-size: 12px; }
 .term-prompt { color: #f5a623; }
+
+.vm-mini-stats {
+  display: flex;
+  gap: 8px;
+  margin-right: 12px;
+}
+
+.vms-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.vms-stat svg {
+  color: var(--accent);
+}
+
 .term-cursor {
   display: inline-block;
   width: 8px;
