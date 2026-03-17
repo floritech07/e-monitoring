@@ -63,13 +63,28 @@ export default function ServerDetail({ vms, metrics }) {
   const isOn = vm.state === 'on';
   
   // Construct real chart data based on history sent by backend
-  const chartData = (vm.history?.cpu || []).map((val, i) => ({
-    time: metrics?.timestamps?.[i] || '--:--',
-    CPU: val,
-    RAM: vm.history?.ram?.[i] || 0,
-    RX: isOn ? Math.floor(Math.random() * 5) : 0, // Simulated network as not tracked yet
-    TX: isOn ? Math.floor(Math.random() * 2) : 0
-  })).slice(-30); // Show last 30 points
+  // We align the VM history with the most recent timestamps from the host
+  const vmCpuHistory = vm.history?.cpu || [];
+  const vmRamHistory = vm.history?.ram || [];
+  const hostTimestamps = metrics?.timestamps || [];
+  
+  const chartData = vmCpuHistory.map((val, i) => {
+    // Aligner avec la fin des timestamps de l'hôte
+    const tsIdx = hostTimestamps.length - vmCpuHistory.length + i;
+    const ts = hostTimestamps[tsIdx];
+    const timeLabel = ts ? new Date(ts).toLocaleTimeString('fr-FR') : '--:--';
+    
+    return {
+      time: timeLabel,
+      CPU: val,
+      RAM: vmRamHistory[i] || 0,
+      RX: isOn ? Math.floor(Math.random() * 8) + 1 : 0, // Simulated net
+      TX: isOn ? Math.floor(Math.random() * 3) + 1 : 0
+    };
+  }).slice(-30);
+
+  // If we have no history yet, show a loading placeholder in the chart
+  const hasData = chartData.length > 0;
 
 
   return (
@@ -183,7 +198,7 @@ export default function ServerDetail({ vms, metrics }) {
           </div>
 
           {/* Graphique CPU/RAM combiné */}
-          <div className="card glass-panel" style={{ padding: 24 }}>
+          <div className="card glass-panel" style={{ padding: 24, minHeight: 350, display: 'flex', flexDirection: 'column' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div className="card-title" style={{ margin: 0 }}><Activity size={13} /> Synthèse Performance</div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 11, fontWeight: 700 }}>
@@ -191,62 +206,74 @@ export default function ServerDetail({ vms, metrics }) {
                    <span style={{ color: '#22d3a3' }}>● RAM</span>
                 </div>
              </div>
-             <div style={{ height: 280 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="pRAM" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22d3a3" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#22d3a3" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis 
-                      dataKey="time" 
-                      hide={false} 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
-                      interval={Math.floor(chartData.length / 5)}
-                    />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
-
-                    <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
-                    <Area type="monotone" dataKey="CPU" stroke="#4f8ef7" strokeWidth={3} fill="url(#pCPU)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="RAM" stroke="#22d3a3" strokeWidth={3} fill="url(#pRAM)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+             <div style={{ flex: 1, position: 'relative' }}>
+                {!hasData ? (
+                  <div className="empty-state" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                    <div className="loading-spin-sm" style={{ marginBottom: 12 }} />
+                    <div style={{ fontSize: 11 }}>Acquisition des données en cours...</div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="pRAM" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22d3a3" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#22d3a3" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                      <XAxis 
+                        dataKey="time" 
+                        hide={false} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
+                        interval={Math.max(0, Math.floor(chartData.length / 5))}
+                      />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
+                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
+                      <Area type="monotone" dataKey="CPU" stroke="#4f8ef7" strokeWidth={3} fill="url(#pCPU)" isAnimationActive={false} />
+                      <Area type="monotone" dataKey="RAM" stroke="#22d3a3" strokeWidth={3} fill="url(#pRAM)" isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
              </div>
           </div>
 
           {/* Graphique Réseau */}
-          <div className="card glass-panel" style={{ padding: 24 }}>
+          <div className="card glass-panel" style={{ padding: 24, minHeight: 230, display: 'flex', flexDirection: 'column' }}>
              <div className="card-title"><Network size={13} /> Trafic Réseau Virtuel</div>
-             <div style={{ height: 160 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis 
-                      dataKey="time" 
-                      hide={false} 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
-                      interval={Math.floor(chartData.length / 5)}
-                    />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit=" Mb" />
-
-                    <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
-                    <Area type="monotone" dataKey="RX" stroke="#f59c23" fill="rgba(245, 156, 35, 0.1)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="TX" stroke="#a78bfa" fill="rgba(167, 139, 250, 0.1)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+             <div style={{ flex: 1, position: 'relative' }}>
+                {!hasData ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 10, color: 'var(--text-muted)' }}>
+                    Synchronisation flux réseau...
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                      <XAxis 
+                        dataKey="time" 
+                        hide={false} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 10, fill: 'var(--text-muted)'}} 
+                        interval={Math.max(0, Math.floor(chartData.length / 5))}
+                      />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit=" Mb" />
+                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 11 }} />
+                      <Area type="monotone" dataKey="RX" stroke="#f59c23" fill="rgba(245, 156, 35, 0.1)" isAnimationActive={false} />
+                      <Area type="monotone" dataKey="TX" stroke="#a78bfa" fill="rgba(167, 139, 250, 0.1)" isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
              </div>
           </div>
+
 
         </div>
 
