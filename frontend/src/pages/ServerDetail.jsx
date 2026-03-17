@@ -207,14 +207,14 @@ export default function ServerDetail({ vms, metrics }) {
                    <span style={{ color: '#22d3a3' }}>● RAM</span>
                 </div>
              </div>
-             <div style={{ flex: 1, position: 'relative' }}>
+             <div className="chart-container" style={{ flex: 1, position: 'relative', minHeight: 280 }}>
                 {!hasData ? (
-                  <div className="empty-state" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                  <div className="empty-state" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.01)', borderRadius: 12 }}>
                     <div className="loading-spin-sm" style={{ marginBottom: 12 }} />
-                    <div style={{ fontSize: 11 }}>Acquisition des données en cours...</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Synchronisation du flux matériel ({vm.name})...</div>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="99%" height="99%">
                     <AreaChart data={chartData}>
                       <defs>
                         <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
@@ -248,13 +248,13 @@ export default function ServerDetail({ vms, metrics }) {
           {/* Graphique Réseau */}
           <div className="card glass-panel" style={{ padding: 24, minHeight: 230, display: 'flex', flexDirection: 'column' }}>
              <div className="card-title"><Network size={13} /> Trafic Réseau Virtuel</div>
-             <div style={{ flex: 1, position: 'relative' }}>
+             <div className="chart-container" style={{ flex: 1, position: 'relative', minHeight: 160 }}>
                 {!hasData ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 10, color: 'var(--text-muted)' }}>
-                    Synchronisation flux réseau...
+                    Acquisition du trafic réseau...
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="99%" height="99%">
                     <AreaChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                       <XAxis 
@@ -274,6 +274,7 @@ export default function ServerDetail({ vms, metrics }) {
                 )}
              </div>
           </div>
+
 
 
         </div>

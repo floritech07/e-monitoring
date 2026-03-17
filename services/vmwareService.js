@@ -53,18 +53,20 @@ async function getInventory() {
           }
 
           const name = path.basename(vmxPath, '.vmx');
+          const normPath = normalizePath(vmxPath);
           
           // Filtrage : On ignore l'Hyperviseur ESXI comme demandé
           if (name.toLowerCase().includes('esxi')) continue;
 
           inventory.push({
-            id: Buffer.from(vmxPath).toString('base64').substring(0, 10),
+            id: Buffer.from(normPath).toString('base64').substring(0, 10),
             name: name,
             path: vmxPath,
             state: 'off',
             os: guestOS,
             ip: 'N/A'
           });
+
 
         }
       }
@@ -95,49 +97,62 @@ async function getVMMetrics() {
   }));
 }
 
+// Helper to normalize Windows paths for comparison
+function normalizePath(p) {
+  if (!p) return '';
+  return path.resolve(p).toLowerCase().replace(/\\/g, '/').trim();
+}
+
 async function listVMs() {
   try {
     const inventory = await getInventory();
     const runningOutput = await runVmrun('list');
-    const runningPaths = runningOutput.split('\n').filter(l => l.includes('.vmx'));
+    const runningPaths = runningOutput.split('\n')
+      .filter(l => l.includes('.vmx'))
+      .map(p => p.trim());
     const processStats = await getVMMetrics();
 
-    const vms = inventory.map(vm => {
-      const isRunning = runningPaths.some(p => p.toLowerCase() === vm.path.toLowerCase());
-      const state = isRunning ? 'on' : 'off';
-      
-      // Try to match stats. Search for the vmx path in the command line of processes
-      const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
-      
-      const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 1)) : 0;
-      const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 512 * 1024 * 1024) : 0;
-      
-      return {
-        ...vm,
-        state,
-        cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
-        ram: { 
-          used: ramUsed, 
-          total: 4 * 1024 * 1024 * 1024, 
-          percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
-        },
-        // Placeholder disk data since vmrun doesn't provide it
-        disk: [{ mount: 'C:', percent: 40, used: 20 * 1024**3, size: 50 * 1024**3 }]
-      };
-    });
+    const vms = inventory
+      .filter(vm => !vm.name.toLowerCase().includes('esxi')) // Final filter for ESXI
+      .map(vm => {
+        const normVmPath = normalizePath(vm.path);
+        const isRunning = runningPaths.some(p => normalizePath(p) === normVmPath);
+        const state = isRunning ? 'on' : 'off';
+        
+        const stats = processStats.find(s => s.name.toLowerCase().includes(vm.name.toLowerCase()));
+        const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 1)) : 0;
+        const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 512 * 1024 * 1024) : 0;
+        
+        return {
+          ...vm,
+          state,
+          cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
+          ram: { 
+            used: ramUsed, 
+            total: 4 * 1024 * 1024 * 1024, 
+            percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
+          },
+          disk: [{ mount: 'C:', percent: 40, used: 20 * 1024**3, size: 50 * 1024**3 }]
+        };
+      });
 
-    // Handle VMs that are running but NOT in inventory (manual starts)
+    // Handle VMs that are running but NOT in inventory
     runningPaths.forEach(rp => {
-       if (!vms.some(v => v.path.toLowerCase() === rp.toLowerCase())) {
-         const name = path.basename(rp, '.vmx');
+       const normRp = normalizePath(rp);
+       const name = path.basename(rp, '.vmx');
+       
+       if (name.toLowerCase().includes('esxi')) return; // Ensure ESXI is never shown
+       
+       if (!vms.some(v => normalizePath(v.path) === normRp)) {
          vms.push({
-           id: Buffer.from(rp).toString('base64').substring(0, 10),
+           id: Buffer.from(normRp).toString('base64').substring(0, 10),
            name: name,
            path: rp,
            state: 'on',
            cpu: { usage: 2, cores: 2 },
            ram: { used: 1024**3, total: 4*1024**3, percent: 25 },
-           ip: 'Détection...'
+           ip: 'Détection...',
+           os: 'Inconnu'
          });
        }
     });
@@ -146,9 +161,10 @@ async function listVMs() {
     return vms;
   } catch (e) {
     console.error('VM list error:', e.message);
-    return cachedVMs; // Fallback to last known
+    return cachedVMs;
   }
 }
+
 
 async function performAction(vmId, action) {
   const vmsData = await listVMs();
@@ -159,7 +175,8 @@ async function performAction(vmId, action) {
   const target = `"${vm.path}"`;
 
   switch (action) {
-    case 'start':   cmd = `start ${target} nogui`; break;
+    case 'start':   cmd = `start ${target}`; break;
+
     case 'stop':    cmd = `stop ${target} soft`; break;
     case 'restart': cmd = `reset ${target} soft`; break;
     case 'suspend': cmd = `suspend ${target} soft`; break;
