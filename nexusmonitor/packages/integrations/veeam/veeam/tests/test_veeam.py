@@ -1,5 +1,5 @@
 import pytest
-from apps.collector.integrations.veeam.client import VeeamAPIClient
+from packages.integrations.veeam.client import VeeamAPIClient
 import httpx
 
 @pytest.mark.asyncio
@@ -24,3 +24,4 @@ async def test_veeam_auth_failure(respx_mock):
     with pytest.raises(httpx.HTTPStatusError):
         await client.connect()
     await client.close()
+

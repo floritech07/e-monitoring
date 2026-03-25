@@ -1,0 +1,23 @@
+replicaCount: 2
+
+image:
+  repository: nexusmonitor/api
+  pullPolicy: IfNotPresent
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi

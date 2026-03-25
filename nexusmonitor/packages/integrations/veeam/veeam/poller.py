@@ -5,7 +5,7 @@ from uuid import UUID
 
 from packages.db.engine import db_manager
 from packages.db.models.veeam import VeeamJob, BackupSession
-from apps.collector.integrations.veeam.client import VeeamAPIClient
+from packages.integrations.veeam.client import VeeamAPIClient
 from apps.collector.kafka_producer import producer_client
 from sqlalchemy.future import select
 
@@ -79,3 +79,4 @@ class VeeamPoller:
         if metrics:
             await producer_client.send_batch("metrics.raw", metrics)
             logger.info(f"Published {len(metrics)} Veeam metrics to Kafka")
+

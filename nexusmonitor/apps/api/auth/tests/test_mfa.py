@@ -21,8 +21,9 @@ def test_mfa_generation_and_verification():
     assert MFAService.verify_code("", code) is False
 
 def test_mfa_uri():
-    secret = "JBSWY3DPEHPK3PXP"
+    import os
+    secret = os.getenv("MFA_TEST_SECRET", "test-secret")
     uri = MFAService.get_provisioning_uri(secret, "user@example.com")
     assert "otpauth://totp/" in uri
     assert "user%40example.com" in uri
-    assert "secret=JBSWY3DPEHPK3PXP" in uri
+    assert f"secret={secret}" in uri

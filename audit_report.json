@@ -1,0 +1,973 @@
+{
+  "timestamp": "2026-03-25T12:00:11.048470",
+  "root_dir": "D:\\SBEE Monitoring\\nexusmonitor",
+  "total_modules": 20,
+  "modules_passed": 5,
+  "modules_failed": 15,
+  "total_files_expected": 303,
+  "total_files_found": 94,
+  "global_checks": [
+    {
+      "label": "Root file exists: docker-compose.yml",
+      "passed": false,
+      "detail": "",
+      "severity": "error"
+    },
+    {
+      "label": "Root file exists: .env.example",
+      "passed": false,
+      "detail": "",
+      "severity": "error"
+    },
+    {
+      "label": "Root file exists: .github/workflows/ci.yml",
+      "passed": false,
+      "detail": "",
+      "severity": "error"
+    },
+    {
+      "label": "Root file exists: .pre-commit-config.yaml",
+      "passed": true,
+      "detail": "",
+      "severity": "error"
+    },
+    {
+      "label": ".env.example exists",
+      "passed": false,
+      "detail": "File not found",
+      "severity": "error"
+    },
+    {
+      "label": "README.md exists",
+      "passed": false,
+      "detail": "",
+      "severity": "warning"
+    },
+    {
+      "label": "Total codebase LOC \u2265 50 000 (found 3,834)",
+      "passed": false,
+      "detail": "Prompt target: 150 000+ LOC. Current: 3,834",
+      "severity": "warning"
+    }
+  ],
+  "module_audits": [
+    {
+      "module_id": "MOD-001",
+      "module_name": "Database layer & multi-SGBD abstraction",
+      "total_files_expected": 22,
+      "files_present": 22,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "packages/db/__init__.py \u2014 suspiciously short (8 lines)",
+          "passed": false,
+          "detail": "File may be a stub. Minimum expected: 10 lines.",
+          "severity": "warning"
+        },
+        {
+          "label": "packages/db/__init__.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/engine.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/__init__.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/organization.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/site.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/asset.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/metric.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/alert.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/dashboard.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/user.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/integration.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/veeam.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/action.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/models/audit.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/session.py \u2014 suspiciously short (8 lines)",
+          "passed": false,
+          "detail": "File may be a stub. Minimum expected: 10 lines.",
+          "severity": "warning"
+        },
+        {
+          "label": "packages/db/session.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/dialect_manager.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/migrations/env.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/migrations/versions/0001_initial_schema.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/seeds/dev_fixtures.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/tests/conftest.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/tests/test_models.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/db/tests/test_dialect_manager.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-002",
+      "module_name": "Authentication & RBAC system",
+      "total_files_expected": 12,
+      "files_present": 12,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "apps/api/auth/router.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/service.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/jwt.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/saml.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/ldap.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/mfa.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/api_keys.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/dependencies.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/schemas.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/tests/test_auth.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/tests/test_rbac.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/tests/test_mfa.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/auth/tests/test_mfa.py \u2014 no hardcoded secrets",
+          "passed": false,
+          "detail": "Possible secret at lines: [24]",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-003",
+      "module_name": "Metric ingestion pipeline",
+      "total_files_expected": 14,
+      "files_present": 14,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "apps/collector/main.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/collector/ingest_router.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/collector/kafka_producer.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/collector/otlp_parser.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/collector/prom_remote_write_parser.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/worker/tasks/metric_processor.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/worker/tasks/retention.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/metrics/router.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/metrics/service.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/metrics/query_builder.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/metrics/schemas.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/collector/tests/test_ingest.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/worker/tests/test_metric_processor.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/metrics/tests/test_query.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-004",
+      "module_name": "Veeam Backup & Replication integration",
+      "total_files_expected": 12,
+      "files_present": 0,
+      "files_missing": [
+        "packages/integrations/veeam/__init__.py",
+        "packages/integrations/veeam/client.py",
+        "packages/integrations/veeam/auth.py",
+        "packages/integrations/veeam/discovery.py",
+        "packages/integrations/veeam/mappers.py",
+        "packages/integrations/veeam/poller.py",
+        "packages/integrations/veeam/metrics_emitter.py",
+        "apps/api/integrations/veeam/router.py",
+        "apps/api/integrations/veeam/schemas.py",
+        "packages/integrations/veeam/tests/test_client.py",
+        "packages/integrations/veeam/tests/test_poller.py",
+        "packages/integrations/veeam/tests/test_mappers.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-005",
+      "module_name": "VMware vCenter / vSphere integration",
+      "total_files_expected": 14,
+      "files_present": 0,
+      "files_missing": [
+        "packages/integrations/vcenter/__init__.py",
+        "packages/integrations/vcenter/client.py",
+        "packages/integrations/vcenter/rest_client.py",
+        "packages/integrations/vcenter/inventory.py",
+        "packages/integrations/vcenter/performance.py",
+        "packages/integrations/vcenter/events.py",
+        "packages/integrations/vcenter/actions.py",
+        "packages/integrations/vcenter/mappers.py",
+        "packages/integrations/vcenter/poller.py",
+        "apps/api/integrations/vcenter/router.py",
+        "apps/api/integrations/vcenter/schemas.py",
+        "packages/integrations/vcenter/tests/test_inventory.py",
+        "packages/integrations/vcenter/tests/test_performance.py",
+        "packages/integrations/vcenter/tests/test_actions.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-006",
+      "module_name": "SNMP & network monitoring",
+      "total_files_expected": 15,
+      "files_present": 0,
+      "files_missing": [
+        "packages/integrations/snmp/__init__.py",
+        "packages/integrations/snmp/collector.py",
+        "packages/integrations/snmp/trap_receiver.py",
+        "packages/integrations/snmp/mib_browser.py",
+        "apps/collector/netflow/collector.py",
+        "apps/collector/netflow/parser.py",
+        "apps/collector/probes/icmp.py",
+        "apps/collector/probes/tcp.py",
+        "apps/collector/probes/bandwidth.py",
+        "packages/integrations/network/topology_discovery.py",
+        "apps/api/network/router.py",
+        "apps/api/network/schemas.py",
+        "packages/integrations/snmp/tests/test_collector.py",
+        "packages/integrations/snmp/tests/test_trap_receiver.py",
+        "apps/api/network/tests/test_topology.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-007",
+      "module_name": "Alert engine & notification dispatcher",
+      "total_files_expected": 24,
+      "files_present": 24,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "packages/alerting/__init__.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/rule_engine.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/expression_evaluator.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/state_machine.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/deduplication.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/correlation.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/silence.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/escalation.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/dispatcher.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/email.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/slack.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/teams.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/pagerduty.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/webhook.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/sms.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/channels/push.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/alerts/router.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/alerts/websocket.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/alerts/schemas.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/tests/test_rule_engine.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/tests/test_state_machine.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/tests/test_correlation.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "packages/alerting/tests/test_dispatcher.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-008",
+      "module_name": "Remote actions & automation engine",
+      "total_files_expected": 15,
+      "files_present": 0,
+      "files_missing": [
+        "packages/actions/__init__.py",
+        "packages/actions/executor.py",
+        "packages/actions/sandbox.py",
+        "packages/actions/implementations/ipmi.py",
+        "packages/actions/implementations/vsphere.py",
+        "packages/actions/implementations/ssh.py",
+        "packages/actions/implementations/wmi.py",
+        "packages/actions/implementations/veeam.py",
+        "packages/actions/runbook_engine.py",
+        "packages/actions/auto_remediation.py",
+        "apps/api/actions/router.py",
+        "apps/api/actions/schemas.py",
+        "packages/actions/tests/test_executor.py",
+        "packages/actions/tests/test_runbook_engine.py",
+        "packages/actions/tests/test_auto_remediation.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-009",
+      "module_name": "Legacy monitoring integrations",
+      "total_files_expected": 19,
+      "files_present": 0,
+      "files_missing": [
+        "packages/integrations/zabbix/__init__.py",
+        "packages/integrations/zabbix/client.py",
+        "packages/integrations/zabbix/connector.py",
+        "packages/integrations/zabbix/mappers.py",
+        "packages/integrations/nagios/__init__.py",
+        "packages/integrations/nagios/connector.py",
+        "packages/integrations/nagios/status_parser.py",
+        "packages/integrations/icinga/__init__.py",
+        "packages/integrations/icinga/connector.py",
+        "packages/integrations/prtg/__init__.py",
+        "packages/integrations/prtg/client.py",
+        "packages/integrations/prtg/connector.py",
+        "packages/integrations/solarwinds/__init__.py",
+        "packages/integrations/solarwinds/swis_client.py",
+        "packages/integrations/solarwinds/connector.py",
+        "packages/integrations/base.py",
+        "apps/api/integrations/legacy/router.py",
+        "packages/integrations/zabbix/tests/test_connector.py",
+        "packages/integrations/prtg/tests/test_connector.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-010",
+      "module_name": "Cloud provider integrations (AWS, Azure, GCP)",
+      "total_files_expected": 14,
+      "files_present": 0,
+      "files_missing": [
+        "packages/integrations/aws/__init__.py",
+        "packages/integrations/aws/connector.py",
+        "packages/integrations/aws/cloudwatch.py",
+        "packages/integrations/aws/cost.py",
+        "packages/integrations/azure/__init__.py",
+        "packages/integrations/azure/connector.py",
+        "packages/integrations/azure/monitor.py",
+        "packages/integrations/azure/cost.py",
+        "packages/integrations/gcp/__init__.py",
+        "packages/integrations/gcp/connector.py",
+        "packages/integrations/gcp/monitoring.py",
+        "packages/integrations/cloud/cost_monitor.py",
+        "apps/api/integrations/cloud/router.py",
+        "apps/api/integrations/cloud/schemas.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-011",
+      "module_name": "WebSocket real-time layer",
+      "total_files_expected": 12,
+      "files_present": 12,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "apps/api/websocket/hub.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/websocket/router.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/websocket/events.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/websocket/auth.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/worker/tasks/event_publisher.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/websocket/tests/test_hub.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-012",
+      "module_name": "Frontend \u2014 core layout & navigation",
+      "total_files_expected": 18,
+      "files_present": 0,
+      "files_missing": [
+        "apps/web/src/main.tsx",
+        "apps/web/src/App.tsx",
+        "apps/web/src/router.tsx",
+        "apps/web/src/components/layout/AppShell.tsx",
+        "apps/web/src/components/layout/Sidebar.tsx",
+        "apps/web/src/components/layout/TopBar.tsx",
+        "apps/web/src/components/layout/GlobalSearch.tsx",
+        "apps/web/src/components/layout/NotificationBell.tsx",
+        "apps/web/src/store/appStore.ts",
+        "apps/web/src/store/alertStore.ts",
+        "apps/web/src/lib/api/client.ts",
+        "apps/web/src/lib/api/hooks/useAlerts.ts",
+        "apps/web/src/lib/api/hooks/useAssets.ts",
+        "apps/web/src/lib/api/hooks/useMetrics.ts",
+        "apps/web/src/lib/api/hooks/useIntegrations.ts",
+        "apps/web/tailwind.config.ts",
+        "apps/web/src/styles/globals.css",
+        "apps/web/src/components/layout/__tests__/AppShell.test.tsx"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-013",
+      "module_name": "Frontend \u2014 Problem Console screen",
+      "total_files_expected": 12,
+      "files_present": 0,
+      "files_missing": [
+        "apps/web/src/pages/ProblemConsole.tsx",
+        "apps/web/src/pages/ProblemConsole.test.tsx",
+        "apps/web/src/components/problems/AlertTable.tsx",
+        "apps/web/src/components/problems/AlertDetailDrawer.tsx",
+        "apps/web/src/components/problems/SeverityBadge.tsx",
+        "apps/web/src/components/problems/SeverityPulse.tsx",
+        "apps/web/src/components/problems/FilterToolbar.tsx",
+        "apps/web/src/components/problems/BulkActionBar.tsx",
+        "apps/web/src/components/problems/SoundAlertController.tsx",
+        "apps/web/src/components/problems/AlertSparkline.tsx",
+        "apps/web/src/hooks/useSoundAlerts.ts",
+        "apps/web/src/components/problems/__tests__/AlertTable.test.tsx"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-014",
+      "module_name": "Frontend \u2014 Network Topology Map",
+      "total_files_expected": 11,
+      "files_present": 0,
+      "files_missing": [
+        "apps/web/src/pages/TopologyMap.tsx",
+        "apps/web/src/components/topology/TopologyCanvas.tsx",
+        "apps/web/src/components/topology/TopologyRenderer.ts",
+        "apps/web/src/components/topology/NodeRenderer.ts",
+        "apps/web/src/components/topology/EdgeRenderer.ts",
+        "apps/web/src/components/topology/TopologyControls.tsx",
+        "apps/web/src/components/topology/AssetMiniCard.tsx",
+        "apps/web/src/hooks/useTopology.ts",
+        "apps/web/src/lib/topology/forceLayout.ts",
+        "apps/web/src/lib/topology/icons.ts",
+        "apps/web/src/components/topology/__tests__/TopologyRenderer.test.ts"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-015",
+      "module_name": "Frontend \u2014 Customisable Dashboards",
+      "total_files_expected": 17,
+      "files_present": 0,
+      "files_missing": [
+        "apps/web/src/pages/Dashboard.tsx",
+        "apps/web/src/pages/DashboardList.tsx",
+        "apps/web/src/components/dashboard/DashboardGrid.tsx",
+        "apps/web/src/components/dashboard/WidgetWrapper.tsx",
+        "apps/web/src/components/dashboard/WidgetEditor.tsx",
+        "apps/web/src/components/dashboard/widgets/StatCard.tsx",
+        "apps/web/src/components/dashboard/widgets/LineChartWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/GaugeWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/HeatmapWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/AlertListWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/TopNWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/BackupSLAWidget.tsx",
+        "apps/web/src/components/dashboard/widgets/UptimeTimeline.tsx",
+        "apps/web/src/components/dashboard/DashboardToolbar.tsx",
+        "apps/web/src/components/dashboard/MetricPicker.tsx",
+        "apps/web/src/hooks/useDashboard.ts",
+        "apps/web/src/types/dashboard.ts"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-016",
+      "module_name": "Frontend \u2014 Asset Detail page",
+      "total_files_expected": 12,
+      "files_present": 0,
+      "files_missing": [
+        "apps/web/src/pages/AssetDetail.tsx",
+        "apps/web/src/components/asset/AssetHeader.tsx",
+        "apps/web/src/components/asset/tabs/OverviewTab.tsx",
+        "apps/web/src/components/asset/tabs/MetricsTab.tsx",
+        "apps/web/src/components/asset/tabs/AlertsTab.tsx",
+        "apps/web/src/components/asset/tabs/ActionsTab.tsx",
+        "apps/web/src/components/asset/tabs/BackupTab.tsx",
+        "apps/web/src/components/asset/tabs/ConfigTab.tsx",
+        "apps/web/src/components/asset/MetricExplorer.tsx",
+        "apps/web/src/components/asset/ActionConfirmDialog.tsx",
+        "apps/web/src/components/asset/KeyMetricGauges.tsx",
+        "apps/web/src/hooks/useAssetDetail.ts"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-017",
+      "module_name": "ML anomaly detection & capacity planning",
+      "total_files_expected": 12,
+      "files_present": 0,
+      "files_missing": [
+        "packages/ml/__init__.py",
+        "packages/ml/anomaly_detector.py",
+        "packages/ml/capacity_forecaster.py",
+        "packages/ml/baseline_builder.py",
+        "packages/ml/model_store.py",
+        "packages/ml/training_pipeline.py",
+        "packages/ml/feature_engineering.py",
+        "apps/api/ml/router.py",
+        "apps/api/ml/schemas.py",
+        "apps/worker/tasks/ml_training.py",
+        "packages/ml/tests/test_anomaly_detector.py",
+        "packages/ml/tests/test_capacity_forecaster.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-018",
+      "module_name": "Report engine",
+      "total_files_expected": 14,
+      "files_present": 0,
+      "files_missing": [
+        "apps/api/reports/router.py",
+        "apps/api/reports/schemas.py",
+        "apps/api/reports/service.py",
+        "apps/worker/tasks/report_generator.py",
+        "apps/worker/tasks/report_types/availability.py",
+        "apps/worker/tasks/report_types/backup_compliance.py",
+        "apps/worker/tasks/report_types/capacity.py",
+        "apps/worker/tasks/report_types/alert_summary.py",
+        "apps/worker/templates/reports/base.html",
+        "apps/worker/templates/reports/availability.html",
+        "apps/worker/templates/reports/backup_compliance.html",
+        "apps/web/src/pages/Reports.tsx",
+        "apps/web/src/components/reports/ReportBuilder.tsx",
+        "apps/api/reports/tests/test_report_generator.py"
+      ],
+      "checks": []
+    },
+    {
+      "module_id": "MOD-019",
+      "module_name": "Security hardening & audit",
+      "total_files_expected": 10,
+      "files_present": 10,
+      "files_missing": [],
+      "checks": [
+        {
+          "label": "apps/api/security/encryption.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/middleware.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/rate_limiting.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/audit.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/cors.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/headers.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/tests/test_encryption.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        },
+        {
+          "label": "apps/api/security/tests/test_audit.py \u2014 valid Python syntax",
+          "passed": true,
+          "detail": "",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "module_id": "MOD-020",
+      "module_name": "Infrastructure \u2014 Docker, Kubernetes, CI/CD",
+      "total_files_expected": 24,
+      "files_present": 0,
+      "files_missing": [
+        "apps/api/Dockerfile",
+        "apps/worker/Dockerfile",
+        "apps/collector/Dockerfile",
+        "apps/scheduler/Dockerfile",
+        "apps/web/Dockerfile",
+        "docker-compose.yml",
+        "docker-compose.test.yml",
+        ".env.example",
+        "infra/k8s/api/deployment.yaml",
+        "infra/k8s/api/service.yaml",
+        "infra/k8s/api/hpa.yaml",
+        "infra/k8s/worker/deployment.yaml",
+        "infra/k8s/collector/deployment.yaml",
+        "infra/k8s/web/deployment.yaml",
+        "infra/k8s/web/ingress.yaml",
+        "infra/k8s/shared/configmap.yaml",
+        "infra/k8s/shared/namespace.yaml",
+        "infra/helm/Chart.yaml",
+        "infra/helm/values.yaml",
+        "infra/helm/templates/api-deployment.yaml",
+        "infra/monitoring/prometheus-servicemonitor.yaml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy-staging.yml",
+        ".github/workflows/deploy-prod.yml"
+      ],
+      "checks": []
+    }
+  ],
+  "quality_gate_results": []
+}

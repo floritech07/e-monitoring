@@ -3,8 +3,8 @@ import logging
 from uuid import UUID
 
 from packages.db.engine import db_manager
-from apps.collector.integrations.vcenter.client import VCenterAPIClient
-from apps.collector.integrations.vcenter.vmomi_parser import VmomiParser
+from packages.integrations.vcenter.client import VCenterAPIClient
+from packages.integrations.vcenter.vmomi_parser import VmomiParser
 from apps.collector.kafka_producer import producer_client
 
 logger = logging.getLogger(__name__)
@@ -65,3 +65,4 @@ class VCenterPoller:
             logger.error(f"vCenter Poll error for {self.asset_id}: {e}")
         finally:
             await self.client.close()
+

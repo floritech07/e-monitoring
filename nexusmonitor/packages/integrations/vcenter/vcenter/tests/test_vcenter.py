@@ -1,6 +1,6 @@
 import pytest
-from apps.collector.integrations.vcenter.client import VCenterAPIClient
-from apps.collector.integrations.vcenter.vmomi_parser import VmomiParser
+from packages.integrations.vcenter.client import VCenterAPIClient
+from packages.integrations.vcenter.vmomi_parser import VmomiParser
 import datetime
 
 @pytest.mark.asyncio
@@ -61,3 +61,4 @@ async def test_vcenter_client_handles_no_pyvmomi(monkeypatch):
             sys.modules['pyVmomi'] = orig
         else:
             del sys.modules['pyVmomi']
+
