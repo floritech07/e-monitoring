@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NexusMonitor — {{ title | default("Report") }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a202c; background: #f8fafc; padding: 40px; }
+    .header { border-bottom: 3px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px; }
+    .logo { font-size: 20px; font-weight: 800; color: #6366f1; }
+    .logo span { color: #1a202c; }
+    .footer { margin-top: 40px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Nexus<span>Monitor</span></div>
+  </div>
+  {% block content %}{% endblock %}
+  <div class="footer">NexusMonitor Enterprise · Confidential · {{ generated_at | default("") }}</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NexusMonitor — Availability Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a202c; background: #f8fafc; padding: 40px; }
+    .header { border-bottom: 3px solid #6366f1; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .logo { font-size: 22px; font-weight: 800; color: #6366f1; letter-spacing: -0.5px; }
+    .logo span { color: #1a202c; }
+    .meta { font-size: 12px; color: #64748b; text-align: right; }
+    h1 { font-size: 20px; color: #1e293b; margin-bottom: 6px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .kpi-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; }
+    .kpi-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: #1e293b; }
+    .kpi-value.good { color: #16a34a; }
+    .kpi-value.warn { color: #d97706; }
+    .kpi-value.bad  { color: #dc2626; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; padding: 12px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    td { padding: 12px 16px; font-size: 13px; border-top: 1px solid #f1f5f9; }
+    tr:hover td { background: #f8fafc; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-ok   { background: #dcfce7; color: #15803d; }
+    .badge-warn { background: #fef9c3; color: #854d0e; }
+    .badge-fail { background: #fee2e2; color: #991b1b; }
+    .footer { margin-top: 40px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo">Nexus<span>Monitor</span></div>
+      <h1>Availability Report</h1>
+    </div>
+    <div class="meta">
+      Organization: {{ org_id }}<br>
+      Period: {{ period_start }} → {{ period_end }}<br>
+      Generated: {{ generated_at }}
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Overall Availability</div>
+      <div class="kpi-value {% if overall_availability >= 99.9 %}good{% elif overall_availability >= 99 %}warn{% else %}bad{% endif %}">
+        {{ "%.3f"|format(overall_availability) }}%
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Assets Monitored</div>
+      <div class="kpi-value">{{ assets | length }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Incidents</div>
+      <div class="kpi-value {% if assets | sum(attribute='incidents') > 5 %}warn{% else %}good{% endif %}">
+        {{ assets | sum(attribute='incidents') }}
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Asset Name</th>
+        <th>Uptime %</th>
+        <th>MTTR (hours)</th>
+        <th>Incidents</th>
+        <th>SLA Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for asset in assets %}
+      <tr>
+        <td><strong>{{ asset.name }}</strong></td>
+        <td>{{ "%.3f"|format(asset.uptime_pct) }}%</td>
+        <td>{{ asset.mttr_h }}</td>
+        <td>{{ asset.incidents }}</td>
+        <td>
+          {% if asset.uptime_pct >= 99.9 %}
+            <span class="badge badge-ok">✓ SLA Met</span>
+          {% elif asset.uptime_pct >= 99.0 %}
+            <span class="badge badge-warn">⚠ Near Threshold</span>
+          {% else %}
+            <span class="badge badge-fail">✗ SLA Breach</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">NexusMonitor Enterprise v1.0 · Confidential · Generated automatically · Do not distribute externally</div>
+</body>
+</html>
