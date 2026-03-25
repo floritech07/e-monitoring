@@ -1,31 +1,42 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users, Activity, 
-  AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown, Search, Calendar, ArrowRight
+  LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users,
+  Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
+  Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
+import { useMetricSounds } from './hooks/useMetricSounds';
 import Dashboard from './pages/Dashboard';
 import Infrastructure from './pages/Infrastructure';
 import ServerDetail from './pages/ServerDetail';
 import AlertsPage from './pages/AlertsPage';
+import ProblemConsole from './pages/ProblemConsole';
 import RemoteActions from './pages/RemoteActions';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
 import AddSystem from './pages/AddSystem';
 import Login from './pages/Login';
 import HostDetail from './pages/HostDetail';
+import VeeamPage from './pages/VeeamPage';
+import NetworkTopology from './pages/NetworkTopology';
+import AlertRulesPage from './pages/AlertRulesPage';
 import './index.css';
 
 function Sidebar({ alertCount }) {
   const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/',        icon: LayoutDashboard, label: 'Dashboard'       },
+    { to: '/problems',icon: BellRing,        label: 'Problèmes',    badge: alertCount },
     { to: '/infrastructure', icon: GitBranch, label: 'Infrastructure' },
-    { to: '/alerts', icon: Bell, label: 'Alertes', badge: alertCount },
-    { to: '/actions', icon: Zap, label: 'Actions à distance' },
+    { to: '/topology',icon: Map,             label: 'Topologie Réseau' },
+    { to: '/alerts',  icon: Bell,            label: 'Alertes',      badge: alertCount },
+    { section: 'Intégrations' },
+    { to: '/backup',  icon: Shield,          label: 'Veeam Backup'  },
+    { to: '/actions', icon: Zap,             label: 'Actions à distance' },
     { section: 'Configuration' },
-    { to: '/settings', icon: Settings, label: 'Paramètres' },
-    { to: '/users', icon: Users, label: 'Utilisateurs' },
+    { to: '/rules',   icon: BellRing,        label: 'Règles d\'alertes' },
+    { to: '/settings',icon: Settings,        label: 'Paramètres'   },
+    { to: '/users',   icon: Users,           label: 'Utilisateurs' },
   ];
 
   return (
@@ -77,7 +88,7 @@ function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
     { label: '15m', value: '900' },
   ];
 
-  const currentRange = quickRanges.find(r => r.value === timeRange) || quickRanges[4];
+  const currentRange   = quickRanges.find(r => r.value === timeRange) || quickRanges[4];
   const currentRefresh = refreshOptions.find(o => o.value === refreshRate) || refreshOptions[0];
 
   return (
@@ -90,8 +101,7 @@ function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
 
       <button className="tp-button refresh" title="Ajuster l'actualisation" onClick={() => {
         const idx = refreshOptions.findIndex(o => o.value === refreshRate);
-        const nextIdx = (idx + 1) % refreshOptions.length;
-        setRefreshRate(refreshOptions[nextIdx].value);
+        setRefreshRate(refreshOptions[(idx + 1) % refreshOptions.length].value);
       }}>
         <RefreshCw size={14} className={refreshRate !== '0' ? 'rotate-animation' : ''} style={{ color: refreshRate !== '0' ? 'var(--accent)' : 'var(--text-muted)' }} />
         {currentRefresh.label !== 'Off' && (
@@ -102,59 +112,46 @@ function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
       {isOpen && (
         <div className="tp-dropdown fade-in">
           <div className="tp-quick-ranges">
-             <div className="tp-search-wrap">
-               <Search size={14} className="tp-search-icon" />
-               <input 
-                 type="text" 
-                 placeholder="Rechercher une plage..." 
-                 className="tp-search-input"
-                 value={searchTerm}
-                 onChange={e => setSearchTerm(e.target.value)}
-               />
-             </div>
-             {quickRanges.filter(r => r.label.toLowerCase().includes(searchTerm.toLowerCase())).map(r => (
-               <div 
-                 key={r.value} 
-                 className={`tp-range-item ${timeRange === r.value ? 'active' : ''}`}
-                 onClick={() => { setTimeRange(r.value); setIsOpen(false); }}
-               >
-                 {r.label}
-                 {timeRange === r.value && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#f59123' }} />}
-               </div>
-             ))}
+            <div className="tp-search-wrap">
+              <Search size={14} className="tp-search-icon" />
+              <input type="text" placeholder="Rechercher une plage..." className="tp-search-input" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            </div>
+            {quickRanges.filter(r => r.label.toLowerCase().includes(searchTerm.toLowerCase())).map(r => (
+              <div key={r.value} className={`tp-range-item ${timeRange === r.value ? 'active' : ''}`}
+                onClick={() => { setTimeRange(r.value); setIsOpen(false); }}>
+                {r.label}
+                {timeRange === r.value && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#f59123' }} />}
+              </div>
+            ))}
           </div>
 
           <div className="tp-absolute-range">
-             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Période temporelle absolue</div>
-             <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>De</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" defaultValue="now-3h" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
-                  <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
-                </div>
-             </div>
-             <div>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>À</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" defaultValue="now" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
-                  <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
-                </div>
-             </div>
-             <button className="btn btn-primary" style={{ marginTop: 8, justifyContent: 'center' }}>
-               Appliquer la plage de temps
-             </button>
-             
-             <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', marginTop: 10 }}>
-               Il semble que vous n'ayez jamais utilisé ce sélecteur de temps dans le passé...
-             </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Période temporelle absolue</div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>De</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" defaultValue="now-3h" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
+                <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>À</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" defaultValue="now" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
+                <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
+              </div>
+            </div>
+            <button className="btn btn-primary" style={{ marginTop: 8, justifyContent: 'center' }}>
+              Appliquer la plage de temps
+            </button>
           </div>
 
           <div style={{ position: 'absolute', bottom: 0, width: '100%' }}>
             <div className="tp-footer">
-               <div>Africa/Porto-Novo <span style={{ color: 'var(--text-muted)' }}>Benin, WAT UTC+01:00</span></div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                 Modifier les paramètres de l'heure <ChevronDown size={10} />
-               </div>
+              <div>Africa/Porto-Novo <span style={{ color: 'var(--text-muted)' }}>Benin, WAT UTC+01:00</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                Modifier les paramètres de l'heure <ChevronDown size={10} />
+              </div>
             </div>
           </div>
         </div>
@@ -164,33 +161,29 @@ function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
 }
 
 function App() {
-  const { connected, metrics, vms, alerts } = useSocket();
-  const [user, setUser] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('sbee_theme') || 'dark');
-  const [refreshRate, setRefreshRate] = useState('10'); // Default 10s
-  const [timeRange, setTimeRange] = useState('1h');
+  const { connected, metrics, vms, alerts, activity } = useSocket();
+  const [user,        setUser]        = useState(null);
+  const [theme,       setTheme]       = useState(() => localStorage.getItem('sbee_theme') || 'dark');
+  const [refreshRate, setRefreshRate] = useState('10');
+  const [timeRange,   setTimeRange]   = useState('1h');
 
-  // Apply theme class to <html>
+  const alertStatus = useMetricSounds(metrics, vms);
+
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'light') {
-      root.classList.add('light-mode');
-    } else {
-      root.classList.remove('light-mode');
-    }
+    if (theme === 'light') root.classList.add('light-mode');
+    else root.classList.remove('light-mode');
     localStorage.setItem('sbee_theme', theme);
   }, [theme]);
 
-  // Restore session
   useEffect(() => {
     const saved = localStorage.getItem('sbee_user');
-    if (saved) {
-      try { setUser(JSON.parse(saved)); } catch (_) {}
-    }
+    if (saved) { try { setUser(JSON.parse(saved)); } catch (_) {} }
   }, []);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-  const activeAlerts = alerts.filter(a => !a.resolved);
+  const toggleTheme   = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const activeAlerts  = alerts.filter(a => !a.resolved);
+  const criticalCount = activeAlerts.filter(a => a.severity === 'critical').length;
 
   function handleLogin(userData) {
     setUser(userData);
@@ -208,77 +201,81 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        {/* Header */}
-        <header className="app-header">
-          <div className="logo">
-            <Activity size={20} color="var(--accent)" />
-            <span>SBEE</span> Monitor
+      <div className={`app-shell-container${alertStatus.active ? ' has-alert-banner' : ''}`}>
+        {alertStatus.active && (
+          <div className={`global-alert-banner ${alertStatus.type}`}>
+            <AlertTriangle className="alert-icon" size={18} />
+            <span>{alertStatus.message}</span>
+            <div className="alert-pulse-line" />
           </div>
-          <div className="header-right">
-            <div className={`header-badge ${connected ? 'online' : 'offline'}`}>
-              <span className="dot" />
-              {connected ? 'En ligne' : 'Déconnecté'}
+        )}
+
+        <div className="app-shell">
+          {/* Header */}
+          <header className="app-header">
+            <div className="logo">
+              <Activity size={20} color="var(--accent)" />
+              <span>SBEE</span> Monitor
             </div>
-            {metrics && (
-              <div className="header-badge">
-                <Server size={12} />
-                {metrics.host?.hostname}
+            <div className="header-right">
+              <div className={`header-badge ${connected ? 'online' : 'offline'}`}>
+                <span className="dot" />
+                {connected ? 'En ligne' : 'Déconnecté'}
               </div>
-            )}
-            {activeAlerts.length > 0 && (
-              <div className="header-badge" style={{ borderColor: 'rgba(245,83,75,0.3)', color: 'var(--danger)' }}>
-                <AlertTriangle size={12} />
-                {activeAlerts.length} alerte{activeAlerts.length > 1 ? 's' : ''}
+              {metrics && (
+                <div className="header-badge">
+                  <Server size={12} />
+                  {metrics.host?.hostname}
+                </div>
+              )}
+              {criticalCount > 0 && (
+                <div className="header-badge" style={{ borderColor: 'rgba(245,83,75,0.3)', color: 'var(--danger)' }}>
+                  <AlertTriangle size={12} />
+                  {criticalCount} critique{criticalCount > 1 ? 's' : ''}
+                </div>
+              )}
+
+              <TimePicker timeRange={timeRange} setTimeRange={setTimeRange} refreshRate={refreshRate} setRefreshRate={setRefreshRate} />
+
+              <div
+                className="header-badge"
+                style={{ cursor: 'pointer', width: 32, justifyContent: 'center' }}
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+              >
+                {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
               </div>
-            )}
 
-            {/* Controls: Refresh / History (Grafana Style) */}
-            <TimePicker 
-              timeRange={timeRange} 
-              setTimeRange={setTimeRange} 
-              refreshRate={refreshRate} 
-              setRefreshRate={setRefreshRate} 
-            />
-
-            {/* Theme toggle */}
-            <div
-              className="header-badge"
-              style={{ cursor: 'pointer', width: 32, justifyContent: 'center' }}
-              onClick={toggleTheme}
-              title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-            >
-              {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-            </div>
-
-            {/* User / Logout */}
-            <div className="header-badge" style={{ cursor: 'pointer' }} onClick={handleLogout} title="Se déconnecter">
-              <Users size={12} />
-              {user.name}
-              <div style={{ background: 'var(--bg-hover)', padding: '2px 6px', borderRadius: 4, marginLeft: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-                Déconnexion
+              <div className="header-badge" style={{ cursor: 'pointer' }} onClick={handleLogout} title="Se déconnecter">
+                <Users size={12} />
+                {user.name}
+                <div style={{ background: 'var(--bg-hover)', padding: '2px 6px', borderRadius: 4, marginLeft: 4, fontSize: 10, color: 'var(--text-muted)' }}>
+                  Déconnexion
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Sidebar */}
-        <Sidebar alertCount={activeAlerts.length} />
+          <Sidebar alertCount={activeAlerts.length} />
 
-        {/* Main content */}
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Dashboard metrics={metrics} vms={vms} alerts={alerts} connected={connected} timeRange={timeRange} />} />
-            <Route path="/infrastructure" element={<Infrastructure vms={vms} metrics={metrics} />} />
-            <Route path="/infrastructure/new" element={<AddSystem />} />
-            <Route path="/infrastructure/host-details" element={<HostDetail metrics={metrics} />} />
-            <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
-            <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
-            <Route path="/actions" element={<RemoteActions vms={vms} />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/users" element={<UserManagement />} />
-          </Routes>
-        </main>
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<Dashboard metrics={metrics} vms={vms} alerts={alerts} activity={activity} connected={connected} timeRange={timeRange} />} />
+              <Route path="/problems" element={<ProblemConsole alerts={activeAlerts} connected={connected} />} />
+              <Route path="/infrastructure" element={<Infrastructure vms={vms} metrics={metrics} />} />
+              <Route path="/infrastructure/new" element={<AddSystem />} />
+              <Route path="/infrastructure/host-details" element={<HostDetail metrics={metrics} />} />
+              <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
+              <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
+              <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
+              <Route path="/backup" element={<VeeamPage />} />
+              <Route path="/actions" element={<RemoteActions vms={vms} />} />
+              <Route path="/rules" element={<AlertRulesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/users" element={<UserManagement />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </BrowserRouter>
   );

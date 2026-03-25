@@ -14,13 +14,27 @@ import '../Topology.css';
 
 const getScoreColor = (pct) => pct >= 90 ? '#38b249' : pct >= 75 ? '#f59c23' : '#f23e42';
 
-const MetricCircle = ({ value, label, subLabel, color, icon: Icon, details }) => {
+const MetricCircle = ({ value, label, subLabel, color, icon: Icon, details, onClick }) => {
   const radius = 42; 
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (value / 100) * circumference;
   
   return (
-    <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', textAlign: 'center', border: '1px solid var(--border-bright)', position: 'relative', overflow: 'hidden' }}>
+    <div 
+      className="card glass-panel" 
+      onClick={onClick}
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        padding: '20px', 
+        textAlign: 'center', 
+        border: '1px solid var(--border-bright)', 
+        position: 'relative', 
+        overflow: 'hidden',
+        cursor: onClick ? 'pointer' : 'default'
+      }}
+    >
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: color, opacity: 0.5 }} />
       
       <div style={{ position: 'relative', width: 100, height: 100, marginBottom: 16 }}>
@@ -59,7 +73,7 @@ const MetricCircle = ({ value, label, subLabel, color, icon: Icon, details }) =>
   );
 };
 
-const DiskPie = ({ disk }) => {
+const DiskPie = ({ disk, onClick }) => {
   const data = [
     { name: 'Utilisé', value: parseFloat(disk.used), color: '#f5534b' },
     { name: 'Libre', value: parseFloat(disk.available), color: '#22d3a3' }
@@ -70,7 +84,18 @@ const DiskPie = ({ disk }) => {
   const freeGB = (parseFloat(disk.available) / (1024**3)).toFixed(1);
 
   return (
-    <div className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', border: '1px solid var(--border-bright)' }}>
+    <div 
+      className="card glass-panel" 
+      onClick={onClick}
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        padding: '16px', 
+        border: '1px solid var(--border-bright)',
+        cursor: 'pointer'
+      }}
+    >
       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
         Disque: {disk.mount}
       </div>
@@ -114,7 +139,7 @@ const DiskPie = ({ disk }) => {
   );
 };
 
-export default function Dashboard({ metrics, vms, alerts, connected, timeRange }) {
+export default function Dashboard({ metrics, vms, alerts, activity, connected, timeRange }) {
   const navigate = useNavigate();
   const [activityLogs, setActivityLogs] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -122,18 +147,25 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
   // Merge system logs from metrics, alerts, and local activity logs
   const displayLogs = useMemo(() => {
     const sysLogs = metrics?.logs || [];
-    const alertLogs = alerts.map(a => ({
+    const alertLogs = (alerts || []).map(a => ({
       id: a.id,
       time: new Date(a.timestamp).toLocaleTimeString('fr-FR'),
       msg: a.message,
-      type: a.level
+      type: a.level,
+      ts: a.timestamp
     }));
     
-    return [...activityLogs, ...alertLogs, ...sysLogs].sort((a, b) => {
-      // Very rough sorting by time if available, otherwise preserve order
-      return 0; 
-    }).slice(0, 20);
-  }, [metrics?.logs, alerts, activityLogs]);
+    const persistLogs = (activity || []).map(a => ({
+      id: a.id,
+      time: a.time,
+      msg: a.msg,
+      type: a.type,
+      ts: a.timestamp
+    }));
+    
+    // Prioritize persistent logs (actions) and alerts over generic system logs
+    return [...persistLogs, ...alertLogs, ...sysLogs].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 30);
+  }, [metrics?.logs, alerts, activity]);
 
 
   const parseRangeToSeconds = (range) => {
@@ -241,7 +273,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
           <p className="page-subtitle">Monitoring d'infrastructure en temps réel • {timeRange}</p>
         </div>
         <div className="header-badge online" style={{ padding: '8px 16px' }}>
-          <Activity size={14} className="pulse" />
+          <Activity size={14} />
           <span style={{ fontWeight: 600 }}>MONITORING ACTIF</span>
         </div>
       </div>
@@ -263,7 +295,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
                 backgroundRepeat: 'no-repeat', 
                 backgroundPosition: 'center',
                 filter: 'drop-shadow(0 0 20px rgba(79, 142, 247, 0.4))'
-              }} className="pulse-soft" />
+              }} />
               
               <div className="host-labels-modern" style={{ textAlign: 'center', marginTop: -20 }}>
                 <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>{metrics.host.hostname}</div>
@@ -336,14 +368,36 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
                             border: '2px solid var(--bg-panel)'
                           }} />
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{vm.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{vm.os || 'OS Inconnu'}</div>
+                         <div>
+                           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{vm.name}</div>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                             <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{vm.os || 'OS Inconnu'}</div>
+                             {vm.transactions !== undefined && vm.transactions !== null && (
+                               <div style={{ 
+                                 fontSize: 9, 
+                                 fontWeight: 800, 
+                                 padding: '1px 5px', 
+                                 borderRadius: 4, 
+                                 background: vm.transactions < 10 ? 'rgba(242, 62, 66, 0.15)' : 'rgba(79, 247, 142, 0.1)',
+                                 color: vm.transactions < 10 ? 'var(--danger)' : '#22d3a3',
+                                 border: `1px solid ${vm.transactions < 10 ? 'rgba(242, 62, 66, 0.3)' : 'rgba(34, 211, 163, 0.2)'}`
+                               }}>
+                                 {vm.transactions} TX/s
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: vm.state === 'on' ? 'var(--success)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          {vm.state === 'on' ? 'En ligne' : 'Arrêtée'}
                         </div>
-                     </div>
-                     <div style={{ fontSize: 10, fontWeight: 700, color: vm.state === 'on' ? 'var(--success)' : 'var(--text-muted)', textTransform: 'uppercase' }}>
-                       {vm.state === 'on' ? 'En ligne' : 'Arrêtée'}
-                     </div>
+                        {vm.cpu && vm.state === 'on' && (
+                          <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                            CPU: {vm.cpu.usage}%
+                          </div>
+                        )}
+                      </div>
                    </div>
                  ))
                ) : (
@@ -373,6 +427,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
               subLabel={`${metrics.cpu.usage}% actif`} 
               color="#4f8ef7" 
               icon={Cpu} 
+              onClick={() => navigate('/infrastructure/host-details')}
               details={[
                 { label: 'Cœurs', value: metrics.cpu.cores },
                 { label: 'Threads', value: metrics.cpu.cores * 2 },
@@ -384,6 +439,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
               subLabel={`${Math.round(metrics.ram.used/1024/1024/1024)} Go utilisés`} 
               color="#a78bfa" 
               icon={MemoryStick} 
+              onClick={() => navigate('/infrastructure/host-details')}
               details={[
                 { label: 'Capacité', value: `${Math.round(metrics.ram.total/1024/1024/1024)} Go` },
                 { label: 'Type', value: 'DDR4 SDRAM' },
@@ -391,7 +447,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
             />
             {metrics.disk && metrics.disk.length > 0 ? (
               metrics.disk.slice(0, 2).map((d, i) => (
-                <DiskPie key={i} disk={d} />
+                <DiskPie key={i} disk={d} onClick={() => navigate('/infrastructure/host-details')} />
               ))
             ) : (
               <MetricCircle value={100} label="Stockage" subLabel="Aucun disque détecté" color="#f5a623" icon={HardDrive} />
@@ -401,7 +457,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
           {/* GRAPHE PERFORMANCE */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* CPU / RAM */}
-            <div className="card glass-panel" style={{ padding: '24px' }}>
+            <div className="card glass-panel" onClick={() => navigate('/infrastructure/host-details')} style={{ padding: '24px', cursor: 'pointer' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div className="card-title" style={{ margin: 0 }}><Activity size={13} /> CPU & Mémoire</div>
                   <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 600 }}>
@@ -434,7 +490,7 @@ export default function Dashboard({ metrics, vms, alerts, connected, timeRange }
             </div>
 
             {/* RESEAU / INTERNET */}
-            <div className="card glass-panel" style={{ padding: '24px' }}>
+            <div className="card glass-panel" onClick={() => navigate('/infrastructure/host-details')} style={{ padding: '24px', cursor: 'pointer' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div className="card-title" style={{ margin: 0 }}><Globe size={13} /> Trafic Réseau & Internet</div>

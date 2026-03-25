@@ -129,7 +129,7 @@ export default function ServerDetail({ vms, metrics }) {
           </div>
         </div>
         <div className={`header-badge ${isOn ? 'online' : 'offline'}`} style={{ padding: '8px 20px' }}>
-          <Activity size={14} className={isOn ? 'pulse' : ''} />
+          <Activity size={14} />
           <span style={{ fontWeight: 700 }}>{isOn ? 'OPÉRATIONNEL' : 'HORS LIGNE'}</span>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function ServerDetail({ vms, metrics }) {
               <Monitor size={14} color="var(--accent)" /> ÉMULATEUR DE TERMINAL SBEE
             </div>
             
-            <div className={`node-host-premium ${isOn ? 'pulse-soft' : ''}`} style={{ marginBottom: 60, cursor: 'default' }}>
+            <div className="node-host-premium" style={{ marginBottom: 60, cursor: 'default' }}>
               <div style={{ 
                 width: 250, height: 180, 
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -160,6 +160,11 @@ export default function ServerDetail({ vms, metrics }) {
               <div className="host-labels-modern" style={{ textAlign: 'center', marginTop: 24 }}>
                 <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>{vm.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 4, opacity: 0.8 }}>ENVIRONNEMENT VIRTUEL - ID {vm.id}</div>
+                {vm.started && isOn && (
+                  <div style={{ fontSize: 10, color: 'var(--success)', marginTop: 8, fontWeight: 700 }}>
+                    ALLUMÉE LE {new Date(vm.started).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).toUpperCase()}
+                  </div>
+                )}
               </div>
             </div>
 

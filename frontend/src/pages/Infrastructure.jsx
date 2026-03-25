@@ -154,22 +154,26 @@ export default function Infrastructure({ vms, metrics }) {
         <div className="card glass-panel fade-in" style={{ padding: 0 }}>
           <div className="topology-container">
             
-            {/* Host PC Node (3D Isometric) */}
-            <div className="node-host" onClick={() => navigate('/infrastructure/host-details')} title="Voir les détails de l'hôte physique" style={{ transform: 'scale(1.1)' }}>
-              <div className="node-host-inner-side" />
-              <div className="node-host-inner-top" />
-              <div className="cpu-grill" />
-              <div className="cpu-grill" />
-              <div className="cpu-grill" />
-              
-              <div className="server-slot"></div>
-              <div className="server-slot"><div className="slot-indicator" /></div>
-              
-              <div className="power-btn" />
+            {/* Host PC Node (Premium Image) */}
+            <div className="node-host-img" onClick={() => navigate('/infrastructure/host-details')} title="Voir les détails de l'hôte physique">
+              <img 
+                src="/uc-hp.png" 
+                alt="HP Central Unit" 
+                style={{ 
+                  width: 220, 
+                  height: 'auto', 
+                  filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.5))',
+                  transition: '0.3s transform ease'
+                }} 
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05) translateY(-10px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) translateY(0)'}
+              />
               
               <div className="host-labels" style={{ bottom: -60 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>{metrics?.host?.hostname || 'Serveur Local'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Unité Centrale Physique</div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  {metrics?.host?.hostname || 'PCSIRGMFCHAKOUN'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 4 }}>UNITÉ CENTRALE PHYSIQUE HP</div>
               </div>
             </div>
 
@@ -187,16 +191,30 @@ export default function Infrastructure({ vms, metrics }) {
                 {vms.map(vm => (
                   <div key={vm.id} style={{ position: 'relative' }}>
                     <div className="vm-drop-line" />
-                    <div className="node-vm" onClick={() => navigate(`/infrastructure/${vm.id}`)}>
-                      <div className="vm-icon-wrapper" style={{ border: `1px solid ${vm.state === 'on' ? 'var(--success)' : 'var(--text-muted)'}` }}>
-                        <Monitor size={24} style={{ color: vm.state === 'on' ? 'var(--success)' : 'var(--text-muted)' }} />
+                    <div className="node-vm" onClick={() => navigate(`/infrastructure/${vm.id}`)} style={{ padding: '20px 15px' }}>
+                      <div className="vm-image-container" style={{ marginBottom: 15 }}>
+                        <img 
+                          src={
+                            vm.os?.toLowerCase().includes('ubuntu') ? '/vm-ubuntu.png' :
+                            vm.os?.toLowerCase().includes('debian') ? '/vm-debian.png' :
+                            vm.os?.toLowerCase().includes('redhat') || vm.os?.toLowerCase().includes('rhel') ? '/vm-redhat.png' :
+                            '/vm-windows.png'
+                          } 
+                          alt={vm.os}
+                          style={{ 
+                            width: 80, 
+                            height: 80, 
+                            objectFit: 'contain',
+                            filter: vm.state === 'on' ? 'drop-shadow(0 0 10px rgba(79, 142, 247, 0.3))' : 'grayscale(1) opacity(0.5)'
+                          }}
+                        />
                       </div>
-                      <h4 className="truncate">{vm.name}</h4>
-                      <div className="vm-os truncate">{vm.os}</div>
-                      <div className="mono text-muted text-sm mt-1">{vm.ip}</div>
+                      <h4 className="truncate" style={{ fontSize: 14, fontWeight: 700 }}>{vm.name}</h4>
+                      <div className="vm-os truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{vm.os}</div>
+                      <div className="mono text-muted text-sm mt-1" style={{ fontSize: 11, color: 'var(--accent)' }}>{vm.ip || '0.0.0.0'}</div>
                       <div className="mt-2">
-                        <span className={`status-badge ${vm.state === 'on' ? 'online' : 'offline'}`} style={{ display: 'inline-block' }}>
-                          {vm.state === 'on' ? 'Actif' : 'Arrêté'}
+                        <span className={`status-badge ${vm.state === 'on' ? 'online' : 'offline'}`} style={{ display: 'inline-block', fontSize: 9 }}>
+                          {vm.state === 'on' ? 'INSTANCE ACTIVE' : 'HORS LIGNE'}
                         </span>
                       </div>
                     </div>

@@ -31,11 +31,16 @@ function getSystemLogs() {
           } catch(e) {}
         });
 
-        resolve(allLogs.map(l => ({
-          time: l.TimeGenerated ? new Date(parseInt(l.TimeGenerated.match(/\d+/)[0])).toLocaleTimeString('fr-FR') : 'N/A',
-          type: l.EntryType === 'Error' ? 'error' : l.EntryType === 'Warning' ? 'warning' : 'info',
-          msg: `[${l.LogName}] ${l.Message ? l.Message.split('\r\n')[0].substring(0, 120) : 'No message'}`
-        })).slice(0, 15));
+        resolve(allLogs.map(l => {
+          const tsMatch = l.TimeGenerated ? l.TimeGenerated.match(/\d+/) : null;
+          const ts = tsMatch ? parseInt(tsMatch[0]) : Date.now();
+          return {
+            time: new Date(ts).toLocaleTimeString('fr-FR'),
+            ts: ts,
+            type: l.EntryType === 'Error' ? 'error' : l.EntryType === 'Warning' ? 'warning' : 'info',
+            msg: `[${l.LogName}] ${l.Message ? l.Message.split('\r\n')[0].substring(0, 120) : 'No message'}`
+          };
+        }).slice(0, 15));
       } catch (e) {
         resolve([]);
       }
@@ -44,19 +49,25 @@ function getSystemLogs() {
 }
 
 async function getHostMetrics() {
-  const [cpu, mem, disks, networkStats, networkInterfaces, osInfo, uptime] = await Promise.all([
+  const [cpuLoad, cpuInfo, mem, disks, networkStats, networkInterfaces, osInfo, uptime, processes, temp, graphics] = await Promise.all([
     si.currentLoad(),
+    si.cpu(),
     si.mem(),
     si.fsSize(),
     si.networkStats(),
     si.networkInterfaces(),
     si.osInfo(),
-    si.time()
+    si.time(),
+    si.processes(),
+    si.cpuTemperature(),
+    si.graphics()
   ]);
 
-  const cpuUsage = parseFloat(cpu.currentLoad.toFixed(1));
+  const cpuUsage = parseFloat(cpuLoad.currentLoad.toFixed(1));
   const ramUsed = mem.used;
   const ramTotal = mem.total;
+  const ramFree = mem.free;
+  const ramAvailable = mem.available;
   const ramPercent = parseFloat(((ramUsed / ramTotal) * 100).toFixed(1));
 
   const diskInfo = disks
@@ -100,23 +111,47 @@ async function getHostMetrics() {
     history.netTx.shift();
     history.timestamps.shift();
   }
+  const topProcesses = processes.list
+    .sort((a, b) => (b.cpu + b.mem) - (a.cpu + a.mem))
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      cpu: parseFloat(p.cpu.toFixed(1)),
+      mem: parseFloat(p.mem.toFixed(1)),
+      user: p.user
+    }));
+
+  const gpuInfo = graphics.controllers.map(g => ({
+    model: g.model,
+    vram: g.vram,
+    vendor: g.vendor,
+    bus: g.bus
+  }));
 
   return {
     host: {
       hostname: osInfo.hostname,
       os: `${osInfo.distro} ${osInfo.release}`,
       platform: osInfo.platform,
+      arch: osInfo.arch,
+      kernel: osInfo.kernel,
       uptime: uptime.uptime,
       status: 'online'
     },
     cpu: {
+      brand: cpuInfo.brand || 'Processor',
       usage: cpuUsage,
-      cores: cpu.cpus ? cpu.cpus.length : 0,
+      cores: cpuInfo.cores,
+      physicalCores: cpuInfo.physicalCores,
+      speed: cpuInfo.speed,
+      temperature: temp.main,
       history: history.cpu.slice()
     },
     ram: {
       used: ramUsed,
       total: ramTotal,
+      free: ramFree,
+      available: ramAvailable,
       percent: ramPercent,
       history: history.ram.slice()
     },
@@ -125,10 +160,18 @@ async function getHostMetrics() {
       rx_sec: totalRx,
       tx_sec: totalTx,
       iface: 'All Interfaces',
+      interfaces: networkInterfaces.filter(i => i.operstate === 'up').map(i => ({
+         iface: i.iface,
+         ip: i.ip4,
+         mac: i.mac,
+         speed: i.speed
+      })),
       rx_history: history.netRx.slice(),
       tx_history: history.netTx.slice()
     },
     timestamps: history.timestamps.slice(),
+    processes: topProcesses,
+    gpu: gpuInfo,
     logs: await getSystemLogs()
   };
 }

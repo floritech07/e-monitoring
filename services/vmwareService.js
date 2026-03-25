@@ -114,8 +114,8 @@ async function getVMMetrics() {
     pid: p.pid,
     cpu: p.cpu,
     memory: p.mem,
-    name: p.command || p.name
-
+    name: p.command || p.name,
+    started: p.started // ISO string from systeminformation
   }));
 }
 
@@ -141,17 +141,22 @@ async function listVMs() {
       const cpuUsage = isRunning ? (stats ? stats.cpu : (Math.random() * 5 + 3)) : 0;
       const ramUsed = isRunning ? (stats ? stats.memory * 1024 * 1024 : 1024 * 1024 * 1024) : 0;
       
-      vmsMap.set(vm.normPath, {
-        ...vm,
-        state,
-        cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
-        ram: { 
-          used: ramUsed, 
-          total: 4 * 1024 * 1024 * 1024, 
-          percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
-        },
-        disk: [{ mount: 'C:', percent: 12, used: 10 * 1024**3, size: 80 * 1024**3 }]
-      });
+        const isTransactionVM = vm.name.toLowerCase().includes('transaction') || vm.name.toLowerCase().includes('paim') || vm.name.toLowerCase().includes('pay');
+        const txCount = isRunning ? (isTransactionVM ? Math.floor(Math.random() * 50 + 10) : null) : 0;
+
+        vmsMap.set(vm.normPath, {
+          ...vm,
+          state,
+          started: stats ? stats.started : null,
+          cpu: { usage: parseFloat(cpuUsage.toFixed(1)), cores: 2 },
+          ram: { 
+            used: ramUsed, 
+            total: 4 * 1024 * 1024 * 1024, 
+            percent: parseFloat(((ramUsed / (4 * 1024 * 1024 * 1024)) * 100).toFixed(1)) 
+          },
+          disk: [{ mount: 'C:', percent: 12, used: 10 * 1024**3, size: 80 * 1024**3 }],
+          transactions: txCount
+        });
     });
 
     // 2. Add running VMs that are NOT in inventory
