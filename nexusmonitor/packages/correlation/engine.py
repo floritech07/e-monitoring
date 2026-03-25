@@ -20,43 +20,61 @@ class CorrelationEngine:
         
     async def ingest_event(self, event: dict) -> dict:
         """
-        Receives an incoming alert payload and determines if it belongs to an 
-        existing correlation group, or spawns a new root problem node.
+        Receives an alert payload and safely updates distributed correlation grouping natively.
+        Uses Circuit Breakers to degrade safely to "pass-through" if Redis faults out.
         """
+        from packages.common.circuit_breaker import safe_redis_call
+        from packages.correlation.lock_manager import mutex_manager
+
         key = self._compute_group_key(event)
         now = datetime.utcnow()
         expiry = now - timedelta(seconds=self.window_seconds)
-
-        # Retrieve current group from Redis
-        group_events = await self.store.get_group(key)
-
-        # Evict expired events from windows natively
-        group_events = [
-            e for e in group_events
-            if datetime.fromisoformat(e["timestamp"]) > expiry
-        ]
-
-        # Check for exact duplicate within window
-        if self._is_duplicate(event, group_events):
-            logger.debug(f"Suppressed duplicate event: {event.get('title')}")
-            return {"action": "deduplicated", "group_key": key}
-
-        group_events.append({
-            **event,
-            "timestamp": event.get("timestamp", now.isoformat())
-        })
         
-        # Save updated group back to Redis with TTL
-        await self.store.save_group(key, group_events, self.window_seconds)
-        
-        score = self._compute_priority_score(group_events)
-        
-        return {
-            "action": "correlated",
-            "group_key": key,
-            "group_size": len(group_events),
-            "priority_score": score
-        }
+        # Enclose the RMW (Read-Modify-Write) cycle in a Distributed Lock Mutex 
+        async with mutex_manager.lock(key, lock_timeout_seconds=2.0) as acquired_lock:
+            if not acquired_lock:
+                # If race conditions persist or Redis partitions, degraded fallback engages
+                # Skip Correlation natively, but STILL return the event metadata raw.
+                logger.warning(f"Correlation degraded: Skipping state merge for {key}")
+                return {
+                    "action": "degraded_passthrough",
+                    "group_key": key,
+                    "group_size": 1,
+                    "priority_score": self._compute_priority_score([event])
+                }
+                
+            # Retrieve current group safely inside lock
+            group_fetcher = safe_redis_call(fallback_value=[])(self.store.get_group)
+            group_events = await group_fetcher(key)
+
+            # Evict expired events from windows natively
+            group_events = [
+                e for e in group_events
+                if datetime.fromisoformat(e["timestamp"]) > expiry
+            ]
+
+            # Check for exact duplicate within window
+            if self._is_duplicate(event, group_events):
+                logger.debug(f"Suppressed duplicate event: {event.get('title')}")
+                return {"action": "deduplicated", "group_key": key}
+
+            group_events.append({
+                **event,
+                "timestamp": event.get("timestamp", now.isoformat())
+            })
+            
+            # Save updated group safely
+            group_saver = safe_redis_call(fallback_value=None)(self.store.save_group)
+            await group_saver(key, group_events, self.window_seconds)
+            
+            score = self._compute_priority_score(group_events)
+            
+            return {
+                "action": "correlated",
+                "group_key": key,
+                "group_size": len(group_events),
+                "priority_score": score
+            }
 
     def _compute_group_key(self, event: dict) -> str:
         """Derives grouping fingerprint from asset+category combination."""

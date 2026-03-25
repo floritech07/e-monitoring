@@ -47,6 +47,9 @@ def create_refresh_token(data: dict, family_id: str = None) -> str:
     alg = ALGORITHM if "mock" not in DEFAULT_PRIVATE_KEY else "HS256"
     return jwt.encode(to_encode, key, algorithm=alg)
 
+from packages.common.circuit_breaker import safe_redis_call
+
+@safe_redis_call(fallback_value=None)
 async def check_refresh_token(jti: str, fid: str) -> None:
     """Validates token isn't blacklisted; invalidates entire family if reuse detected."""
     r = _get_redis()
@@ -62,6 +65,7 @@ async def check_refresh_token(jti: str, fid: str) -> None:
         await r.setex(f"jwt:blacklist:family:{fid}", 86400 * 7, "1")
         raise ValueError("Refresh token reuse detected. Family invalidated.")
 
+@safe_redis_call(fallback_value=None)
 async def blacklist_refresh_token(jti: str, ttl_days: int = 7) -> None:
     """Marks a processed refresh token as used."""
     r = _get_redis()

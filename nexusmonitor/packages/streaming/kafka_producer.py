@@ -62,12 +62,25 @@ class KafkaProducerClient:
         """
         Attempts to enqueue a metric without blocking.
         Returns False if the queue is full (Backpressure active).
+        Validates structure explicitly routing poisoned payloads to DLQ (FIX-L4-003).
         """
         if not KAFKA_AVAILABLE:
             return True # Mock success
             
+        # FIX-L4-003: Simple Structural check representing Schema Enforcement
+        required = {"asset_id", "metric_key", "value"}
+        if not required.issubset(payload.keys()):
+            logger.error(f"Malformed Metric Payload injected natively. Routing to DLQ.")
+            # Routing poisoned/malformed data cleanly to a Dead Letter Queue 
+            try:
+                self._queue.put_nowait({"topic": "nexus-metrics-dlq", "data": payload})
+            except asyncio.QueueFull:
+                pass
+            return True # We accepted it, but binned it to DLQ natively
+            
         try:
-            self._queue.put_nowait(payload)
+            # Structurally valid
+            self._queue.put_nowait({"topic": self.topic, "data": payload})
             return True
         except asyncio.QueueFull:
             logger.error("Kafka backpressure active: queue is full. Dropping metric.")
@@ -79,10 +92,10 @@ class KafkaProducerClient:
         retry=retry_if_exception_type(Exception)
     )
     async def _send_batch(self, batch: list):
-        # Transactional or sequential batch sending
-        # In a real batch we'd use create_batch, but for standard async loop:
+        """Sends batch safely with Tenacity Jitter backoffs."""
         for item in batch:
-            await self.producer.send_and_wait(self.topic, item)
+            topic = item.get("topic", self.topic)
+            await self.producer.send_and_wait(topic, item.get("data"))
 
     async def _process_queue(self):
         """Background loop draining the asyncio queue and shipping to Kafka."""

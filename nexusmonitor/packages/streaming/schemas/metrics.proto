@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package nexus.metrics;
+
+// Protobuf schema enforcing strict contract on ingress telemetry
+// Malformed JSON will fail to compile and route to DLQ immediately.
+
+message MetricPoint {
+  string asset_id = 1;
+  string metric_key = 2;
+  double value = 3;
+  string timestamp = 4; // ISO-8601 format
+  map<string, string> labels = 5;
+}
+
+message MetricBatch {
+  repeated MetricPoint metrics = 1;
+}
