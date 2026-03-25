@@ -12,6 +12,27 @@ from apps.api.metrics.service import MetricQueryService
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
+# FIX-001: Async Safety & Backpressure for ingestion
+from fastapi import HTTPException
+from pydantic import BaseModel
+from typing import Dict, Any
+from packages.streaming.kafka_producer import kafka_client
+
+class IngestPayload(BaseModel):
+    asset_id: str
+    metrics: Dict[str, Any]
+
+@router.post("/ingest")
+async def ingest_metrics(payload: IngestPayload, user=Depends(get_current_user)):
+    """Non-blocking metric ingestion with strict backpressure rules."""
+    success = kafka_client.enqueue_metric(payload.dict())
+    if not success:
+        # Return 429 Too Many Requests to hint downstreams to back off
+        raise HTTPException(
+            status_code=429,
+            detail="Kafka ingestion queue full. Please slow down and retry later."
+        )
+    return {"status": "accepted"}
 @router.get("/{asset_id}/series")
 async def list_series_for_asset(
     asset_id: str,

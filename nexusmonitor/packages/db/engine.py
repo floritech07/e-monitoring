@@ -11,7 +11,19 @@ class DatabaseManager:
 
     def __init__(self, database_url: str | None = None):
         self._url = database_url or os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/nexusmonitor")
-        self._engine = DialectManager.get_engine(self._url)
+        
+        # FIX-002: Strict pooling settings ready for PgBouncer / high concurrency
+        self._engine = create_async_engine(
+            self._url,
+            pool_size=int(os.getenv("DB_POOL_SIZE", "20")),
+            max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "10")),
+            pool_timeout=int(os.getenv("DB_POOL_TIMEOUT", "30")),
+            pool_recycle=int(os.getenv("DB_POOL_RECYCLE", "1800")),
+            pool_pre_ping=True,
+            # PgBouncer compatibility for Transaction pooling:
+            connect_args={"server_settings": {"jit": "off"}}
+        )
+
         self._session_factory = sessionmaker(
             self._engine, 
             class_=AsyncSession, 
