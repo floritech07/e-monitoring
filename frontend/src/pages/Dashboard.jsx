@@ -179,24 +179,37 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
     }
   };
 
+  const timeDomain = useMemo(() => {
+    const rangeSec = parseRangeToSeconds(timeRange);
+    const latestTs = (metrics?.timestamps && metrics.timestamps.length > 0) 
+      ? metrics.timestamps[metrics.timestamps.length - 1] 
+      : Date.now();
+    const nowAnchor = (Date.now() - latestTs < 30000) ? Date.now() : latestTs;
+    return [nowAnchor - rangeSec * 1000, nowAnchor];
+  }, [timeRange, metrics]);
+
   const chartData = useMemo(() => {
     if (!metrics) return [];
     const ticks = metrics.timestamps || [];
-    const rangeSec = parseRangeToSeconds(timeRange);
+    const domainStart = timeDomain[0];
     
-    return ticks.map((ts, i) => {
+    const startIndex = ticks.findIndex(ts => ts >= domainStart);
+    const visibleTicks = (startIndex === -1) ? [] : ticks.slice(startIndex);
+
+    return visibleTicks.map((ts, i) => {
+      const idx = startIndex + i;
       const date = new Date(ts);
       return {
         timestamp: ts,
         t: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
         fullTime: date.toLocaleTimeString('fr-FR'),
-        CPU: metrics.cpu.history[i] ?? 0,
-        RAM: metrics.ram.history[i] ?? 0,
-        RX: parseFloat(((metrics.network?.rx_history?.[i] || 0) / 1024 / 1024).toFixed(2)),
-        TX: parseFloat(((metrics.network?.tx_history?.[i] || 0) / 1024 / 1024).toFixed(2)),
+        CPU: metrics.cpu.history[idx] ?? 0,
+        RAM: metrics.ram.history[idx] ?? 0,
+        RX: parseFloat(((metrics.network?.rx_history?.[idx] || 0) / 1024 / 1024).toFixed(2)),
+        TX: parseFloat(((metrics.network?.tx_history?.[idx] || 0) / 1024 / 1024).toFixed(2)),
       };
     });
-  }, [metrics, timeRange]);
+  }, [metrics, timeRange, timeDomain]);
 
   if (!metrics) {
     return (
@@ -466,7 +479,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                </div>
                <div style={{ height: 160 }}>
                  <ResponsiveContainer width="100%" height="100%">
-                   <AreaChart data={chartData}>
+                   <AreaChart key={timeRange} data={chartData}>
                      <defs>
                        <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
                          <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.3}/>
@@ -481,7 +494,8 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                      <XAxis 
                         dataKey="timestamp" 
                         type="number"
-                        domain={[Date.now() - parseRangeToSeconds(timeRange) * 1000, Date.now()]}
+                        domain={timeDomain}
+                        allowDataOverflow={true}
                         tick={{ fontSize: 10, fill: 'var(--text-muted)' }} 
                         axisLine={false} 
                         tickLine={false} 
@@ -520,7 +534,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                </div>
                <div style={{ height: 160 }}>
                  <ResponsiveContainer width="100%" height="100%">
-                   <AreaChart data={chartData}>
+                   <AreaChart key={timeRange} data={chartData}>
                      <defs>
                        <linearGradient id="pRX" x1="0" y1="0" x2="0" y2="1">
                          <stop offset="5%" stopColor="#f59c23" stopOpacity={0.4}/>
@@ -535,7 +549,8 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                      <XAxis 
                         dataKey="timestamp" 
                         type="number"
-                        domain={[Date.now() - parseRangeToSeconds(timeRange) * 1000, Date.now()]}
+                        domain={timeDomain}
+                        allowDataOverflow={true}
                         tick={{ fontSize: 10, fill: 'var(--text-muted)' }} 
                         axisLine={false} 
                         tickLine={false} 

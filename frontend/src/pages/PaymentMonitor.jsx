@@ -19,23 +19,11 @@ const OPERATOR_COLORS = {
 };
 
 const RANGE_HOURS = {
-  '5m': 0.083,
-  '15m': 0.25,
-  '30m': 0.5,
-  '1h': 1,
-  '3h': 3,
-  '6h': 6,
-  '12h': 12,
-  '24h': 24,
-  '2d': 48,
-  '7d': 168,
-  '30d': 720,
-  '90d': 2160,
-  '6mo': 4320,
-  '1y': 8760,
-  '2y': 17520,
-  '5y': 43800,
-  'yesterday': 24,
+  '5m': 0.083, '15m': 0.25, '30m': 0.5,
+  '1h': 1, '3h': 3, '6h': 6, '12h': 12, '24h': 24, 
+  '2d': 48, '7d': 168, '30d': 720, '90d': 2160, 
+  '6mo': 4320, '1y': 8760, '2y': 17520, '5y': 43800,
+  'yesterday': 24
 };
 
 // Realistic mock data generator based on time range
@@ -172,7 +160,7 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
           <div style={{ display: 'flex', height: '350px' }}>
             <div style={{ flex: 1, padding: '15px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={prepaidChartData}>
+                <AreaChart key={timeRange} data={prepaidChartData}>
                   <defs>
                     {Object.keys(OPERATOR_COLORS).map(op => (
                       <linearGradient key={op} id={`grad-pre-${op}`} x1="0" y1="0" x2="0" y2="1">
@@ -231,7 +219,7 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
           <div style={{ display: 'flex', height: '350px' }}>
             <div style={{ flex: 1, padding: '15px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={postpaidChartData}>
+                <AreaChart key={timeRange} data={postpaidChartData}>
                   <defs>
                     {Object.keys(OPERATOR_COLORS).map(op => (
                       <linearGradient key={op} id={`grad-post-${op}`} x1="0" y1="0" x2="0" y2="1">

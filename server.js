@@ -430,10 +430,10 @@ io.on('connection', (socket) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BROADCAST LOOP — every 3 seconds
+// BROADCAST LOOP — every 1 second
 // ─────────────────────────────────────────────────────────────────────────────
 
-cron.schedule('*/3 * * * * *', async () => {
+cron.schedule('*/1 * * * * *', async () => {
   try {
     const metrics = await metricsService.getHostMetrics();
     const vms     = await vmwareService.listVMs();
