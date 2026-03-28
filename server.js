@@ -13,6 +13,7 @@ const activityService = require('./services/activityService');
 const storageService  = require('./services/storageService');
 const veeamService    = require('./services/veeamService');
 const networkService  = require('./services/networkService');
+const paymentService  = require('./services/paymentService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -300,6 +301,37 @@ app.get('/api/network/assets/:id/history', (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAYMENT MONITORING
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/payments/trends/prepaid', async (req, res) => {
+  try {
+    const data = await paymentService.getPrepaidTrend(req.query.range);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/payments/trends/postpaid', async (req, res) => {
+  try {
+    const data = await paymentService.getPostpaidTrend(req.query.range);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/payments/stats', async (req, res) => {
+  try {
+    const data = await paymentService.getTrends();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TOPOLOGY
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -449,6 +481,18 @@ cron.schedule('0 */5 * * * *', async () => {
     io.emit('veeam_update', { ...veeamData, timestamp: Date.now() });
   } catch (e) {
     console.error('[Veeam poll] Error:', e.message);
+  }
+});
+
+// ─── Payment evaluation: every 5 minutes ─────────────────────────────────────
+cron.schedule('0 */5 * * * *', async () => {
+  try {
+    await paymentService.evaluateTransactions();
+    const prepaid = await paymentService.getPrepaidTrend();
+    const postpaid = await paymentService.getPostpaidTrend();
+    io.emit('payment_update', { prepaid, postpaid, timestamp: Date.now() });
+  } catch (e) {
+    console.error('[Payment evaluation] Error:', e.message);
   }
 });
 

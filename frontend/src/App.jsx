@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users,
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
-  Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map
+  Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -21,6 +21,8 @@ import HostDetail from './pages/HostDetail';
 import VeeamPage from './pages/VeeamPage';
 import NetworkTopology from './pages/NetworkTopology';
 import AlertRulesPage from './pages/AlertRulesPage';
+import PaymentMonitor from './pages/PaymentMonitor';
+import PaymentRecap from './pages/PaymentRecap';
 import './index.css';
 
 function Sidebar({ alertCount }) {
@@ -31,6 +33,8 @@ function Sidebar({ alertCount }) {
     { to: '/topology',icon: Map,             label: 'Topologie Réseau' },
     { to: '/alerts',  icon: Bell,            label: 'Alertes',      badge: alertCount },
     { section: 'Intégrations' },
+    { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
+    { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
     { to: '/backup',  icon: Shield,          label: 'Veeam Backup'  },
     { to: '/actions', icon: Zap,             label: 'Actions à distance' },
     { section: 'Configuration' },
@@ -61,9 +65,25 @@ function Sidebar({ alertCount }) {
   );
 }
 
-function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
+function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate, onManualRefresh }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isRefreshOpen, setIsRefreshOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const toggleRange = () => {
+    setIsOpen(!isOpen);
+    setIsRefreshOpen(false); // Close other
+  };
+
+  const toggleRefresh = () => {
+    setIsRefreshOpen(!isRefreshOpen);
+    setIsOpen(false); // Close other
+  };
+
+  const closeAll = () => {
+    setIsOpen(false);
+    setIsRefreshOpen(false);
+  };
 
   const quickRanges = [
     { label: 'Last 5 minutes', value: '5m' },
@@ -74,88 +94,179 @@ function TimePicker({ timeRange, setTimeRange, refreshRate, setRefreshRate }) {
     { label: 'Last 6 hours', value: '6h' },
     { label: 'Last 12 hours', value: '12h' },
     { label: 'Last 24 hours', value: '24h' },
-    { label: 'Last 2 days', value: '48h' },
+    { label: 'Last 2 days', value: '2d' },
     { label: 'Last 7 days', value: '7d' },
+    { label: 'Last 30 days', value: '30d' },
+    { label: 'Last 90 days', value: '90d' },
+    { label: 'Last 6 months', value: '6mo' },
+    { label: 'Last 1 year', value: '1y' },
+    { label: 'Last 2 years', value: '2y' },
+    { label: 'Last 5 years', value: '5y' },
+    { label: 'Yesterday', value: 'yesterday' },
   ];
 
   const refreshOptions = [
     { label: 'Off', value: '0' },
-    { label: '5s', value: '5' },
+    { label: 'Auto', value: 'int-10000' },
     { label: '10s', value: '10' },
     { label: '30s', value: '30' },
     { label: '1m', value: '60' },
     { label: '5m', value: '300' },
     { label: '15m', value: '900' },
+    { label: '1h', value: '3600' },
   ];
 
-  const currentRange   = quickRanges.find(r => r.value === timeRange) || quickRanges[4];
-  const currentRefresh = refreshOptions.find(o => o.value === refreshRate) || refreshOptions[0];
+  const currentRange = quickRanges.find(r => r.value === timeRange) || quickRanges[3];
+  const currentRefreshLabel = refreshOptions.find(o => o.value === refreshRate)?.label || 'Off';
+
+  const filteredRanges = quickRanges.filter(r => r.label.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="time-picker-controls">
-      <button className="tp-button time-range" onClick={() => setIsOpen(!isOpen)} title="Choisir la plage temporelle">
-        <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-        <span>{currentRange.label} <span style={{ color: 'var(--warning)', fontWeight: 700, marginLeft: 4 }}>WAT</span></span>
-        <ChevronDown size={14} style={{ opacity: 0.5, transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
-      </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+      {/* Backdrop for click-away closing */}
+      {(isOpen || isRefreshOpen) && (
+        <div 
+          onClick={closeAll} 
+          style={{ position: 'fixed', inset: 0, zIndex: 998, backgroundColor: 'transparent' }} 
+        />
+      )}
 
-      <button className="tp-button refresh" title="Ajuster l'actualisation" onClick={() => {
-        const idx = refreshOptions.findIndex(o => o.value === refreshRate);
-        setRefreshRate(refreshOptions[(idx + 1) % refreshOptions.length].value);
-      }}>
-        <RefreshCw size={14} className={refreshRate !== '0' ? 'rotate-animation' : ''} style={{ color: refreshRate !== '0' ? 'var(--accent)' : 'var(--text-muted)' }} />
-        {currentRefresh.label !== 'Off' && (
-          <span style={{ fontSize: 11, fontWeight: 700, marginLeft: 4 }}>{currentRefresh.label}</span>
-        )}
-      </button>
+      {/* Time Range Selector */}
+      <div style={{ position: 'relative', zIndex: isOpen ? 1000 : 1 }}>
+        <button 
+          onClick={toggleRange}
+          style={{ 
+            backgroundColor: '#181b1f', border: '1px solid #2c3235', borderRadius: '2px', 
+            padding: '4px 10px', color: '#e8eaf0', fontSize: '11px', display: 'flex', 
+            alignItems: 'center', gap: '6px', cursor: 'pointer', height: '32px'
+          }}
+        >
+          <Clock size={12} style={{ color: '#8e8e8e' }} />
+          <span style={{ fontWeight: 600 }}>{currentRange.label} <span style={{ color: '#f59123', fontSize: '9px', marginLeft: '4px' }}>WAT</span></span>
+          <ChevronDown size={12} style={{ opacity: 0.5, transform: isOpen ? 'rotate(180deg)' : 'none' }} />
+        </button>
+        
+        {isOpen && (
+          <div style={{ 
+            position: 'absolute', top: '100%', right: 0, marginTop: '4px', 
+            backgroundColor: '#181b1f', border: '1px solid #2c3235', borderRadius: '2px', 
+            zIndex: 1001, width: '550px', boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+            display: 'flex', flexDirection: 'column'
+          }}>
+            {/* ... Content ... */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #2c3235' }}>
+              {/* Left Pane: Absolute */}
+              <div style={{ flex: 1, padding: '15px', borderRight: '1px solid #2c3235' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '15px' }}>Période temporelle absolue</div>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', color: '#8e8e8e', marginBottom: '4px' }}>De</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" defaultValue="now-3h" style={{ backgroundColor: '#0b0c10', border: '1px solid #2c3235', color: '#fff', padding: '6px 10px', fontSize: '11px', flex: 1 }} />
+                    <button style={{ backgroundColor: '#21262d', border: '1px solid #2c3235', padding: '0 8px', color: '#fff' }}><Calendar size={14} /></button>
+                  </div>
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '11px', color: '#8e8e8e', marginBottom: '4px' }}>À</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" defaultValue="now" style={{ backgroundColor: '#0b0c10', border: '1px solid #2c3235', color: '#fff', padding: '6px 10px', fontSize: '11px', flex: 1 }} />
+                    <button style={{ backgroundColor: '#21262d', border: '1px solid #2c3235', padding: '0 8px', color: '#fff' }}><Calendar size={14} /></button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button style={{ backgroundColor: '#21262d', border: '1px solid #2c3235', padding: '8px', color: '#fff' }}><RefreshCw size={14} /></button>
+                  <button style={{ backgroundColor: '#21262d', border: '1px solid #2c3235', padding: '8px', color: '#fff' }}><Calendar size={14} /></button>
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    style={{ backgroundColor: '#3274d9', border: 'none', color: '#fff', padding: '0 15px', fontSize: '11px', fontWeight: 'bold', flex: 1, cursor: 'pointer' }}
+                  >
+                    Appliquer la plage de temps
+                  </button>
+                </div>
+                <div style={{ marginTop: '20px', fontSize: '11px', color: '#8e8e8e', lineHeight: '1.6' }}>
+                  Il semble que vous n'ayez jamais utilisé ce sélecteur de temps dans le passé.
+                </div>
+              </div>
 
-      {isOpen && (
-        <div className="tp-dropdown fade-in">
-          <div className="tp-quick-ranges">
-            <div className="tp-search-wrap">
-              <Search size={14} className="tp-search-icon" />
-              <input type="text" placeholder="Rechercher une plage..." className="tp-search-input" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              {/* Right Pane: List & Search */}
+              <div style={{ width: '250px', backgroundColor: '#111217', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '8px', borderBottom: '1px solid #2c3235' }}>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#8e8e8e' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Rechercher dans les pla..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ backgroundColor: '#0b0c10', border: '1px solid #2c3235', color: '#fff', padding: '6px 10px 6px 30px', fontSize: '11px', width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
+                  {filteredRanges.map(opt => (
+                    <div 
+                      key={opt.value}
+                      onClick={() => { setTimeRange(opt.value); setIsOpen(false); }}
+                      style={{ 
+                        padding: '8px 15px', fontSize: '11px', cursor: 'pointer', 
+                        backgroundColor: timeRange === opt.value ? 'rgba(50, 116, 217, 0.1)' : 'transparent',
+                        color: timeRange === opt.value ? '#3274d9' : '#fff', 
+                        borderLeft: timeRange === opt.value ? '2px solid #3274d9' : '2px solid transparent'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = timeRange === opt.value ? 'rgba(50, 116, 217, 0.1)' : 'transparent'}
+                    >
+                      {opt.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            {quickRanges.filter(r => r.label.toLowerCase().includes(searchTerm.toLowerCase())).map(r => (
-              <div key={r.value} className={`tp-range-item ${timeRange === r.value ? 'active' : ''}`}
-                onClick={() => { setTimeRange(r.value); setIsOpen(false); }}>
-                {r.label}
-                {timeRange === r.value && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#f59123' }} />}
+
+            {/* Footer */}
+            <div style={{ backgroundColor: '#181b1f', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', borderBottomLeftRadius: '2px', borderBottomRightRadius: '2px' }}>
+              <div style={{ color: '#8e8e8e' }}>
+                <span style={{ color: '#fff', fontWeight: 'bold' }}>Africa/Porto-Novo</span> Benin, WAT <span style={{ color: '#fff' }}>UTC+01:00</span>
+              </div>
+              <button style={{ backgroundColor: 'transparent', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px' }}>
+                <ChevronDown size={10} /> Modifier les paramètres de l'heure
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Refresh Selector */}
+      <div style={{ position: 'relative', display: 'flex', border: '1px solid #2c3235', borderRadius: '2px', height: '32px', zIndex: isRefreshOpen ? 1000 : 1 }}>
+        <button 
+          className="refresh-trigger"
+          title="Actualiser maintenant"
+          onClick={() => onManualRefresh()}
+          style={{ backgroundColor: '#181b1f', border: 'none', borderRight: '1px solid #2c3235', padding: '0 10px', color: '#e8eaf0', cursor: 'pointer', borderTopLeftRadius: '2px', borderBottomLeftRadius: '2px' }}
+        >
+          <RefreshCw size={12} style={{ color: refreshRate !== '0' ? '#5794f2' : '#8e8e8e' }} />
+        </button>
+        <button 
+          onClick={toggleRefresh}
+          style={{ backgroundColor: '#181b1f', border: 'none', padding: '0 12px', color: '#e8eaf0', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, borderTopRightRadius: '2px', borderBottomRightRadius: '2px' }}
+        >
+          <span style={{ color: refreshRate !== '0' ? '#5794f2' : '#e8eaf0' }}>{currentRefreshLabel}</span>
+          <ChevronDown size={12} style={{ opacity: 0.5, transform: isRefreshOpen ? 'rotate(180deg)' : 'none' }} />
+        </button>
+
+        {isRefreshOpen && (
+          <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', backgroundColor: '#181b1f', border: '1px solid #2c3235', borderRadius: '2px', zIndex: 1001, width: '100px', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+            {refreshOptions.map(opt => (
+              <div 
+                key={opt.value}
+                onClick={() => { setRefreshRate(opt.value); setIsRefreshOpen(false); }}
+                style={{ padding: '8px 12px', fontSize: '11px', cursor: 'pointer', backgroundColor: refreshRate === opt.value ? '#3274d9' : 'transparent', color: '#fff', borderBottom: '1px solid #222' }}
+              >
+                {opt.label}
               </div>
             ))}
           </div>
-
-          <div className="tp-absolute-range">
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Période temporelle absolue</div>
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>De</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="text" defaultValue="now-3h" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
-                <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 4 }}>À</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="text" defaultValue="now" className="tp-search-input" style={{ flex: 1, paddingLeft: 10 }} />
-                <div className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Calendar size={14} /></div>
-              </div>
-            </div>
-            <button className="btn btn-primary" style={{ marginTop: 8, justifyContent: 'center' }}>
-              Appliquer la plage de temps
-            </button>
-          </div>
-
-          <div style={{ position: 'absolute', bottom: 0, width: '100%' }}>
-            <div className="tp-footer">
-              <div>Africa/Porto-Novo <span style={{ color: 'var(--text-muted)' }}>Benin, WAT UTC+01:00</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                Modifier les paramètres de l'heure <ChevronDown size={10} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -166,8 +277,9 @@ function App() {
   const [theme,       setTheme]       = useState(() => localStorage.getItem('sbee_theme') || 'dark');
   const [refreshRate, setRefreshRate] = useState('10');
   const [timeRange,   setTimeRange]   = useState('1h');
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
-  const alertStatus = useMetricSounds(metrics, vms);
+  const alertStatus = useMetricSounds(metrics, vms, alerts);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -194,6 +306,8 @@ function App() {
     setUser(null);
     localStorage.removeItem('sbee_user');
   }
+
+  const isPaymentPage = window.location.pathname === '/payments';
 
   if (!user) {
     return <Login onLogin={handleLogin} theme={theme} onToggleTheme={toggleTheme} />;
@@ -235,7 +349,13 @@ function App() {
                 </div>
               )}
 
-              <TimePicker timeRange={timeRange} setTimeRange={setTimeRange} refreshRate={refreshRate} setRefreshRate={setRefreshRate} />
+              <TimePicker 
+                timeRange={timeRange} 
+                setTimeRange={setTimeRange} 
+                refreshRate={refreshRate} 
+                setRefreshRate={setRefreshRate} 
+                onManualRefresh={() => setRefreshCounter(c => c + 1)}
+              />
 
               <div
                 className="header-badge"
@@ -271,6 +391,8 @@ function App() {
               <Route path="/backup" element={<VeeamPage />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />
               <Route path="/rules" element={<AlertRulesPage />} />
+              <Route path="/payments" element={<PaymentMonitor timeRange={timeRange} refreshRate={refreshRate} refreshCounter={refreshCounter} />} />
+              <Route path="/payments/recap" element={<PaymentRecap refreshCounter={refreshCounter} />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/users" element={<UserManagement />} />
             </Routes>

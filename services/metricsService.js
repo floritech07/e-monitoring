@@ -11,7 +11,7 @@ const history = {
 };
 
 
-const MAX_HISTORY = 1000;
+const MAX_HISTORY = 5000;
 
 function getSystemLogs() {
   return new Promise((resolve) => {

@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
  * Hook to play a continuous alarm sound and manage global alert state
  * @param {Object} metrics - Current metrics from useSocket
  * @param {Array} vms - Current VMs from useSocket
+ * @param {Array} alerts - Current alerts from useSocket
  * @returns {Object} Alert state { active, message, type }
  */
-export function useMetricSounds(metrics, vms = []) {
+export function useMetricSounds(metrics, vms = [], alerts = []) {
   const [alertState, setAlertState] = useState({ active: false, message: '', type: null });
   const activeOscillator = useRef(null);
   const audioContext = useRef(null);
@@ -92,6 +93,8 @@ export function useMetricSounds(metrics, vms = []) {
       soundEnabled: true
     };
 
+    const paymentSettings = JSON.parse(localStorage.getItem('sbee_payment_alerts') || '{"soundEnabled":true,"operatorFrequencies":{}}');
+
     let isCritical = false;
     let freq = 880;
     let message = '';
@@ -114,7 +117,21 @@ export function useMetricSounds(metrics, vms = []) {
       }
     }
 
-    // 2. Metrics check
+    // 2. Payment Flow Alerts (Higher Priority)
+    if (!isCritical && alerts && Array.isArray(alerts)) {
+      const paymentAlert = alerts.find(a => a.category === 'payment' && !a.resolved);
+      if (paymentAlert && paymentSettings.soundEnabled) {
+        isCritical = true;
+        // Extract operator from source (e.g., PREPAID_MOOV)
+        const parts = paymentAlert.source.split('_');
+        const operator = parts[parts.length - 1];
+        freq = paymentSettings.operatorFrequencies[operator] || 523.25; // Default C5
+        message = `ALERTE FLUX: ${paymentAlert.message}`;
+        type = 'critical';
+      }
+    }
+
+    // 3. Metrics check
     if (!isCritical && metrics) {
       const { cpu, ram, disk } = metrics;
       if (cpu?.usage > settings.cpu.threshold && settings.cpu.enabled) {
@@ -152,7 +169,7 @@ export function useMetricSounds(metrics, vms = []) {
     return () => {
       stopContinuousTone();
     };
-  }, [metrics, vms]);
+  }, [metrics, vms, alerts]);
 
   return alertState;
 }

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nexusmonitor
-  labels:
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: nexusmonitor

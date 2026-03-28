@@ -184,17 +184,16 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
     const ticks = metrics.timestamps || [];
     const rangeSec = parseRangeToSeconds(timeRange);
     
-    // Calculate a "virtual" timestamp for each point to span the range if data is scarce
-    // or just use real timestamps but ensure the axis covers the range.
-    return ticks.slice(-100).map((ts, i, arr) => {
+    return ticks.map((ts, i) => {
       const date = new Date(ts);
       return {
+        timestamp: ts,
         t: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
         fullTime: date.toLocaleTimeString('fr-FR'),
-        CPU: metrics.cpu.history[metrics.cpu.history.length - arr.length + i] ?? 0,
-        RAM: metrics.ram.history[metrics.ram.history.length - arr.length + i] ?? 0,
-        RX: parseFloat(((metrics.network?.rx_history?.[metrics.network.rx_history.length - arr.length + i] || 0) / 1024 / 1024).toFixed(2)),
-        TX: parseFloat(((metrics.network?.tx_history?.[metrics.network.tx_history.length - arr.length + i] || 0) / 1024 / 1024).toFixed(2)),
+        CPU: metrics.cpu.history[i] ?? 0,
+        RAM: metrics.ram.history[i] ?? 0,
+        RX: parseFloat(((metrics.network?.rx_history?.[i] || 0) / 1024 / 1024).toFixed(2)),
+        TX: parseFloat(((metrics.network?.tx_history?.[i] || 0) / 1024 / 1024).toFixed(2)),
       };
     });
   }, [metrics, timeRange]);
@@ -479,7 +478,16 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                        </linearGradient>
                      </defs>
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                     <XAxis dataKey="t" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} minTickGap={40} />
+                     <XAxis 
+                        dataKey="timestamp" 
+                        type="number"
+                        domain={[Date.now() - parseRangeToSeconds(timeRange) * 1000, Date.now()]}
+                        tick={{ fontSize: 10, fill: 'var(--text-muted)' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        minTickGap={40} 
+                        tickFormatter={(ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      />
                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" width={35} />
                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px' }} />
                      <Area type="monotone" dataKey="CPU" stroke="#4f8ef7" strokeWidth={2} fillOpacity={1} fill="url(#pCPU)" isAnimationActive={false} />
@@ -524,7 +532,16 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                        </linearGradient>
                      </defs>
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                     <XAxis dataKey="t" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} minTickGap={40} />
+                     <XAxis 
+                        dataKey="timestamp" 
+                        type="number"
+                        domain={[Date.now() - parseRangeToSeconds(timeRange) * 1000, Date.now()]}
+                        tick={{ fontSize: 10, fill: 'var(--text-muted)' }} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        minTickGap={40} 
+                        tickFormatter={(ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      />
                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={35} />
                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px' }} />
                      <Area type="monotone" dataKey="RX" stroke="#f59c23" strokeWidth={2} fillOpacity={1} fill="url(#pRX)" isAnimationActive={false} />
