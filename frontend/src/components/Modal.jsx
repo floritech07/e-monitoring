@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { 
   AlertTriangle, X, Info, CheckCircle, 
   Power, RotateCcw, ShieldAlert, XCircle,
@@ -27,10 +28,9 @@ const Modal = ({
 
   const lines = message.split('\n');
 
-  return (
+  const modalContent = (
     <div className="md-mask" onClick={onClose}>
       <div className={`md-wrap ${type}`} onClick={e => e.stopPropagation()}>
-        
         <div className="md-head">
           <div className="md-badge-icon">
             {type === 'warning' && <ShieldAlert size={28} />}
@@ -92,6 +92,8 @@ const Modal = ({
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default Modal;

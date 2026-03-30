@@ -119,8 +119,18 @@ async function getVMMetrics() {
   }));
 }
 
+let isVmwareAvailable = null;
+
 async function listVMs() {
   try {
+    if (isVmwareAvailable === null) {
+      const cleanPath = VMRUN_PATH.replace(/"/g, '');
+      isVmwareAvailable = fs.existsSync(cleanPath);
+    }
+    
+    // Si vmware n'est pas installé, retourne un tableau vide gracieusement.
+    if (!isVmwareAvailable) return [];
+
     const inventory = await getInventory();
     const runningOutput = await runVmrun('list');
     
@@ -197,7 +207,7 @@ async function performAction(vmId, action) {
   if (!vm) return { success: false, error: 'VM non trouvée' };
 
   let cmd = '';
-  const target = `"${vm.path}"`;
+  const target = `"${vm.path.replace(/\//g, '\\')}"`;
 
 
   switch (action) {

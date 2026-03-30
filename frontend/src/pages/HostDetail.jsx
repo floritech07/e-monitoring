@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Cpu, Activity, Zap, HardDrive, MemoryStick, Server, 
@@ -25,15 +25,13 @@ export default function HostDetail({ metrics }) {
 
   const chartData = useMemo(() => {
     if (!metrics || !metrics.timestamps) return [];
-    const { cpu, network, timestamps } = metrics;
+    const timestamps = metrics.timestamps || [];
+    const cpuHist = metrics.cpu?.history || [];
+    const ramHist = metrics.ram?.history || [];
+    const rxHist = metrics.network?.rx_history || [];
+    const txHist = metrics.network?.tx_history || [];
 
-    // We use the full available history (up to 1000 points) to show "since boot" fluctuations
-    return (timestamps || []).map((ts, i, arr) => {
-       const cpuHist = cpu.history || [];
-       const ramHist = metrics.ram.history || [];
-       const rxHist = network.rx_history || [];
-       const txHist = network.tx_history || [];
-       
+    return timestamps.map((ts, i, arr) => {
        const idx = cpuHist.length - arr.length + i;
        return {
           time: new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -89,7 +87,7 @@ export default function HostDetail({ metrics }) {
           <div className="card glass-panel" style={{ padding: 24 }}>
              <div className="card-title"><Activity size={13} color="var(--accent)" /> SYNTHÈSE DES RESSOURCES (CPU & RAM)</div>
              <div className="chart-wrapper" style={{ height: 400, marginTop: 20 }}>
-               <ResponsiveContainer width="100%" height="100%">
+               <ResponsiveContainer width="100%" height={400} minHeight={400}>
                  <AreaChart data={chartData}>
                    <defs>
                      <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
@@ -121,7 +119,7 @@ export default function HostDetail({ metrics }) {
           <div className="card glass-panel" style={{ padding: 24 }}>
              <div className="card-title"><Globe size={13} color="var(--warning)" /> TRAFIC RÉSEAU CONSOLIDÉ (ENTRANT & SORTANT)</div>
              <div className="chart-wrapper" style={{ height: 400, marginTop: 20 }}>
-               <ResponsiveContainer width="100%" height="100%">
+               <ResponsiveContainer width="100%" height={400} minHeight={400}>
                  <AreaChart data={chartData}>
                    <defs>
                      <linearGradient id="pRX" x1="0" y1="0" x2="0" y2="1">
@@ -182,23 +180,57 @@ export default function HostDetail({ metrics }) {
 
               {/* NETWORK INTERFACES */}
               <div className="card glass-panel" style={{ padding: 24 }}>
-                <div className="card-title"><Network size={13} color="var(--warning)" /> INTERFACES RÉSEAU ACTIVES</div>
-                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                   {network.interfaces && network.interfaces.map((iface, i) => (
-                      <div key={i} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                         <div style={{ background: 'var(--warning-bg)', padding: 8, borderRadius: 8 }}>
-                            <Globe size={18} color="var(--warning)" />
-                         </div>
-                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>{iface.iface}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>MAC: {iface.mac}</div>
-                         </div>
-                         <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--success)' }}>{iface.ip}</div>
-                            {iface.speed && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{iface.speed} Mbps</div>}
-                         </div>
+                <div className="card-title"><Network size={13} color="var(--warning)" /> INTERFACES RÉSEAU — DÉTAIL COMPLET</div>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                   {(network.allInterfaces || network.interfaces || []).map((iface, idx) => (
+                      <div key={`iface-${iface.iface}-${idx}`} style={{
+                        padding: 14, border: `1px solid ${iface.operstate === 'up' ? 'rgba(34,211,163,0.25)' : 'var(--border)'}`,
+                        borderRadius: 10, background: iface.operstate === 'up' ? 'rgba(34,211,163,0.04)' : 'rgba(255,255,255,0.02)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ background: iface.operstate === 'up' ? 'rgba(34,211,163,0.15)' : 'rgba(255,255,255,0.05)', padding: 8, borderRadius: 8 }}>
+                              <Globe size={16} color={iface.operstate === 'up' ? 'var(--success)' : 'var(--text-muted)'} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 13 }}>{iface.iface}</div>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{iface.type || 'N/A'}{iface.virtual ? ' · Virtuel' : ''}</div>
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                            background: iface.operstate === 'up' ? 'rgba(34,211,163,0.15)' : 'rgba(255,90,90,0.15)',
+                            color: iface.operstate === 'up' ? 'var(--success)' : 'var(--danger)',
+                            border: `1px solid ${iface.operstate === 'up' ? 'rgba(34,211,163,0.3)' : 'rgba(255,90,90,0.3)'}`
+                          }}>{(iface.operstate || 'N/A').toUpperCase()}</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>IPv4</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', fontFamily: 'monospace' }}>{iface.ip4 || iface.ip || 'N/A'}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Adresse MAC</div>
+                            <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{iface.mac || 'N/A'}</div>
+                          </div>
+                          {iface.speed > 0 && <div>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Vitesse</div>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>{iface.speed} Mbps</div>
+                          </div>}
+                          <div>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>DHCP</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: iface.dhcp ? 'var(--warning)' : 'var(--text-secondary)' }}>{iface.dhcp ? 'Automatique' : 'Statique'}</div>
+                          </div>
+                          {iface.ip6 && iface.ip6 !== '::' && <div style={{ gridColumn: '1 / -1' }}>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>IPv6</div>
+                            <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-muted)', wordBreak: 'break-all' }}>{iface.ip6}</div>
+                          </div>}
+                        </div>
                       </div>
                    ))}
+                   {(network.allInterfaces || network.interfaces || []).length === 0 && (
+                     <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>Aucune interface réseau détectée.</div>
+                   )}
                 </div>
 
                 {gpu.length > 0 && (
@@ -218,53 +250,129 @@ export default function HostDetail({ metrics }) {
               </div>
           </div>
 
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-              {/* PROCESSUS LES PLUS GOURMANDS */}
+              {/* TASK MANAGER SECTION */}
               <div className="card glass-panel" style={{ padding: 24 }}>
-                <div className="card-title"><LayoutGrid size={13} color="var(--accent)" /> PROCESSUS LES PLUS ACTIFS</div>
-                <div style={{ marginTop: 16, maxHeight: 600, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px' }}>
-                   <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
-                      <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#111', borderBottom: '2px solid #222' }}>
-                         <tr>
-                            <th style={{ textAlign: 'left', padding: '10px 15px', color: 'var(--text-muted)', width: '30%' }}>Nom</th>
-                            <th style={{ textAlign: 'center', padding: '10px', color: 'var(--text-muted)', width: '10%' }}>Statut</th>
-                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.4)', borderLeft: '1px solid #222' }}>Processeur</th>
-                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.35)', borderLeft: '1px solid #222' }}>Mémoire</th>
-                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.3)', borderLeft: '1px solid #222' }}>Disque</th>
-                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.25)', borderLeft: '1px solid #222' }}>Réseau</th>
-                         </tr>
-                      </thead>
-                      <tbody style={{ background: '#111' }}>
-                         {processes.map((p, i) => {
-                            const cellStyle = { padding: '8px', borderBottom: '1px solid #222', textAlign: 'center', borderLeft: '1px solid #222' };
-                            return (
-                              <tr key={i} style={{ borderBottom: '1px solid #222' }}>
-                                 <td style={{ padding: '8px 15px', borderBottom: '1px solid #222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                       <div style={{ width: 14, height: 14, background: '#333', borderRadius: 2 }} />
-                                       <span style={{ fontWeight: 400 }}>{p.name}</span>
+                <div className="card-title">
+                  <LayoutGrid size={13} color="var(--accent)" /> 
+                  PROCESSUS & APPLICATIONS ACTIVES
+                </div>
+                
+                <div style={{ marginTop: 20, maxHeight: 800, overflowY: 'auto', paddingRight: 4 }}>
+                   {(() => {
+                      const apps = [];
+                      const back = [];
+                      (processes || []).forEach(p => {
+                         if (!p) return;
+                         const pathStr = typeof p.path === 'string' ? p.path.toLowerCase() : '';
+                         const isSystem = pathStr.includes('system32') || pathStr.includes('windows') || (p.cpu <= 0.1 && p.mem < 2);
+                         
+                         if (!isSystem && p.cpu > 0.01) {
+                            apps.push(p);
+                         } else {
+                            back.push(p);
+                         }
+                      });
+                      
+                      const sections = [
+                        { label: 'Applications de premier plan', icon: Monitor, data: apps, color: 'var(--accent)' },
+                        { label: 'Processus système & arrière-plan', icon: ShieldCheck, data: back, color: 'var(--text-muted)' }
+                      ];
+
+                      return sections.map((section, sidx) => (
+                        <div key={section.label} style={{ marginBottom: 32 }}>
+                           <div style={{ 
+                             display: 'flex', 
+                             alignItems: 'center', 
+                             gap: 10, 
+                             fontSize: 12, 
+                             fontWeight: 700, 
+                             color: section.color,
+                             marginBottom: 16,
+                             padding: '0 8px',
+                             opacity: 0.8
+                           }}>
+                             <section.icon size={14} />
+                             {section.label.toUpperCase()} ({section.data.length})
+                           </div>
+
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {section.data.length > 0 ? section.data.slice(0, 40).map((p, idx) => (
+                                <div 
+                                  key={`proc-${sidx}-${p.pid}-${idx}`}
+                                  className="fade-in"
+                                  style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: '1fr auto auto', 
+                                    alignItems: 'center',
+                                    gap: 16,
+                                    padding: '10px 12px',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: 'var(--radius-md)',
+                                    transition: 'all 0.2s',
+                                    cursor: 'default'
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-hover)';
+                                    e.currentTarget.style.borderColor = 'var(--border-bright)';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                                    e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {p.name || 'Processus Inconnu'}
+                                      </span>
+                                      <span style={{ fontSize: 9, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '1px 4px', borderRadius: 2 }}>
+                                        PID {p.pid}
+                                      </span>
                                     </div>
-                                 </td>
-                                 <td style={{ padding: '8px', borderBottom: '1px solid #222', textAlign: 'center', color: '#666' }}>
-                                    {p.cpu > 0.5 ? <div style={{ color: '#22d3a3', fontSize: '9px' }}>●</div> : ''}
-                                 </td>
-                                 <td style={{ ...cellStyle, background: `rgba(0,103,207, ${Math.min(0.7, p.cpu/20)})`, color: p.cpu > 1 ? '#fff' : '#aaa' }}>
-                                    {p.cpu}%
-                                 </td>
-                                 <td style={{ ...cellStyle, background: `rgba(0,103,207, ${Math.min(0.7, p.mem/20)})`, color: p.mem > 1 ? '#fff' : '#aaa' }}>
-                                    {p.mem}%
-                                 </td>
-                                 <td style={{ ...cellStyle, color: '#aaa', background: `rgba(0,103,207, ${p.cpu > 10 ? 0.2 : 0})` }}>
-                                    {p.cpu > 10 ? '0.1 Mo/s' : '0 Mo/s'}
-                                 </td>
-                                 <td style={{ ...cellStyle, color: '#aaa', background: `rgba(0,103,207, ${p.cpu > 15 ? 0.2 : 0})` }}>
-                                    {p.cpu > 15 ? '0.1 Mbps' : '0 Mbps'}
-                                 </td>
-                              </tr>
-                            )
-                         })}
-                      </tbody>
-                   </table>
+                                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'flex', gap: 8 }}>
+                                      <span>Utilisateur: {p.user}</span>
+                                      {p.path && <span title={p.path} style={{ opacity: 0.5 }}>• {p.path.split('\\').pop().split('/').pop()}</span>}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                    <div style={{ textAlign: 'right', minWidth: 60 }}>
+                                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>CPU</div>
+                                      <div style={{ fontSize: 13, fontWeight: 700, color: p.cpu > 20 ? 'var(--danger)' : p.cpu > 5 ? 'var(--warning)' : 'var(--text-primary)' }}>
+                                        {p.cpu.toFixed(1)}%
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', minWidth: 70 }}>
+                                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>RAM</div>
+                                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                                        {p.rss ? `${p.rss} Mo` : `${p.mem.toFixed(1)}%`}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <div 
+                                      style={{ width: 3, height: 24, borderRadius: 2, background: p.cpu > 10 ? 'var(--danger)' : 'var(--accent)', opacity: 0.3 }} 
+                                      title="Charge CPU"
+                                    />
+                                    <div 
+                                      style={{ width: 3, height: 24, borderRadius: 2, background: 'var(--success)', opacity: 0.3 }} 
+                                      title="Charge RAM"
+                                    />
+                                  </div>
+                                </div>
+                              )) : (
+                                <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  Aucun processus actif détecté dans cette catégorie.
+                                </div>
+                              )}
+                           </div>
+                        </div>
+                      ));
+                   })()}
                 </div>
               </div>
 
@@ -273,7 +381,7 @@ export default function HostDetail({ metrics }) {
                 <div className="card-title"><Info size={13} color="var(--accent)" /> ÉVÉNEMENTS SYSTÈME RÉCENTS</div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                    {logs.length > 0 ? logs.map((l, i) => (
-                      <div key={i} style={{ fontSize: 12, display: 'flex', gap: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <div key={`log-${l.ts}-${i}`} style={{ fontSize: 12, display: 'flex', gap: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                          <div style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 60 }}>{l.time}</div>
                          <div style={{ color: l.type === 'error' ? 'var(--danger)' : l.type === 'warning' ? 'var(--warning)' : 'var(--text-secondary)' }}>
                             {l.msg}
@@ -288,7 +396,7 @@ export default function HostDetail({ metrics }) {
             <div className="card-title"><HardDrive size={13} color="var(--accent)" /> VOLUMES DE STOCKAGE PHYSIQUE</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20, marginTop: 20 }}>
               {disk.map((d, i) => (
-                <div key={i} style={{ padding: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                <div key={`disk-${d.mount}-${i}`} style={{ padding: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontWeight: 800, fontSize: 20 }}>{d.mount}</div>
                     <div className="status-badge online" style={{ fontSize: 9 }}>LOCAL DISK</div>
@@ -354,8 +462,8 @@ export default function HostDetail({ metrics }) {
                        <Database size={20} color="var(--accent-secondary)" />
                     </div>
                     <div>
-                       <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Architecture Machine</div>
-                       <div style={{ fontSize: 14, fontWeight: 700 }}>{(host.arch || 'x64').toUpperCase()} Node</div>
+                       <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Architecture & Gen</div>
+                       <div style={{ fontSize: 14, fontWeight: 700 }}>{(host.arch || 'x64').toUpperCase()} · {host.hardware?.family || 'PC'}</div>
                     </div>
                  </div>
               </div>
@@ -368,6 +476,159 @@ export default function HostDetail({ metrics }) {
                     {hAdvice}
                  </p>
               </div>
+           </div>
+
+           {/* ─── BIOS + CARTE MÈRE + INSTALLATION + RAM ─── */}
+           <div className="card glass-panel" style={{ padding: 24 }}>
+             <div className="card-title"><Database size={13} color="var(--accent)" /> MATÉRIEL &amp; INSTALLATION</div>
+             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1fr)', gap: 16, marginTop: 20 }}>
+               
+               {/* 1. Identification système */}
+               <div style={{ display: 'flex', gap: 14 }}>
+                 <div style={{ background: 'var(--accent-glow)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <Monitor size={17} color="var(--accent)" />
+                 </div>
+                 <div>
+                   <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Modèle & Génération</div>
+                   <div style={{ fontSize: 13, fontWeight: 700 }}>{host.hardware?.manufacturer} {host.hardware?.model}</div>
+                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{host.hardware?.family}</div>
+                 </div>
+               </div>
+
+               {/* 2. Dispo Mémoire RAM */}
+               {host.ramLayout && (
+                 <div style={{ display: 'flex', gap: 14 }}>
+                   <div style={{ background: 'rgba(34,211,163,0.1)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                     <MemoryStick size={17} color="var(--success)" />
+                   </div>
+                   <div>
+                     <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Architecture Mémoire (RAM)</div>
+                     <div style={{ fontSize: 13, fontWeight: 700 }}>{host.ramLayout.usedSlots} slots utilisés sur {host.ramLayout.totalSlots}</div>
+                     <div style={{ fontSize: 11, color: host.ramLayout.canUpgrade ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
+                       {host.ramLayout.canUpgrade ? '✅ Extension possible' : '⚠️ Slots maximisés ou non détectés'}
+                     </div>
+                     {host.ramLayout.sticks.length > 0 && (
+                       <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                         {host.ramLayout.sticks.map((s,i) => `${s.size > 0 ? formatBytes(s.size) : 'Inconnu'} ${s.type !== 'N/A' && s.type !== 'Unknown' ? s.type : ''} ${s.clockSpeed ? `(${s.clockSpeed}MHz)` : ''}`).join(' + ')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+
+               {/* 3. Carte Mère & BIOS */}
+               <div style={{ display: 'flex', gap: 14 }}>
+                 <div style={{ background: 'rgba(167,139,250,0.1)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <Server size={17} color="#a78bfa" />
+                 </div>
+                 <div>
+                   <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Carte Mère & BIOS</div>
+                   <div style={{ fontSize: 13, fontWeight: 700 }}>{host.motherboard?.manufacturer || 'Inconnu'} {host.motherboard?.model || ''}</div>
+                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>BIOS v{host.bios?.version} {host.bios?.releaseDate ? `(${host.bios.releaseDate})` : ''}</div>
+                 </div>
+               </div>
+
+               {/* 4. Support Virtualisation */}
+               <div style={{ display: 'flex', gap: 14 }}>
+                 <div style={{ background: 'rgba(79,142,247,0.1)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <Cpu size={17} color="var(--accent)" />
+                 </div>
+                 <div>
+                   <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Virtualisation Matérielle</div>
+                   <div style={{ fontSize: 13, fontWeight: 700, color: host.hardware?.virtualization?.includes('Activée') ? 'var(--success)' : 'var(--warning)' }}>
+                     {host.hardware?.virtualization || 'Inconnu'}
+                   </div>
+                 </div>
+               </div>
+
+               {/* 5. Alimentation Batterie / Secteur */}
+               {host.battery && (
+                 <div style={{ display: 'flex', gap: 14 }}>
+                   <div style={{ background: host.battery.hasBattery && !host.battery.isCharging ? 'rgba(245,155,0,0.1)' : 'rgba(34,211,163,0.1)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                     <Zap size={17} color={host.battery.hasBattery && !host.battery.isCharging ? 'var(--warning)' : 'var(--success)'} />
+                   </div>
+                   <div>
+                     <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source d'Alimentation</div>
+                     <div style={{ fontSize: 13, fontWeight: 700 }}>
+                       {!host.battery.hasBattery ? '🔌 Sur secteur continu (Stationnaire)' : host.battery.isCharging ? `🔌 Branché / En charge (${host.battery.percent}%)` : `🔋 Sur Batterie (${host.battery.percent}%)`}
+                     </div>
+                     {host.battery.hasBattery && host.battery.designedCapacity && (
+                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Santé batterie: {Math.round((host.battery.currentCapacity / host.battery.designedCapacity)*100)}%</div>
+                     )}
+                   </div>
+                 </div>
+               )}
+
+               {/* 6. OS Install & Update */}
+               <div style={{ display: 'flex', gap: 14 }}>
+                 <div style={{ background: 'var(--accent-glow)', width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <Clock size={17} color="var(--accent)" />
+                 </div>
+                 <div>
+                   {host.installDate && typeof host.installDate === 'string' && (
+                     <div style={{ fontSize: 12, fontWeight: 600 }}>Installé le: <span style={{color: 'var(--text-primary)'}}>{host.installDate.split(' ')[0]}</span></div>
+                   )}
+                   {host.lastUpdate && (
+                     <div style={{ fontSize: 12, fontWeight: 600 }}>
+                       Dernière MAJ: <span style={{color: 'var(--text-primary)'}}>
+                         {typeof host.lastUpdate.date === 'string' ? host.lastUpdate.date : 'Récemment'} ({host.lastUpdate.id})
+                       </span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+
+               {/* ─── SÉCURITÉ & SANTÉ DISQUES ─── */}
+               {(host.security || (host.physicalDisks && host.physicalDisks.length > 0)) && (
+                 <div className="card glass-panel" style={{ padding: 24 }}>
+                   <div className="card-title"><Shield size={13} color="var(--success)" /> SÉCURITÉ &amp; ÉTAT PHYSIQUE</div>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20 }}>
+                     
+                     {/* Disques Physiques */}
+                     {host.physicalDisks && host.physicalDisks.map((disk, idx) => (
+                       <div key={idx} style={{ padding: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                           <HardDrive size={16} color={disk.type?.includes('SSD') ? 'var(--accent)' : 'var(--text-muted)'} />
+                           <div style={{ fontWeight: 700, fontSize: 13 }}>{disk.name}</div>
+                         </div>
+                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <div>
+                               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type / Capacité</div>
+                               <div style={{ fontSize: 11, fontWeight: 600 }}>{disk.type} · {formatBytes(disk.size)}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Santé SMART</div>
+                               <div style={{ fontSize: 11, fontWeight: 800, color: disk.smartStatus === 'OK' ? 'var(--success)' : 'var(--danger)' }}>
+                                  {disk.smartStatus === 'OK' ? 'Sain' : '⚠️ Critique'}
+                               </div>
+                            </div>
+                         </div>
+                       </div>
+                     ))}
+
+                     {/* Sécurité BIOS */}
+                     {host.security && (
+                       <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                         <div style={{ padding: 10, background: 'rgba(34,211,163,0.05)', borderRadius: 8, border: '1px solid rgba(34,211,163,0.1)' }}>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Secure Boot</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: host.security.secureBoot === 'Activé' ? 'var(--success)' : 'var(--warning)' }}>
+                              {host.security.secureBoot}
+                            </div>
+                         </div>
+                         <div style={{ padding: 10, background: 'rgba(79,142,247,0.05)', borderRadius: 8, border: '1px solid rgba(79,142,247,0.1)' }}>
+                            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Puce TPM</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: host.security.tpm?.includes('tivé') ? 'var(--accent)' : 'var(--warning)' }}>
+                               {host.security.tpm}
+                            </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+
+
+             </div>
            </div>
 
            <div className="card glass-panel" style={{ padding: 24 }}>

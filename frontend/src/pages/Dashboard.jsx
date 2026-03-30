@@ -301,15 +301,37 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
             </div>
 
             <div style={{ width: '100%', borderTop: '1px solid var(--border)', paddingTop: 32, marginTop: 20 }}>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Système</div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{metrics.host.os}</div>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>{metrics.host.os}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Noyau</div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{metrics.host.distro}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Modèle Matériel</div>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>{metrics.host.hardware?.model || 'PC'}</div>
                   </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>IP Locale</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--accent)', fontFamily: 'monospace' }}>{metrics.host.localIP || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Installé le</div>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>
+                      {typeof metrics.host.installDate === 'string' ? metrics.host.installDate.split(' ')[0] : 'N/A'}
+                    </div>
+                  </div>
+                  {metrics.host.hardware && (
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Génération CPU</div>
+                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--success)' }}>{metrics.host.hardware.cpuGeneration || 'N/A'}</div>
+                    </div>
+                  )}
+                  {metrics.host.ramLayout && (
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>Dispo. Mémoire</div>
+                      <div style={{ fontWeight: 600, fontSize: 11 }}>{metrics.host.ramLayout.usedSlots}/{metrics.host.ramLayout.totalSlots} Slots Utilisés</div>
+                    </div>
+                  )}
                </div>
                
                <div style={{ marginTop: 28 }}>
@@ -334,8 +356,17 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
 
           {/* LISTE DES MACHINES VIRTUELLES (VMWARE) */}
           <div className="card glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div className="card-title" style={{ fontSize: '14px', marginBottom: 16 }}>
-              <Server size={14} color="var(--accent)" /> Machines Virtuelles VMware
+            <div className="card-title" style={{ fontSize: '14px', marginBottom: 16, justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Server size={14} color="var(--accent)" /> Machines Virtuelles
+              </div>
+              {vms.length > 0 && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[...new Set(vms.map(v => v.hypervisor).filter(Boolean))].map(hv => (
+                    <span key={hv} style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: hv === 'VMware' ? 'rgba(32,150,243,0.15)' : hv === 'VirtualBox' ? 'rgba(243,156,18,0.15)' : 'rgba(0,180,216,0.15)', color: hv === 'VMware' ? '#2196f3' : hv === 'VirtualBox' ? '#f59c23' : '#00b4d8', border: `1px solid currentColor` }}>{hv}</span>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', maxHeight: '350px', paddingRight: 4 }}>
                {vms.length > 0 ? (

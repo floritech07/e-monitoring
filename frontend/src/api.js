@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// En dev: utilise VITE_API_URL si défini, sinon détecte l'hôte automatiquement.
+// En prod (build): pointe toujours vers le backend sur le même hôte, port 3001.
+const BASE = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
 
 async function req(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -70,4 +72,17 @@ export const api = {
 
   // Terminal
   terminalExec:     (command)       => req('/terminal/exec', { method: 'POST', body: JSON.stringify({ command }) }),
+
+  // System Scan & Detection
+  getSystemScan:    ()              => req('/system/scan'),
+  getHypervisors:   ()              => req('/system/hypervisors'),
+
+  // Payment Trends
+  getPrepaidTrend:  (range)         => req(`/payments/trends/prepaid?range=${range || '24h'}`),
+  getPostpaidTrend: (range)         => req(`/payments/trends/postpaid?range=${range || '24h'}`),
+  getPaymentStats:  ()              => req('/payments/stats'),
+  getPaymentRules:  ()              => req('/payments/rules'),
+  createPaymentRule:(rule)          => req('/payments/rules', { method: 'POST', body: JSON.stringify(rule) }),
+  updatePaymentRule:(id, rule)      => req(`/payments/rules/${id}`, { method: 'PUT', body: JSON.stringify(rule) }),
+  deletePaymentRule:(id)            => req(`/payments/rules/${id}`, { method: 'DELETE' }),
 };

@@ -1326,27 +1326,28 @@ html.light-mode .nav-item.active { background: rgba(58,123,232,0.1); }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 18px 10px;
-  border-radius: 14px;
-  font-size: 12px;
+  padding: 16px 10px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
+  border: 1px solid var(--border-bright);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .btn-action:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--text-muted);
+  background: linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-active) 100%);
+  color: #fff;
+  border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
 }
 
 .btn-action.start:hover:not(:disabled) { 

@@ -66,11 +66,11 @@ function VMActionCard({ vm, onAction }) {
     <div className={`card vm-action-card glass-panel ${isOn ? 'online' : isSuspended ? 'suspended' : 'offline'}`} style={{ minHeight: 'auto', padding: 24 }}>
       <div className="vm-card-main" style={{ marginBottom: 16 }}>
         <div className="vm-icon-status" style={{ gap: 20 }}>
-          <div className="vm-avatar-wrapper" style={{ width: 64, height: 64 }}>
-            <div className="vm-avatar" style={{ width: 64, height: 64 }}>
+          <div className="vm-avatar-wrapper" style={{ width: 64, height: 64, position: 'relative' }}>
+            <div className="vm-avatar" style={{ width: 64, height: 64, position: 'relative', zIndex: 2 }}>
                <Monitor size={24} className={isOn ? 'text-success' : 'text-muted'} />
             </div>
-            <div className="vm-status-ring" style={{ inset: -6 }} />
+            <div className="vm-status-ring" style={{ inset: -6, position: 'absolute', zIndex: 1, pointerEvents: 'none' }} />
           </div>
           <div className="vm-info-texts">
              <div className="vm-name-title" style={{ fontSize: 16 }}>{vm.name}</div>
@@ -109,7 +109,7 @@ function VMActionCard({ vm, onAction }) {
               {loading === 'start' ? <Loader size={12} className="rotate-animation" /> : <Play size={12} fill="currentColor" />}
             </button>
             <button className="btn-action stop" disabled={vm.state === 'off' || !!loading} onClick={() => requestAction('stop', 'Arrêter')} style={{ padding: '12px 6px' }}>
-              {loading === 'stop' ? <Loader size={12} className="rotate-animation" /> : <Square size={12} fill="currentColor" />}
+              {(loading === 'stop' || loading === 'stop_hard') ? <Loader size={12} className="rotate-animation" /> : <Square size={12} fill="currentColor" />}
             </button>
             <button className="btn-action restart" disabled={!isOn || !!loading} onClick={() => requestAction('restart', 'Redémarrer')} style={{ padding: '12px 6px' }}>
               {loading === 'restart' ? <Loader size={12} className="rotate-animation" /> : <RefreshCw size={12} />}
@@ -126,8 +126,8 @@ function VMActionCard({ vm, onAction }) {
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)}
         onConfirm={() => executeAction({ ...pendingAction, action: pendingAction?.action === 'stop' ? 'stop_hard' : pendingAction?.action })}
-        title="Confirmation Critique"
-        message={`Force l'action sur "${vm.name}".`}
+        title="Confirmation Requise"
+        message={`Force l'arrêt immédiat de la machine virtuelle "${vm.name}".\n\n[Action: ${pendingAction?.label}]`}
         confirmLabel="Confirmer"
         type="warning"
       />

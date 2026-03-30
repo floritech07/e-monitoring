@@ -224,6 +224,33 @@ function getAlertHistory(limit = 100) {
   return (read(HISTORY_FILE, { history: [] }).history || []).slice(0, limit);
 }
 
+// ─── External Endpoints (vCenter, ESXi, Hyper-V) ─────────────────────────────
+
+const ENDPOINTS_FILE = 'endpoints.json';
+
+function getEndpoints() {
+  const { endpoints = [] } = read(ENDPOINTS_FILE, { endpoints: [] });
+  return endpoints;
+}
+
+function addEndpoint(endpoint) {
+  const endpoints = getEndpoints();
+  const newEndpoint = {
+    ...endpoint,
+    id: `ep_${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    status: 'online' // Default mock status for newly added infrastructures
+  };
+  endpoints.push(newEndpoint);
+  write(ENDPOINTS_FILE, { endpoints });
+  return newEndpoint;
+}
+
+function deleteEndpoint(id) {
+  const endpoints = getEndpoints().filter(e => e.id !== id);
+  write(ENDPOINTS_FILE, { endpoints });
+}
+
 module.exports = {
   // Rules
   getRules, addRule, updateRule, deleteRule,
@@ -239,4 +266,6 @@ module.exports = {
   getPaymentRules, savePaymentRules,
   // Alert history
   appendAlertHistory, getAlertHistory,
+  // Endpoints
+  getEndpoints, addEndpoint, deleteEndpoint,
 };

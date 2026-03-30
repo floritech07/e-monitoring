@@ -75,11 +75,11 @@ function RuleFormModal({ rule, onClose, onSave }) {
   const LabelStyle  = { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-      <form onSubmit={submit} className="card glass-panel fade-in" style={{ width: 520, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{rule?.id ? 'Modifier la règle' : 'Nouvelle règle d\'alerte'}</div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}><X size={14} /></button>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', backdropFilter: 'blur(4px)' }}>
+      <form onSubmit={submit} className="card glass-panel fade-in" style={{ width: 520, padding: 32, maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--glass-border)', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)' }}>{rule?.id ? 'Modifier la règle' : 'Nouvelle règle d\'alerte'}</div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} style={{ width: 28, height: 28, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-elevated)' }}><X size={14} /></button>
         </div>
 
         {error && (

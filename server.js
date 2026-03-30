@@ -7,12 +7,13 @@ const cron     = require('node-cron');
 const { exec } = require('child_process');
 
 const metricsService  = require('./services/metricsService');
-const vmwareService   = require('./services/vmwareService');
+const vmwareService   = require('./services/virtualizationService');  // universal hypervisor detection
 const alertsService   = require('./services/alertRulesService');   // upgraded
 const activityService = require('./services/activityService');
 const storageService  = require('./services/storageService');
 const networkService  = require('./services/networkService');
 const paymentService  = require('./services/paymentService');
+const veeamService    = require('./services/veeamService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -42,6 +43,25 @@ app.get('/api/metrics/host', async (req, res) => {
 app.get('/api/vms', async (req, res) => {
   try {
     res.json(await vmwareService.listVMs());
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── System Scan & Hypervisor Detection ──────────────────────────────────────
+
+app.get('/api/system/scan', async (req, res) => {
+  try {
+    res.json(await vmwareService.getSystemScanReport());
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/system/hypervisors', async (req, res) => {
+  try {
+    const hv = await vmwareService.detectHypervisors();
+    res.json(hv);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -195,6 +215,26 @@ app.get('/api/infrastructure', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EXTERNAL ENDPOINTS (vCenter, ESXi, Hyper-V)
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/endpoints', (req, res) => {
+  res.json(storageService.getEndpoints());
+});
+
+app.post('/api/endpoints', (req, res) => {
+  const endpoint = storageService.addEndpoint(req.body);
+  activityService.log('info', `Nouveau point d'accès infrastructure ajouté: ${endpoint.name} (${endpoint.type})`, 'Infrastructure');
+  res.status(201).json(endpoint);
+});
+
+app.delete('/api/endpoints/:id', (req, res) => {
+  storageService.deleteEndpoint(req.params.id);
+  activityService.log('info', `Point d'accès infrastructure supprimé: ${req.params.id}`, 'Infrastructure');
+  res.json({ success: true });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TERMINAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -209,6 +249,55 @@ app.post('/api/terminal/exec', (req, res) => {
       timestamp: new Date().toLocaleTimeString('fr-FR')
     });
   });
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VEEAM BACKUP CONFIG & ACTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/veeam', async (req, res) => {
+  try {
+    const refresh = req.query.refresh === 'true';
+    res.json(await veeamService.getVeeamData(refresh));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/veeam/config', (req, res) => {
+  res.json(storageService.getVeeamConfig());
+});
+
+app.put('/api/veeam/config', (req, res) => {
+  storageService.saveVeeamConfig(req.body);
+  res.json({ success: true });
+});
+
+app.post('/api/veeam/jobs/:id/action', async (req, res) => {
+  try {
+    const result = await veeamService.triggerJobAction(req.params.id, req.body.action);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/backup', async (req, res) => {
+  try {
+    const data = await veeamService.getVeeamData();
+    res.json({
+      generatedAt: new Date().toISOString(),
+      jobs: data.jobs,
+      summary: {
+        total: data.jobs.length,
+        success: data.jobs.filter(j => j.statusInfo.severity === 'success').length,
+        failures: data.jobs.filter(j => j.statusInfo.severity === 'critical').length
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 
@@ -465,7 +554,7 @@ cron.schedule('0 */5 * * * *', async () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ SBEE Monitor backend running on port ${PORT}`);
   console.log(`   Storage:  ${require('path').join(__dirname, 'data')}`);
   // Run initial network probe in background

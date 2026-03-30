@@ -16,6 +16,7 @@
 .md-wrap {
   width: 95%;
   max-width: 480px;
+  max-height: 90vh;
   background: var(--bg-surface);
   border: 1px solid var(--border-bright);
   border-radius: 16px;
@@ -94,6 +95,8 @@
 
 .md-inner {
   padding: 24px 32px 32px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .md-main-text {
