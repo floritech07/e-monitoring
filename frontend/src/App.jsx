@@ -18,7 +18,6 @@ import UserManagement from './pages/UserManagement';
 import AddSystem from './pages/AddSystem';
 import Login from './pages/Login';
 import HostDetail from './pages/HostDetail';
-import VeeamPage from './pages/VeeamPage';
 import NetworkTopology from './pages/NetworkTopology';
 import AlertRulesPage from './pages/AlertRulesPage';
 import PaymentMonitor from './pages/PaymentMonitor';
@@ -35,7 +34,6 @@ function Sidebar({ alertCount }) {
     { section: 'Intégrations' },
     { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
     { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
-    { to: '/backup',  icon: Shield,          label: 'Veeam Backup'  },
     { to: '/actions', icon: Zap,             label: 'Actions à distance' },
     { section: 'Configuration' },
     { to: '/rules',   icon: BellRing,        label: 'Règles d\'alertes' },
@@ -388,7 +386,6 @@ function App() {
               <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
-              <Route path="/backup" element={<VeeamPage />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />
               <Route path="/rules" element={<AlertRulesPage />} />
               <Route path="/payments" element={<PaymentMonitor timeRange={timeRange} refreshRate={refreshRate} refreshCounter={refreshCounter} />} />

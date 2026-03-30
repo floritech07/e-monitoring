@@ -45,4 +45,13 @@ function getActivities() {
   return activities;
 }
 
-module.exports = { log, getActivities };
+function clearLogs() {
+  activities = [];
+  try {
+    fs.writeFileSync(LOG_FILE, JSON.stringify(activities, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Failed to clear activity logs:', e.message);
+  }
+}
+
+module.exports = { log, getActivities, clearLogs };

@@ -161,6 +161,23 @@ function saveVeeamConfig(cfg) {
   write(VEEAM_FILE, cfg);
 }
 
+// ─── Payment Alert Rules ───────────────────────────────────────────────────
+
+const PAYMENT_RULES_FILE = 'payment_rules.json';
+
+const DEFAULT_PAYMENT_RULES = [
+  { id: 'prepaid_drop',  type: 'PREPAID',  operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical' },
+  { id: 'postpaid_drop', type: 'POSTPAID', operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical' }
+];
+
+function getPaymentRules() {
+  return read(PAYMENT_RULES_FILE, { rules: DEFAULT_PAYMENT_RULES }).rules || DEFAULT_PAYMENT_RULES;
+}
+
+function savePaymentRules(rules) {
+  write(PAYMENT_RULES_FILE, { rules });
+}
+
 // ─── Custom Network Assets ────────────────────────────────────────────────────
 
 const ASSETS_FILE = 'custom_assets.json';
@@ -218,6 +235,8 @@ module.exports = {
   getVeeamConfig, saveVeeamConfig,
   // Assets
   getAssets, saveAsset, deleteAsset,
+  // Payment Rules
+  getPaymentRules, savePaymentRules,
   // Alert history
   appendAlertHistory, getAlertHistory,
 };

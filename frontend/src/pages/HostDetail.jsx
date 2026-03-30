@@ -55,7 +55,11 @@ export default function HostDetail({ metrics }) {
     );
   }
 
-  const { host = {}, cpu = {}, ram = {}, disk = [], network = {}, processes = [], gpu = [], logs = [] } = metrics || {};
+  const { host = {}, cpu = {}, ram = {}, disk = [], network = {}, processes = [], gpu = [], logs = [], health = {} } = metrics || {};
+  const hStatus = health.status || 'STATION SAINE';
+  const hAdvice = health.advice || 'Système opérationnel.';
+  const hColor = hStatus.includes('SAINE') ? 'var(--success)' : hStatus.includes('CRITIQUE') ? 'var(--danger)' : 'var(--warning)';
+  const hBgColor = hStatus.includes('SAINE') ? 'var(--success-bg)' : hStatus.includes('CRITIQUE') ? 'var(--danger-bg)' : 'var(--warning-bg)';
 
   return (
     <div className="fade-in">
@@ -218,23 +222,47 @@ export default function HostDetail({ metrics }) {
               {/* PROCESSUS LES PLUS GOURMANDS */}
               <div className="card glass-panel" style={{ padding: 24 }}>
                 <div className="card-title"><LayoutGrid size={13} color="var(--accent)" /> PROCESSUS LES PLUS ACTIFS</div>
-                <div style={{ marginTop: 16 }}>
-                   <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                      <thead style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ marginTop: 16, maxHeight: 600, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                   <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#111', borderBottom: '2px solid #222' }}>
                          <tr>
-                            <th style={{ textAlign: 'left', paddingBottom: 10 }}>Nom</th>
-                            <th style={{ textAlign: 'right', paddingBottom: 10 }}>CPU</th>
-                            <th style={{ textAlign: 'right', paddingBottom: 10 }}>RAM</th>
+                            <th style={{ textAlign: 'left', padding: '10px 15px', color: 'var(--text-muted)', width: '30%' }}>Nom</th>
+                            <th style={{ textAlign: 'center', padding: '10px', color: 'var(--text-muted)', width: '10%' }}>Statut</th>
+                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.4)', borderLeft: '1px solid #222' }}>Processeur</th>
+                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.35)', borderLeft: '1px solid #222' }}>Mémoire</th>
+                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.3)', borderLeft: '1px solid #222' }}>Disque</th>
+                            <th style={{ textAlign: 'center', padding: '10px', color: '#fff', background: 'rgba(0,103,207, 0.25)', borderLeft: '1px solid #222' }}>Réseau</th>
                          </tr>
                       </thead>
-                      <tbody>
-                         {processes.map((p, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                               <td style={{ padding: '10px 0', fontWeight: 600 }}>{p.name}</td>
-                               <td style={{ textAlign: 'right', color: 'var(--accent)', fontWeight: 700 }}>{p.cpu}%</td>
-                               <td style={{ textAlign: 'right', color: 'var(--warning)', fontWeight: 700 }}>{p.mem}%</td>
-                            </tr>
-                         ))}
+                      <tbody style={{ background: '#111' }}>
+                         {processes.map((p, i) => {
+                            const cellStyle = { padding: '8px', borderBottom: '1px solid #222', textAlign: 'center', borderLeft: '1px solid #222' };
+                            return (
+                              <tr key={i} style={{ borderBottom: '1px solid #222' }}>
+                                 <td style={{ padding: '8px 15px', borderBottom: '1px solid #222', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                       <div style={{ width: 14, height: 14, background: '#333', borderRadius: 2 }} />
+                                       <span style={{ fontWeight: 400 }}>{p.name}</span>
+                                    </div>
+                                 </td>
+                                 <td style={{ padding: '8px', borderBottom: '1px solid #222', textAlign: 'center', color: '#666' }}>
+                                    {p.cpu > 0.5 ? <div style={{ color: '#22d3a3', fontSize: '9px' }}>●</div> : ''}
+                                 </td>
+                                 <td style={{ ...cellStyle, background: `rgba(0,103,207, ${Math.min(0.7, p.cpu/20)})`, color: p.cpu > 1 ? '#fff' : '#aaa' }}>
+                                    {p.cpu}%
+                                 </td>
+                                 <td style={{ ...cellStyle, background: `rgba(0,103,207, ${Math.min(0.7, p.mem/20)})`, color: p.mem > 1 ? '#fff' : '#aaa' }}>
+                                    {p.mem}%
+                                 </td>
+                                 <td style={{ ...cellStyle, color: '#aaa', background: `rgba(0,103,207, ${p.cpu > 10 ? 0.2 : 0})` }}>
+                                    {p.cpu > 10 ? '0.1 Mo/s' : '0 Mo/s'}
+                                 </td>
+                                 <td style={{ ...cellStyle, color: '#aaa', background: `rgba(0,103,207, ${p.cpu > 15 ? 0.2 : 0})` }}>
+                                    {p.cpu > 15 ? '0.1 Mbps' : '0 Mbps'}
+                                 </td>
+                              </tr>
+                            )
+                         })}
                       </tbody>
                    </table>
                 </div>
@@ -280,11 +308,11 @@ export default function HostDetail({ metrics }) {
         <div className="actions-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
            <div className="card glass-panel" style={{ padding: 24 }}>
               <div className="card-title" style={{ marginBottom: 12 }}><Info size={13} color="var(--accent)" /> ÉTAT GÉNÉRAL</div>
-              <div style={{ padding: '16px 20px', background: 'var(--success-bg)', borderRadius: 12, border: '1px solid rgba(34, 211, 163, 0.2)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                 <ShieldCheck size={28} color="var(--success)" />
+              <div style={{ padding: '16px 20px', background: hBgColor, borderRadius: 12, border: `1px solid ${hColor}`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                 <ShieldCheck size={28} color={hColor} />
                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--success)' }}>STATION SAINE</div>
-                    <div style={{ fontSize: 10, opacity: 0.8 }}>Démarrée le {new Date(Date.now() - (host.uptime * 1000)).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: hColor }}>{hStatus}</div>
+                    <div style={{ fontSize: 10, opacity: 0.8, color: hColor }}>Démarrée le {new Date(Date.now() - (host.uptime * 1000)).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</div>
                  </div>
               </div>
 
@@ -334,10 +362,10 @@ export default function HostDetail({ metrics }) {
 
               <div style={{ marginTop: 32, padding: 16, background: 'var(--bg-elevated)', borderRadius: 12, border: '1px solid var(--border)' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                    <Zap size={14} color="var(--warning)" fill="var(--warning)" /> CONSEILLER DE SANTÉ
+                    <Zap size={14} color="var(--warning)" fill="var(--warning)" /> CONSEILLER DE SANTÉ & ALIMENTATION
                  </div>
                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    Les ressources de l'hôte sont exploitées à des niveaux optimaux. Aucun goulot d'étranglement détecté sur le bus E/S.
+                    {hAdvice}
                  </p>
               </div>
            </div>

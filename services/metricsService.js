@@ -15,32 +15,33 @@ const MAX_HISTORY = 5000;
 
 function getSystemLogs() {
   return new Promise((resolve) => {
-    // PowerShell command to get last 10 System AND Application logs
-    const cmd = `powershell "Get-EventLog -LogName System -Newest 10 | Select-Object TimeGenerated, EntryType, Message, @{Name='LogName';Expression={'System'}} | ConvertTo-Json; Get-EventLog -LogName Application -Newest 10 | Select-Object TimeGenerated, EntryType, Message, @{Name='LogName';Expression={'Application'}} | ConvertTo-Json"`;
-    exec(cmd, (error, stdout) => {
+    const cmd = `powershell -Command "Get-WinEvent -FilterHashtable @{LogName='System','Application'} -MaxEvents 15 | Select-Object TimeCreated, LevelDisplayName, Message, LogName | ConvertTo-Json -Compress"`;
+    // Increase maxBuffer in case logs are large
+    exec(cmd, { maxBuffer: 1024 * 5000 }, (error, stdout) => {
       if (error || !stdout) return resolve([]);
       try {
-        // Since we ran two commands, we might have two JSON arrays or objects
-        const blocks = stdout.split('\n').filter(l => l.trim().startsWith('[') || l.trim().startsWith('{'));
-        let allLogs = [];
-        blocks.forEach(block => {
-          try {
-            let parsed = JSON.parse(block);
-            if (!Array.isArray(parsed)) parsed = [parsed];
-            allLogs = allLogs.concat(parsed);
-          } catch(e) {}
-        });
-
-        resolve(allLogs.map(l => {
-          const tsMatch = l.TimeGenerated ? l.TimeGenerated.match(/\d+/) : null;
-          const ts = tsMatch ? parseInt(tsMatch[0]) : Date.now();
+        const parsed = JSON.parse(stdout.trim());
+        const logs = Array.isArray(parsed) ? parsed : [parsed];
+        
+        resolve(logs.map(l => {
+          let ts = Date.now();
+          if (l.TimeCreated && typeof l.TimeCreated === 'string') {
+            const match = l.TimeCreated.match(/\d+/);
+            if (match) ts = parseInt(match[0], 10);
+          }
+          const levelMap = {
+            'Error': 'error',
+            'Warning': 'warning',
+            'Information': 'info'
+          };
+          const msg = l.Message ? l.Message.split('\n')[0].substring(0, 150) : 'No message';
           return {
             time: new Date(ts).toLocaleTimeString('fr-FR'),
             ts: ts,
-            type: l.EntryType === 'Error' ? 'error' : l.EntryType === 'Warning' ? 'warning' : 'info',
-            msg: `[${l.LogName}] ${l.Message ? l.Message.split('\r\n')[0].substring(0, 120) : 'No message'}`
+            type: levelMap[l.LevelDisplayName] || 'info',
+            msg: `[${l.LogName}] ${msg}`
           };
-        }).slice(0, 15));
+        }));
       } catch (e) {
         resolve([]);
       }
@@ -113,13 +114,26 @@ async function getHostMetrics() {
   }
   const topProcesses = processes.list
     .sort((a, b) => (b.cpu + b.mem) - (a.cpu + a.mem))
-    .slice(0, 5)
+    .slice(0, 50)
     .map(p => ({
       name: p.name,
       cpu: parseFloat(p.cpu.toFixed(1)),
       mem: parseFloat(p.mem.toFixed(1)),
-      user: p.user
+      user: p.user || 'System',
+      pid: p.pid
     }));
+
+  const maxDiskUtilization = diskInfo.reduce((max, d) => Math.max(max, d.percent), 0);
+  const healthScore = Math.round(Math.max(0, 100 - (cpuUsage * 0.4) - (ramPercent * 0.4) - (maxDiskUtilization * 0.2)));
+  let healthStatus = "STATION SAINE";
+  let healthAdvice = "Les ressources de l'hôte sont exploitées à des niveaux optimaux. Aucun goulot d'étranglement détecté sur le bus E/S et l'alimentation est stable.";
+  if (healthScore < 40) {
+    healthStatus = "SITUATION CRITIQUE";
+    healthAdvice = "Surcharge extrême détectée. La tension matérielle est élevée, risque de défaillance thermique ou de congestion I/O imminente.";
+  } else if (healthScore < 70) {
+    healthStatus = "ATTENTION REQUISE";
+    healthAdvice = "Ressources sous charge importante. Surveillez l'évolution de la RAM et de la température pour éviter toute dégradation.";
+  }
 
   const gpuInfo = graphics.controllers.map(g => ({
     model: g.model,
@@ -172,6 +186,7 @@ async function getHostMetrics() {
     timestamps: history.timestamps.slice(),
     processes: topProcesses,
     gpu: gpuInfo,
+    health: { score: healthScore, status: healthStatus, advice: healthAdvice },
     logs: await getSystemLogs()
   };
 }

@@ -81,31 +81,39 @@ const THRESHOLD_PERCENT = 30;
 async function evaluateTransactions() {
   const operatorsPrefix = ['MOOV', 'MTN', 'SBIN', 'ASIN'];
   const operatorsPostfix = ['ASIN', 'MTN', 'MOOV', 'SBIN', 'BANQUES', 'PERFORM'];
+  const storage = require('./storageService');
+  const rules = storage.getPaymentRules().filter(r => r.enabled);
 
-  for (const op of operatorsPrefix) {
-    const stats = await getPrepaidStats(op);
-    checkAndAlert('PREPAID', op, stats);
-  }
+  for (const rule of rules) {
+    const ops = rule.operator === 'ALL' 
+       ? (rule.type === 'PREPAID' ? operatorsPrefix : operatorsPostfix)
+       : [rule.operator];
 
-  for (const op of operatorsPostfix) {
-    const stats = await getPostpaidStats(op);
-    checkAndAlert('POSTPAID', op, stats);
+    for (const op of ops) {
+      const stats = rule.type === 'PREPAID' 
+         ? await getPrepaidStats(op, rule.intervalMin || 60)
+         : await getPostpaidStats(op, rule.intervalMin || 60);
+
+      const { current_count, previous_count } = stats;
+      if (previous_count >= 10 && current_count < previous_count * (1 - (rule.threshold || 30) / 100)) {
+         checkAndAlert(rule.type, op, stats, rule);
+      }
+    }
   }
 
   lastEvaluation = Date.now();
 }
 
-function checkAndAlert(type, operator, stats) {
+function checkAndAlert(type, operator, stats, rule) {
   const { current_count, previous_count } = stats;
-  if (previous_count >= 10 && current_count < previous_count * (1 - THRESHOLD_PERCENT / 100)) {
-    const drop = Math.round((1 - current_count / previous_count) * 100);
-    alertsService.addExternalAlert({
-      level: 'critical', severity: 'critical', category: 'payment',
-      message: `Baisse de ${drop}% des transactions ${type} pour l'opérateur ${operator} (Actuel: ${current_count}, Précédent: ${previous_count})`,
-      source: `${type}_${operator}`, ruleId: `payment_drop_${type}_${operator}`
-    });
-    activityService.log('error', `Alerte baisse transactions: ${type} ${operator} (-${drop}%)`, 'Payment Monitor');
-  }
+  const drop = Math.round((1 - current_count / previous_count) * 100);
+  const severity = rule.severity || 'critical';
+  alertsService.addExternalAlert({
+    level: severity, severity: severity, category: 'payment',
+    message: `Baisse de ${drop}% des transactions ${type} pour ${operator} (Seuil: ${rule.threshold}%, Actuel: ${current_count}, Précédent: ${previous_count})`,
+    source: `${type}_${operator}`, ruleId: `payment_drop_${type}_${operator}`
+  });
+  activityService.log(severity === 'critical' ? 'error' : 'warning', `Alerte baisse transactions: ${type} ${operator} (-${drop}%)`, 'Payment Monitor');
 }
 
 async function getTrends(intervalMinutes = 60) {

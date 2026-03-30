@@ -11,7 +11,6 @@ const vmwareService   = require('./services/vmwareService');
 const alertsService   = require('./services/alertRulesService');   // upgraded
 const activityService = require('./services/activityService');
 const storageService  = require('./services/storageService');
-const veeamService    = require('./services/veeamService');
 const networkService  = require('./services/networkService');
 const paymentService  = require('./services/paymentService');
 
@@ -212,53 +211,6 @@ app.post('/api/terminal/exec', (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VEEAM INTEGRATION
-// ─────────────────────────────────────────────────────────────────────────────
-
-app.get('/api/veeam', async (req, res) => {
-  try {
-    const data = await veeamService.getVeeamData(req.query.refresh === 'true');
-    res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: e.message, connected: false, jobs: [], sessions: [], repos: [] });
-  }
-});
-
-app.post('/api/veeam/jobs/:jobId/action', async (req, res) => {
-  try {
-    const { action } = req.body; // 'start' | 'stop'
-    const result = await veeamService.triggerJobAction(req.params.jobId, action);
-    if (result.success) {
-      activityService.log('info', `Veeam job ${req.params.jobId} — action: ${action}`, 'Veeam Control');
-    }
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// Veeam config endpoints
-app.get('/api/veeam/config', (req, res) => {
-  const cfg = storageService.getVeeamConfig();
-  // Never return password
-  res.json({ ...cfg, password: cfg.password ? '••••••••' : '' });
-});
-
-app.put('/api/veeam/config', (req, res) => {
-  const existing = storageService.getVeeamConfig();
-  const updated  = {
-    ...existing,
-    ...req.body,
-    // Keep existing password if not provided
-    password: req.body.password && req.body.password !== '••••••••'
-      ? req.body.password
-      : existing.password,
-  };
-  storageService.saveVeeamConfig(updated);
-  activityService.log('info', 'Configuration Veeam mise à jour', 'Settings');
-  res.json({ success: true });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NETWORK ASSETS
@@ -331,6 +283,37 @@ app.get('/api/payments/stats', async (req, res) => {
   }
 });
 
+// ─── PAYMENT RULES (CRUD) ────────────────────────────────────────────────────
+
+app.get('/api/payments/rules', (req, res) => {
+  res.json(storageService.getPaymentRules());
+});
+
+app.post('/api/payments/rules', (req, res) => {
+  const rules = storageService.getPaymentRules();
+  const rule  = { ...req.body, id: `payrule_${Date.now()}` };
+  rules.push(rule);
+  storageService.savePaymentRules(rules);
+  activityService.log('info', `Règle de paiement ajoutée: ${rule.id}`, 'Payment Monitor');
+  res.status(201).json(rule);
+});
+
+app.put('/api/payments/rules/:id', (req, res) => {
+  let rules = storageService.getPaymentRules();
+  const idx = rules.findIndex(r => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Règle non trouvée' });
+  rules[idx] = { ...rules[idx], ...req.body };
+  storageService.savePaymentRules(rules);
+  res.json(rules[idx]);
+});
+
+app.delete('/api/payments/rules/:id', (req, res) => {
+  let rules = storageService.getPaymentRules().filter(r => r.id !== req.params.id);
+  storageService.savePaymentRules(rules);
+  res.json({ success: true });
+});
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TOPOLOGY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -386,39 +369,6 @@ app.get('/api/reports/availability', (req, res) => {
   });
 });
 
-app.get('/api/reports/backup', async (req, res) => {
-  try {
-    const veeam = await veeamService.getVeeamData();
-    const jobs  = veeam.jobs || [];
-    const successJobs = jobs.filter(j => j.lastResult === 'Success').length;
-
-    res.json({
-      generatedAt:     new Date().toISOString(),
-      connected:       veeam.connected,
-      totalJobs:       jobs.length,
-      successJobs,
-      failedJobs:      jobs.filter(j => j.lastResult === 'Failed').length,
-      warningJobs:     jobs.filter(j => j.lastResult === 'Warning').length,
-      successRatePct:  jobs.length ? Math.round((successJobs / jobs.length) * 100) : 0,
-      jobs:            jobs.map(j => ({
-        name:       j.name,
-        type:       j.type,
-        lastResult: j.lastResult,
-        lastRun:    j.lastRun,
-        rpoHours:   j.rpoHours,
-        status:     j.statusInfo,
-      })),
-      repos: (veeam.repos || []).map(r => ({
-        name:        r.name,
-        totalGB:     r.totalSpaceGB,
-        freeGB:      r.freeSpaceGB,
-        usedPct:     r.usedPct,
-      })),
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET
@@ -437,6 +387,16 @@ cron.schedule('*/1 * * * * *', async () => {
   try {
     const metrics = await metricsService.getHostMetrics();
     const vms     = await vmwareService.listVMs();
+
+    // Detect state changes on VMs
+    vms.forEach(vm => {
+      const cached = cachedVMs.find(c => c.id === vm.id);
+      if (cached && cached.state !== vm.state) {
+        const actionText = vm.state === 'on' ? 'démarrée' : 'arrêtée';
+        const type = vm.state === 'on' ? 'success' : 'warning';
+        activityService.log(type, `La VM "${vm.name}" a été ${actionText} (Détection système)`, 'VM Monitor');
+      }
+    });
 
     metricsService.updateVMHistory(vms);
     const vmsWithHistory = vms.map(vm => ({
@@ -464,25 +424,29 @@ cron.schedule('*/1 * * * * *', async () => {
 });
 
 // ─── Network probe: every 60 seconds ─────────────────────────────────────────
+let lastNetworkAssets = [];
 cron.schedule('*/60 * * * * *', async () => {
   try {
     await networkService.probeAll();
     const assets = networkService.getAssetsWithStatus();
+    
+    // Detect network status changes
+    assets.forEach(asset => {
+      const prev = lastNetworkAssets.find(a => a.id === asset.id);
+      if (prev && prev.probeStatus !== asset.probeStatus) {
+        const type = asset.probeStatus === 'online' ? 'success' : (asset.probeStatus === 'offline' ? 'error' : 'warning');
+        const actionText = asset.probeStatus === 'online' ? 'établie' : (asset.probeStatus === 'offline' ? 'perdue' : 'instable');
+        activityService.log(type, `Connexion avec "${asset.name}" (${asset.ip}) ${actionText}`, 'Network Monitor');
+      }
+    });
+    lastNetworkAssets = JSON.parse(JSON.stringify(assets));
+
     io.emit('network_update', { assets, timestamp: Date.now() });
   } catch (e) {
     console.error('[Network probe] Error:', e.message);
   }
 });
 
-// ─── Veeam poll: every 5 minutes ─────────────────────────────────────────────
-cron.schedule('0 */5 * * * *', async () => {
-  try {
-    const veeamData = await veeamService.pollVeeam();
-    io.emit('veeam_update', { ...veeamData, timestamp: Date.now() });
-  } catch (e) {
-    console.error('[Veeam poll] Error:', e.message);
-  }
-});
 
 // ─── Payment evaluation: every 5 minutes ─────────────────────────────────────
 cron.schedule('0 */5 * * * *', async () => {

@@ -235,15 +235,6 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
   const rxPrev = rxLen > 1 ? metrics.network.rx_history[rxLen - 2] : rxCurrent;
   const txPrev = rxLen > 1 ? metrics.network.tx_history[rxLen - 2] : txCurrent;
 
-  const addLog = (msg, type = 'info') => {
-    const newLog = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString('fr-FR'),
-      msg,
-      type
-    };
-    setActivityLogs(prev => [newLog, ...prev.slice(0, 9)]);
-  };
 
   const requestAction = (action) => {
     setConfirmAction(action);
@@ -253,7 +244,6 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
     if (!confirmAction) return;
     const action = confirmAction;
     setConfirmAction(null);
-    addLog(`Émission de l'ordre [${action}] vers le système d'exploitation...`, 'warning');
     
     try {
       const res = await fetch('http://localhost:3001/api/host/action', {
@@ -263,16 +253,11 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
       });
       const data = await res.json();
       
-      if (data.success) {
-        addLog(`Validation reçue: Ordre [${action}] acquitté par le système.`, 'success');
-        if (action === 'Vidage du cache') {
-          setTimeout(() => addLog('Libération de mémoire cache exécutée.', 'success'), 500);
-        }
-      } else {
-        addLog(`Erreur: ${data.error}`, 'error');
+      if (!data.success) {
+        console.error(`Action failed: ${data.error}`);
       }
     } catch (err) {
-      addLog(`Erreur de communication avec l'hôte pour l'action [${action}].`, 'error');
+      console.error('API error:', err);
     }
   };
 

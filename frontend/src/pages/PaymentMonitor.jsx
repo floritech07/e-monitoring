@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Settings 
+  Settings, AlertTriangle, BellRing, X, Plus, Trash2 
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -53,8 +53,11 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
   const [loading, setLoading] = useState(true);
   const [useMock, setUseMock] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('fr-FR'));
+  const [showRules, setShowRules] = useState(false);
+  const [rules, setRules] = useState([]);
 
   useEffect(() => {
+    fetchRules();
     fetchTrends();
     let trendInterval;
     
@@ -107,13 +110,40 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
     }
   };
 
+  const fetchRules = async () => {
+    try {
+      const res = await fetch('http://localhost:3001/api/payments/rules');
+      const data = await res.json();
+      setRules(data);
+    } catch (e) {}
+  };
+
+  const saveRule = async (rule) => {
+    const url = rule.id ? `http://localhost:3001/api/payments/rules/${rule.id}` : 'http://localhost:3001/api/payments/rules';
+    const method = rule.id ? 'PUT' : 'POST';
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rule)
+    });
+    fetchRules();
+  };
+
+  const deleteRule = async (id) => {
+    await fetch(`http://localhost:3001/api/payments/rules/${id}`, { method: 'DELETE' });
+    fetchRules();
+  };
+
   const formatChartData = (seriesData, key) => {
     const timeMap = {};
     seriesData.forEach(s => {
       if (s && Array.isArray(s.data)) {
         s.data.forEach(p => {
-          if (!timeMap[p.time]) timeMap[p.time] = { time: p.time };
-          timeMap[p.time][s[key]] = p.entry_count;
+          // Utiliser un timestamp arrondi pour regrouper les données temporellement
+          // et éviter les collisions de clés Recharts
+          const roundedTime = Math.floor(p.time / 1000) * 1000;
+          if (!timeMap[roundedTime]) timeMap[roundedTime] = { time: roundedTime };
+          timeMap[roundedTime][s[key]] = p.entry_count;
         });
       }
     });
@@ -159,32 +189,36 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
           </div>
           <div style={{ display: 'flex', height: '350px' }}>
             <div style={{ flex: 1, padding: '15px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart key={timeRange} data={prepaidChartData}>
-                  <defs>
-                    {Object.keys(OPERATOR_COLORS).map(op => (
-                      <linearGradient key={op} id={`grad-pre-${op}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                  <XAxis 
-                    dataKey="time" 
-                    type="number" 
-                    domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
-                    tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
-                    stroke="#444" 
-                    fontSize={10} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
-                  {prepaidData.map(s => <Area key={s.operator} type="monotone" dataKey={s.operator} stroke={OPERATOR_COLORS[s.operator]} fill={`url(#grad-pre-${s.operator})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
-                </AreaChart>
-              </ResponsiveContainer>
+              {prepaidChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                  <AreaChart key={`pre-${timeRange}-${prepaidChartData.length}`} data={prepaidChartData}>
+                    <defs>
+                      {Object.keys(OPERATOR_COLORS).map(op => (
+                        <linearGradient key={op} id={`grad-pre-${op}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
+                    <XAxis 
+                      dataKey="time" 
+                      type="number" 
+                      domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
+                      tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
+                      stroke="#444" 
+                      fontSize={10} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
+                    {prepaidData.map((s, idx) => <Area key={`${s.operator}-${idx}`} type="monotone" dataKey={s.operator} stroke={OPERATOR_COLORS[s.operator]} fill={`url(#grad-pre-${s.operator})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>Initialisation du graphique...</div>
+              )}
             </div>
             <div style={{ width: '220px', borderLeft: '1px solid #2c3235', backgroundColor: '#0b0c10', padding: '15px', overflowY: 'auto' }}>
               <div style={{ fontSize: '9px', fontWeight: 'bold', borderBottom: '1px solid #2c3235', paddingBottom: '6px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', color: '#8e8e8e' }}>
@@ -218,32 +252,36 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
           </div>
           <div style={{ display: 'flex', height: '350px' }}>
             <div style={{ flex: 1, padding: '15px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart key={timeRange} data={postpaidChartData}>
-                  <defs>
-                    {Object.keys(OPERATOR_COLORS).map(op => (
-                      <linearGradient key={op} id={`grad-post-${op}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                  <XAxis 
-                    dataKey="time" 
-                    type="number" 
-                    domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
-                    tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
-                    stroke="#444" 
-                    fontSize={10} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
-                  {postpaidData.map(s => <Area key={s.tier} type="monotone" dataKey={s.tier} stroke={OPERATOR_COLORS[s.tier]} fill={`url(#grad-post-${s.tier})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
-                </AreaChart>
-              </ResponsiveContainer>
+              {postpaidChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                  <AreaChart key={`post-${timeRange}-${postpaidChartData.length}`} data={postpaidChartData}>
+                    <defs>
+                      {Object.keys(OPERATOR_COLORS).map(op => (
+                        <linearGradient key={op} id={`grad-post-${op}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
+                    <XAxis 
+                      dataKey="time" 
+                      type="number" 
+                      domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
+                      tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
+                      stroke="#444" 
+                      fontSize={10} 
+                      axisLine={false} 
+                      tickLine={false} 
+                    />
+                    <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
+                    {postpaidData.map((s, idx) => <Area key={`${s.tier}-${idx}`} type="monotone" dataKey={s.tier} stroke={OPERATOR_COLORS[s.tier]} fill={`url(#grad-post-${s.tier})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>Initialisation du graphique...</div>
+              )}
             </div>
             <div style={{ width: '220px', borderLeft: '1px solid #2c3235', backgroundColor: '#0b0c10', padding: '15px', overflowY: 'auto' }}>
               <div style={{ fontSize: '9px', fontWeight: 'bold', borderBottom: '1px solid #2c3235', paddingBottom: '6px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', color: '#8e8e8e' }}>
@@ -277,10 +315,87 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: connected ? '#22d3a3' : '#f5534b' }} />
             {connected ? 'SERVEUR CONNECTÉ' : 'CONNEXION PERDUE'}
           </div>
-          <button style={{ background: 'none', border: 'none', color: '#545b78', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            onClick={() => setShowRules(true)}
+            style={{ background: 'none', border: 'none', color: '#545b78', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
             <Settings size={14} /> RÉGLAGES DES ALERTES
           </button>
       </div>
+
+      {showRules && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+          <div className="glass-panel" style={{ width: '800px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 30px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}><BellRing size={20} color="var(--warning)" /> SEUILS D'ALERTE PERSONNALISÉS</h2>
+              <X size={24} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={() => setShowRules(false)} />
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '30px' }}>
+               <div style={{ display: 'grid', gap: '20px' }}>
+                 {rules.map((r, i) => (
+                   <div key={r.id} style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,1%)' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                       <div style={{ display: 'flex', gap: '10px' }}>
+                          <select 
+                            value={r.type} 
+                            onChange={(e) => saveRule({...r, type: e.target.value})}
+                            style={{ background: '#181b1f', border: '1px solid #333', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}
+                          >
+                            <option value="PREPAID">PREPAID</option>
+                            <option value="POSTPAID">POSTPAID</option>
+                          </select>
+                          <select 
+                            value={r.operator} 
+                            onChange={(e) => saveRule({...r, operator: e.target.value})}
+                            style={{ background: '#181b1f', border: '1px solid #333', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}
+                          >
+                             <option value="ALL">Tous les opérateurs</option>
+                             {Object.keys(OPERATOR_COLORS).map(op => <option key={op} value={op}>{op}</option>)}
+                          </select>
+                       </div>
+                       <Trash2 size={16} color="var(--danger)" style={{ cursor: 'pointer' }} onClick={() => deleteRule(r.id)} />
+                     </div>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        Alerter si baisse &gt; 
+                        <input 
+                          type="number" 
+                          value={r.threshold} 
+                          onChange={(e) => saveRule({...r, threshold: parseInt(e.target.value)})}
+                          style={{ width: '60px', background: '#000', border: '1px solid #333', color: 'var(--warning)', textAlign: 'center', padding: '4px', fontWeight: 'bold' }} 
+                        /> % 
+                        sur 
+                        <input 
+                          type="number" 
+                          value={r.intervalMin} 
+                          onChange={(e) => saveRule({...r, intervalMin: parseInt(e.target.value)})}
+                          style={{ width: '60px', background: '#000', border: '1px solid #333', color: '#fff', textAlign: 'center', padding: '4px' }} 
+                        /> minutes.
+                        Grade:
+                        <select 
+                           value={r.severity} 
+                           onChange={(e) => saveRule({...r, severity: e.target.value})}
+                           style={{ background: 'none', border: 'none', color: r.severity === 'critical' ? 'var(--danger)' : 'var(--warning)', fontWeight: 'bold', fontSize: '11px' }}
+                        >
+                          <option value="critical">CRITIQUE</option>
+                          <option value="warning">ATTENTION</option>
+                        </select>
+                     </div>
+                   </div>
+                 ))}
+                 <button 
+                   onClick={() => saveRule({ type: 'PREPAID', operator: 'ALL', threshold: 30, intervalMin: 60, severity: 'critical', enabled: true })}
+                   style={{ padding: '15px', border: '1px dashed var(--border)', borderRadius: '12px', background: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '13px', fontWeight: 'bold' }}
+                 >
+                   <Plus size={18} /> AJOUTER UNE CONDITION PERSONNALISÉE
+                 </button>
+               </div>
+            </div>
+            <div style={{ padding: '20px 30px', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+               <button className="btn-premium" onClick={() => setShowRules(false)} style={{ padding: '10px 40px' }}>FERMER ET APPLIQUER</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
