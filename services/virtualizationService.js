@@ -15,15 +15,23 @@ const si = require('systeminformation');
 let detectedHypervisors = null; // null = not yet scanned
 let cachedVMs = [];
 
-// ─── Hypervisor Paths ────────────────────────────────────────────────────────
+// ─── Hypervisor Paths (Cross-Platform) ───────────────────────────────────────
 const VMRUN_PATHS = [
-  process.env.VMRUN_PATH || 'C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe',
+  process.env.VMRUN_PATH || '', // Keep top priority if defined
+  'C:\\Program Files (x86)\\VMware\\VMware Workstation\\vmrun.exe',
   'C:\\Program Files\\VMware\\VMware Workstation\\vmrun.exe',
+  '/usr/bin/vmrun', // Linux
+  '/usr/local/bin/vmrun', // Custom Linux
+  '/Applications/VMware Fusion.app/Contents/Library/vmrun', // macOS
 ];
 
 const VBOXMANAGE_PATHS = [
+  process.env.VBOXMANAGE_PATH || '',
   'C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe',
   'C:\\Program Files (x86)\\Oracle\\VirtualBox\\VBoxManage.exe',
+  '/usr/bin/VBoxManage', // Linux
+  '/usr/local/bin/VBoxManage', // Custom Linux
+  '/Applications/VirtualBox.app/Contents/MacOS/VBoxManage', // macOS
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -31,14 +39,15 @@ const VBOXMANAGE_PATHS = [
 function execPromise(cmd, options = {}) {
   return new Promise((resolve, reject) => {
     exec(cmd, { maxBuffer: 1024 * 5000, timeout: 15000, ...options }, (error, stdout, stderr) => {
-      if (error) return reject(new Error(stderr || error.message));
-      resolve(stdout.trim());
+      if (error) return reject(new Error(stderr || error.message || 'Error occurred'));
+      resolve((stdout || '').trim());
     });
   });
 }
 
 function findExe(paths) {
   for (const p of paths) {
+    if (!p) continue;
     try { if (fs.existsSync(p)) return p; } catch {}
   }
   return null;
@@ -59,23 +68,41 @@ function generateId(prefix, name) {
   return `${prefix}_${clean}_${hash}`;
 }
 
+// ─── Auto-Configuration ──────────────────────────────────────────────────────
+function saveToEnv(key, value) {
+  if (!value) return;
+  const envPath = path.join(process.cwd(), '.env');
+  let envContent = '';
+  try { if (fs.existsSync(envPath)) envContent = fs.readFileSync(envPath, 'utf8'); } catch {}
+  
+  if (envContent.includes(`${key}=`)) {
+    const regex = new RegExp(`${key}=.*`, 'g');
+    envContent = envContent.replace(regex, `${key}="${value}"`);
+  } else {
+    envContent += `\n${key}="${value}"`;
+  }
+  try { fs.writeFileSync(envPath, envContent.trim() + '\n'); } catch {}
+}
+
+
 // ─── Hypervisor Detection ────────────────────────────────────────────────────
 
 async function detectHypervisors() {
   if (detectedHypervisors !== null) return detectedHypervisors;
 
   const results = {
-    vmware:     { available: false, path: null, type: 'VMware Workstation' },
-    virtualbox: { available: false, path: null, type: 'Oracle VirtualBox' },
-    hyperv:     { available: false, type: 'Microsoft Hyper-V' },
+    vmware:     { available: false, path: null, type: 'VMware' },
+    virtualbox: { available: false, path: null, type: 'VirtualBox' },
+    hyperv:     { available: false, type: 'Hyper-V' },
   };
 
-  // 1. VMware Workstation
+  // 1. VMware Workstation / Fusion
   const vmrunPath = findExe(VMRUN_PATHS);
   if (vmrunPath) {
     results.vmware.available = true;
     results.vmware.path = vmrunPath;
-    console.log(`[Virtualization] ✅ VMware Workstation détecté: ${vmrunPath}`);
+    console.log(`[Virtualization] ✅ VMware détecté: ${vmrunPath}`);
+    if (!process.env.VMRUN_PATH && vmrunPath !== process.env.VMRUN_PATH) saveToEnv('VMRUN_PATH', vmrunPath);
   }
 
   // 2. VirtualBox
@@ -84,27 +111,31 @@ async function detectHypervisors() {
     results.virtualbox.available = true;
     results.virtualbox.path = vboxPath;
     console.log(`[Virtualization] ✅ VirtualBox détecté: ${vboxPath}`);
+    if (!process.env.VBOXMANAGE_PATH && vboxPath !== process.env.VBOXMANAGE_PATH) saveToEnv('VBOXMANAGE_PATH', vboxPath);
   } else {
-    // Try PATH-based detection
     try {
       await execPromise('VBoxManage --version');
       results.virtualbox.available = true;
       results.virtualbox.path = 'VBoxManage';
-      console.log('[Virtualization] ✅ VirtualBox détecté (PATH)');
+      console.log('[Virtualization] ✅ VirtualBox détecté (in PATH)');
     } catch {}
   }
 
-  // 3. Hyper-V (Windows only, requires admin or appropriate permissions)
-  try {
-    const hvCheck = await execPromise('powershell -Command "Get-Command Get-VM -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source"');
-    if (hvCheck && hvCheck.length > 0) {
-      results.hyperv.available = true;
-      console.log('[Virtualization] ✅ Hyper-V détecté');
+  // 3. Hyper-V (Windows only)
+  if (process.platform === 'win32') {
+    try {
+      const hvCheck = await execPromise('powershell -Command "Get-Command Get-VM -ErrorAction Stop | Select-Object -ExpandProperty Source"');
+      if (hvCheck && hvCheck.length > 0) {
+        results.hyperv.available = true;
+        console.log('[Virtualization] ✅ Hyper-V détecté (Autorisation requise pour l\'accès aux VMs)');
+      }
+    } catch {
+      // Ignore silently, could be missing features or strict execution policy
     }
-  } catch {}
+  }
 
   if (!results.vmware.available && !results.virtualbox.available && !results.hyperv.available) {
-    console.log('[Virtualization] ℹ️  Aucun hyperviseur détecté — monitoring hôte uniquement');
+    console.log(`[Virtualization] ℹ️  Aucun hyperviseur natif trouvé sur ${process.platform}. Mode OS Host activé.`);
   }
 
   detectedHypervisors = results;
