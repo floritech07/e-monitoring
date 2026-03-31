@@ -4,11 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "install-service": "node install-service.js",
-    "uninstall-service": "node uninstall-service.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start":      "node server.js",
+    "dev":        "node server.js",
+    "dev:ui":     "cd frontend && npm run dev",
+    "setup":      "node setup.js",
+    "build":      "cd frontend && npm run build",
+    "start:prod": "npm run build && node server.js",
+    "service:install":   "node install-service.js install",
+    "service:uninstall": "node install-service.js uninstall",
+    "service:status":    "node install-service.js status",
+    "test": "echo \"No test specified\" && exit 0"
   },
   "keywords": [],
   "author": "",

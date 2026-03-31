@@ -597,6 +597,25 @@ cron.schedule('0 */5 * * * *', async () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STATIC FRONTEND SERVING (PRODUCTION MODE)
+// ─────────────────────────────────────────────────────────────────────────────
+const path = require('path');
+const frontendPath = path.join(__dirname, 'frontend', 'dist');
+
+// If the frontend has been built, serve it statically!
+app.use(express.static(frontendPath));
+
+// Catch-all route to serve index.html for React Router (Single Page Application)
+app.get('*', (req, res) => {
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api/') && require('fs').existsSync(path.join(frontendPath, 'index.html'))) {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  } else {
+    res.status(404).json({ error: 'Endpoint not found or Frontend not built.' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────────────────────────────────────
 

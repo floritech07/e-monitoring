@@ -1,6 +1,36 @@
 {
   "history": [
     {
+      "id": 30,
+      "level": "critical",
+      "severity": "critical",
+      "category": "ram",
+      "message": "RAM surchargée: 92.0%",
+      "source": "PCSIEGMFCHAKOUN",
+      "ruleId": "ram_critical",
+      "timestamp": 1774958404888,
+      "resolved": false,
+      "acknowledged": false,
+      "ackUser": null,
+      "ackComment": null,
+      "persistedAt": 1774958404889
+    },
+    {
+      "id": 29,
+      "level": "critical",
+      "severity": "critical",
+      "category": "ram",
+      "message": "RAM surchargée: 91.9%",
+      "source": "PCSIEGMFCHAKOUN",
+      "ruleId": "ram_critical",
+      "timestamp": 1774958391354,
+      "resolved": false,
+      "acknowledged": false,
+      "ackUser": null,
+      "ackComment": null,
+      "persistedAt": 1774958391375
+    },
+    {
       "id": 28,
       "level": "critical",
       "severity": "critical",
@@ -7469,36 +7499,6 @@
       "ackUser": null,
       "ackComment": null,
       "persistedAt": 1774612919374
-    },
-    {
-      "id": 103,
-      "level": "critical",
-      "severity": "critical",
-      "category": "ram",
-      "message": "RAM surchargée: 90.3%",
-      "source": "PCSIEGMFCHAKOUN",
-      "ruleId": "ram_critical",
-      "timestamp": 1774612895019,
-      "resolved": false,
-      "acknowledged": false,
-      "ackUser": null,
-      "ackComment": null,
-      "persistedAt": 1774612895020
-    },
-    {
-      "id": 102,
-      "level": "critical",
-      "severity": "critical",
-      "category": "ram",
-      "message": "RAM surchargée: 94.7%",
-      "source": "PCSIEGMFCHAKOUN",
-      "ruleId": "ram_critical",
-      "timestamp": 1774612799782,
-      "resolved": false,
-      "acknowledged": false,
-      "ackUser": null,
-      "ackComment": null,
-      "persistedAt": 1774612799789
     }
   ]
 }
