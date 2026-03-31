@@ -2,7 +2,7 @@ import React, { useMemo, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Cpu, Activity, Zap, HardDrive, MemoryStick, Server, 
-  Monitor, Info, Network, Globe, Clock, ShieldCheck, Database, LayoutGrid
+  Monitor, Info, Network, Globe, Clock, ShieldCheck, Database, LayoutGrid, Shield
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -87,7 +87,7 @@ export default function HostDetail({ metrics }) {
           <div className="card glass-panel" style={{ padding: 24 }}>
              <div className="card-title"><Activity size={13} color="var(--accent)" /> SYNTHÈSE DES RESSOURCES (CPU & RAM)</div>
              <div className="chart-wrapper" style={{ height: 400, marginTop: 20 }}>
-               <ResponsiveContainer width="100%" height={400} minHeight={400}>
+               <ResponsiveContainer width="100%" height={400} minWidth={0} minHeight={400}>
                  <AreaChart data={chartData}>
                    <defs>
                      <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
@@ -119,7 +119,7 @@ export default function HostDetail({ metrics }) {
           <div className="card glass-panel" style={{ padding: 24 }}>
              <div className="card-title"><Globe size={13} color="var(--warning)" /> TRAFIC RÉSEAU CONSOLIDÉ (ENTRANT & SORTANT)</div>
              <div className="chart-wrapper" style={{ height: 400, marginTop: 20 }}>
-               <ResponsiveContainer width="100%" height={400} minHeight={400}>
+               <ResponsiveContainer width="100%" height={400} minWidth={0} minHeight={400}>
                  <AreaChart data={chartData}>
                    <defs>
                      <linearGradient id="pRX" x1="0" y1="0" x2="0" y2="1">
