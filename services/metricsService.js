@@ -13,6 +13,26 @@ const history = {
 
 const MAX_HISTORY = 5000;
 
+// Processes Cache (heavy)
+let cachedProcesses = { list: [] };
+let lastProcessesFetch = 0;
+const PROCESSES_TTL = 5000; 
+
+async function getProcessesCached() {
+  const now = Date.now();
+  if (cachedProcesses.list.length > 0 && (now - lastProcessesFetch) < PROCESSES_TTL) {
+    return cachedProcesses;
+  }
+  try {
+    const res = await si.processes();
+    cachedProcesses = res;
+    lastProcessesFetch = now;
+    return res;
+  } catch {
+    return cachedProcesses;
+  }
+}
+
 function getSystemLogs() {
   return new Promise((resolve) => {
     const cmd = `powershell -Command "Get-WinEvent -FilterHashtable @{LogName='System','Application'} -MaxEvents 15 | Select-Object TimeCreated, LevelDisplayName, Message, LogName | ConvertTo-Json -Compress"`;
@@ -38,7 +58,8 @@ function getSystemLogs() {
             time: new Date(ts).toLocaleTimeString('fr-FR'),
             ts: ts,
             type: levelMap[l.LevelDisplayName] || 'info',
-            msg: `[${l.LogName}] ${msg}`
+            msg: `[${l.LogName}] ${msg}`,
+            id: `${ts}-${l.LogName}-${msg.substring(0, 10)}`
           };
         }));
       } catch (e) {
@@ -120,10 +141,12 @@ let cachedSystemDetails = {
     system: { manufacturer: 'PC', model: 'Générique' },
     bios: {},
     baseboard: {},
-    os: {},
-    cpu: { brand: 'Chargement...' },
+    osInfo: {},
+    cpuInfo: { brand: 'Chargement...' },
     diskLayout: [],
-    securityInfo: { secureBoot: '...', tpm: '...' }
+    securityInfo: { secureBoot: '...', tpm: '...' },
+    networkInterfaces: [],
+    graphics: { controllers: [] }
 };
 let lastSystemDetailsFetch = 0;
 let isFetchingSystemDetails = false;
@@ -134,7 +157,7 @@ async function refreshSystemDetails() {
   isFetchingSystemDetails = true;
   
   try {
-    const [installDate, lastUpdate, battery, users, memLayout, system, bios, baseboard, os, cpu, diskLayout, securityInfo] = await Promise.all([
+    const [installDate, lastUpdate, battery, users, memLayout, system, bios, baseboard, osInfo, cpuInfo, diskLayout, securityInfo, networkInterfaces, graphics] = await Promise.all([
       getInstallDate().catch(() => 'N/A'),
       getLastUpdate().catch(() => ({ id: 'N/A', date: 'N/A' })),
       si.battery().catch(() => null),
@@ -146,7 +169,9 @@ async function refreshSystemDetails() {
       si.osInfo().catch(() => ({})),
       si.cpu().catch(() => ({})),
       si.diskLayout().catch(() => []),
-      getSecurityInfo().catch(() => ({ secureBoot: 'Inconnu', tpm: 'Inconnu' }))
+      getSecurityInfo().catch(() => ({ secureBoot: 'Inconnu', tpm: 'Inconnu' })),
+      si.networkInterfaces().catch(() => []),
+      si.graphics().catch(() => ({ controllers: [] }))
     ]);
 
     cachedSystemDetails = { 
@@ -158,10 +183,12 @@ async function refreshSystemDetails() {
       system, 
       bios, 
       baseboard, 
-      os,
-      cpu,
+      osInfo,
+      cpuInfo,
       diskLayout,
-      securityInfo
+      securityInfo,
+      networkInterfaces,
+      graphics
     };
     lastSystemDetailsFetch = Date.now();
   } catch (e) {
@@ -186,19 +213,16 @@ async function getSystemDetails() {
 async function getHostMetrics() {
   // Use cached system details to avoid blocking on slow WMI/PowerShell
   const systemDetails = await getSystemDetails();
+  const { osInfo, cpuInfo, networkInterfaces, graphics } = systemDetails;
 
-  const [cpuLoad, cpuInfo, mem, disks, networkStats, networkInterfaces, osInfo, uptime, processes, temp, graphics] = await Promise.all([
+  const [cpuLoad, mem, disks, networkStats, uptime, processes, temp] = await Promise.all([
     si.currentLoad(),
-    si.cpu(),
     si.mem(),
     si.fsSize(),
     si.networkStats(),
-    si.networkInterfaces(),
-    si.osInfo(),
     si.time(),
-    si.processes(),
-    si.cpuTemperature(),
-    si.graphics(),
+    getProcessesCached(),
+    si.cpuTemperature()
   ]);
 
   const cpuUsage = parseFloat(cpuLoad.currentLoad.toFixed(1));
@@ -292,12 +316,12 @@ async function getHostMetrics() {
     healthAdvice = "Ressources sous charge importante. Surveillez l'évolution de la RAM et de la température pour éviter toute dégradation.";
   }
 
-  const gpuInfo = graphics.controllers.map(g => ({
+  const gpuInfo = (graphics && graphics.controllers) ? graphics.controllers.map(g => ({
     model: g.model,
     vram: g.vram,
     vendor: g.vendor,
     bus: g.bus
-  }));
+  })) : [];
 
   // ─── Build rich network interfaces info ────────────────────────────────────
   const allInterfaces = (Array.isArray(networkInterfaces) ? networkInterfaces : []).map(i => ({
@@ -326,6 +350,25 @@ async function getHostMetrics() {
   const totalSlots = (memLayout || []).length || memSlotsUsed.length;
   const canUpgradeRAM = memSlotsUsed.length < 4 && totalSlots > memSlotsUsed.length; // Approximate
 
+  // Compute machine type dynamically for Image Selection
+  let machineType = 'uc'; // default to Unité Centrale
+  const modelStr = (system.model || '').toLowerCase();
+  const sysClass = (osInfo.codename || '').toLowerCase();
+  
+  if (modelStr.includes('laptop') || modelStr.includes('book') || system.family?.toLowerCase().includes('laptop') || battery?.hasBattery) {
+    machineType = 'laptop_dell'; // fallback default to dell or we can pass 'laptop'
+    if (system.manufacturer?.toLowerCase().includes('hp')) machineType = 'laptop_hp';
+    if (system.manufacturer?.toLowerCase().includes('lenovo')) machineType = 'laptop_lenovo';
+  } else if (modelStr.includes('server') || osInfo.distro?.toLowerCase().includes('server') || sysClass.includes('server')) {
+    machineType = 'serveur';
+  } else if (system.manufacturer?.toLowerCase().includes('hp')) {
+    machineType = 'uc_hp';
+  } else if (system.manufacturer?.toLowerCase().includes('dell')) {
+    machineType = 'uc_dell';
+  } else if (system.manufacturer?.toLowerCase().includes('lenovo')) {
+    machineType = 'uc_lenovo';
+  }
+
   const hostDetailed = {
     hostname: osInfo.hostname,
     os: `${osInfo.distro} ${osInfo.release}`,
@@ -340,11 +383,12 @@ async function getHostMetrics() {
     fqdn: osInfo.fqdn || osInfo.hostname,
     installDate: systemDetails.installDate || null,
     lastUpdate: lastUpdate || null,
+    machineType: machineType, // Used for dynamic desktop/laptop/server image
     hardware: {
        manufacturer: system.manufacturer || 'Inconnu',
        model: system.model || 'Generic PC',
        family: system.family || 'Ordinateur',
-       virtualization: systemDetails.cpu.virtualization ? 'Activée (VT-x/AMD-V)' : 'Non détectée/Désactivée',
+       virtualization: cpuInfo.virtualization ? 'Activée (VT-x/AMD-V)' : 'Non détectée/Désactivée',
        cpuGeneration: cpuGen
     },
     bios: {

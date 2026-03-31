@@ -287,7 +287,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
             <div className="node-host-premium" onClick={() => navigate('/infrastructure/host-details')} title="Accéder aux contrôles avancés" style={{ cursor: 'pointer', position: 'relative', marginBottom: 60 }}>
               <div style={{ 
                 width: 280, height: 200, 
-                background: `url(/uc-hp.png)`,
+                background: `url(/${(metrics.host.machineType && metrics.host.machineType !== 'uc' ? metrics.host.machineType.replace('_', '-') : 'uc-hp')}.png)`,
                 backgroundSize: 'contain', 
                 backgroundRepeat: 'no-repeat', 
                 backgroundPosition: 'center',
@@ -296,7 +296,9 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
               
               <div className="host-labels-modern" style={{ textAlign: 'center', marginTop: -20 }}>
                 <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>{metrics.host.hostname}</div>
-                <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 4, opacity: 0.8 }}>STATION DE TRAVAIL - NOEUD MAÎTRE</div>
+                <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 4, opacity: 0.8 }}>
+                  {metrics.host.machineType === 'serveur' ? 'SERVEUR NOEUD MAÎTRE' : 'STATION DE TRAVAIL - NOEUD MAÎTRE'}
+                </div>
               </div>
             </div>
 
@@ -372,7 +374,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                {vms.length > 0 ? (
                  vms.map((vm, i) => (
                    <div 
-                     key={vm.id || i} 
+                     key={vm.id || `vm-row-${i}`} 
                      onClick={() => navigate(`/infrastructure/${vm.id}`)}
                      style={{ 
                        padding: '12px', 
@@ -602,7 +604,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                lineHeight: '1.4'
             }}>
                {(displayLogs || []).map((log, i) => (
-                 <div key={log.id || i} style={{ marginBottom: '8px', display: 'flex', gap: 12, borderLeft: `2px solid ${log.type === 'error' ? 'var(--danger)' : log.type === 'warning' ? 'var(--warning)' : 'transparent'}`, paddingLeft: 8 }}>
+                 <div key={log.id || `${log.ts}-${i}-${(log.msg || '').substring(0,10)}`} style={{ marginBottom: '8px', display: 'flex', gap: 12, borderLeft: `2px solid ${log.type === 'error' ? 'var(--danger)' : log.type === 'warning' ? 'var(--warning)' : 'transparent'}`, paddingLeft: 8 }}>
                     <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>[{log.time}]</span>
                     <span style={{ 
                       color: log.type === 'error' ? 'var(--danger)' : 
