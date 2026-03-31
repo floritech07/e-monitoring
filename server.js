@@ -25,6 +25,53 @@ app.use(cors());
 app.use(express.json());
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SELF-HEALING & PERMISSIONS (Windows Auto-Setup)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function checkHostPermissions() {
+  if (process.platform !== 'win32') return;
+
+  console.log('[Security] 🛡️ Vérification des permissions de l\'hôte...');
+  
+  return new Promise((resolve) => {
+    // Check for Admin Rights
+    exec('net session', (err) => {
+      const isAdmin = !err;
+      const port = process.env.PORT || 3001;
+
+      if (!isAdmin) {
+        console.warn('\n[Security] ⚠️  ATTENTION: L\'application ne tourne pas en mode ADMINISTRATEUR.');
+        console.warn('   Certaines métriques (TPM, Hyper-V, SMART) seront manquantes.');
+        console.warn('   Le pare-feu ne pourra pas être configuré automatiquement.\n');
+        return resolve();
+      }
+
+      console.log('[Security] ✅ Droits Administrateur détectés.');
+      
+      // Auto-configure Firewall & ExecutionPolicy via PowerShell
+      const setupCmd = `powershell -Command "
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force;
+        if (!(Get-NetFirewallRule -DisplayName 'SBEE-Monitor-API' -ErrorAction SilentlyContinue)) {
+          New-NetFirewallRule -DisplayName 'SBEE-Monitor-API' -Direction Inbound -Action Allow -Protocol TCP -LocalPort ${port}
+        }
+        if (!(Get-NetFirewallRule -DisplayName 'SBEE-Monitor-UI' -ErrorAction SilentlyContinue)) {
+          New-NetFirewallRule -DisplayName 'SBEE-Monitor-UI' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5173
+        }
+      "`;
+
+      exec(setupCmd, (setupErr) => {
+        if (setupErr) {
+          console.error('[Security] ❌ Erreur lors de l\'auto-configuration:', setupErr.message);
+        } else {
+          console.log('[Security] 🌐 Pare-feu et Politiques d\'exécution configurés automatiquement.');
+        }
+        resolve();
+      });
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HOST METRICS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -554,9 +601,14 @@ cron.schedule('0 */5 * * * *', async () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`✅ SBEE Monitor backend running on port ${PORT}`);
   console.log(`   Storage:  ${require('path').join(__dirname, 'data')}`);
+  console.log(`   Machine:  ${process.platform}/${process.arch} - ${require('os').hostname()}`);
+  
+  // Run Self-Healing
+  await checkHostPermissions();
+  
   // Run initial network probe in background
-  setTimeout(() => networkService.probeAll().catch(() => {}), 2000);
+  setTimeout(() => networkService.probeAll().catch(() => {}), 3000);
 });
