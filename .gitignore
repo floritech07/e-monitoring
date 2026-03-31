@@ -2,7 +2,6 @@
 node_modules/
 dist/
 build/
-.env
 
 # OS Files
 .DS_Store
@@ -22,4 +21,3 @@ yarn-error.log*
 # Project spezifische
 frontend/node_modules/
 frontend/dist/
-frontend/.env
