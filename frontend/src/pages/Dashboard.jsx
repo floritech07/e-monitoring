@@ -100,7 +100,7 @@ const DiskPie = ({ disk, onClick }) => {
         Disque: {disk.mount}
       </div>
       <div style={{ width: '100%', height: 120 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart>
             <Pie
               data={data}
@@ -496,7 +496,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                   </div>
                </div>
                <div style={{ height: 160 }}>
-                 <ResponsiveContainer width="100%" height="100%">
+                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                    <AreaChart key={timeRange} data={chartData}>
                      <defs>
                        <linearGradient id="pCPU" x1="0" y1="0" x2="0" y2="1">
@@ -551,7 +551,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                   </div>
                </div>
                <div style={{ height: 160 }}>
-                 <ResponsiveContainer width="100%" height="100%">
+                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                    <AreaChart key={timeRange} data={chartData}>
                      <defs>
                        <linearGradient id="pRX" x1="0" y1="0" x2="0" y2="1">
@@ -604,7 +604,7 @@ export default function Dashboard({ metrics, vms, alerts, activity, connected, t
                lineHeight: '1.4'
             }}>
                {(displayLogs || []).map((log, i) => (
-                 <div key={log.id || `${log.ts}-${i}-${(log.msg || '').substring(0,10)}`} style={{ marginBottom: '8px', display: 'flex', gap: 12, borderLeft: `2px solid ${log.type === 'error' ? 'var(--danger)' : log.type === 'warning' ? 'var(--warning)' : 'transparent'}`, paddingLeft: 8 }}>
+                 <div key={`log-${i}-${log.ts || Date.now()}`} style={{ marginBottom: '8px', display: 'flex', gap: 12, borderLeft: `2px solid ${log.type === 'error' ? 'var(--danger)' : log.type === 'warning' ? 'var(--warning)' : 'transparent'}`, paddingLeft: 8 }}>
                     <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>[{log.time}]</span>
                     <span style={{ 
                       color: log.type === 'error' ? 'var(--danger)' : 
