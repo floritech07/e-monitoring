@@ -111,51 +111,83 @@ function getSecurityInfo() {
 }
 
 // Cache for slow queries (refreshed every 5 min)
-let cachedSystemDetails = null;
+let cachedSystemDetails = {
+    installDate: 'Chargement...',
+    lastUpdate: { id: '...', date: '...' },
+    battery: null,
+    users: [],
+    memLayout: [],
+    system: { manufacturer: 'PC', model: 'Générique' },
+    bios: {},
+    baseboard: {},
+    os: {},
+    cpu: { brand: 'Chargement...' },
+    diskLayout: [],
+    securityInfo: { secureBoot: '...', tpm: '...' }
+};
 let lastSystemDetailsFetch = 0;
+let isFetchingSystemDetails = false;
 const SYSTEM_DETAILS_TTL = 5 * 60 * 1000;
+
+async function refreshSystemDetails() {
+  if (isFetchingSystemDetails) return;
+  isFetchingSystemDetails = true;
+  
+  try {
+    const [installDate, lastUpdate, battery, users, memLayout, system, bios, baseboard, os, cpu, diskLayout, securityInfo] = await Promise.all([
+      getInstallDate().catch(() => 'N/A'),
+      getLastUpdate().catch(() => ({ id: 'N/A', date: 'N/A' })),
+      si.battery().catch(() => null),
+      si.users().catch(() => []),
+      si.memLayout().catch(() => []),
+      si.system().catch(() => ({})),
+      si.bios().catch(() => ({})),
+      si.baseboard().catch(() => ({})),
+      si.osInfo().catch(() => ({})),
+      si.cpu().catch(() => ({})),
+      si.diskLayout().catch(() => []),
+      getSecurityInfo().catch(() => ({ secureBoot: 'Inconnu', tpm: 'Inconnu' }))
+    ]);
+
+    cachedSystemDetails = { 
+      installDate, 
+      lastUpdate, 
+      battery, 
+      users, 
+      memLayout, 
+      system, 
+      bios, 
+      baseboard, 
+      os,
+      cpu,
+      diskLayout,
+      securityInfo
+    };
+    lastSystemDetailsFetch = Date.now();
+  } catch (e) {
+    console.error('[Metrics] Error loading system details:', e.message);
+  } finally {
+    isFetchingSystemDetails = false;
+  }
+}
+
+// Background initial load
+refreshSystemDetails().catch(() => {});
 
 async function getSystemDetails() {
   const now = Date.now();
-  if (cachedSystemDetails && (now - lastSystemDetailsFetch) < SYSTEM_DETAILS_TTL) {
-    return cachedSystemDetails;
+  // Auto-refresh if expired
+  if ((now - lastSystemDetailsFetch) > SYSTEM_DETAILS_TTL) {
+    refreshSystemDetails().catch(() => {});
   }
-
-  const [installDate, lastUpdate, battery, users, memLayout, system, bios, baseboard, os, cpu, diskLayout, securityInfo] = await Promise.all([
-    getInstallDate(),
-    getLastUpdate(),
-    si.battery().catch(() => null),
-    si.users().catch(() => []),
-    si.memLayout().catch(() => []),
-    si.system().catch(() => ({})),
-    si.bios().catch(() => ({})),
-    si.baseboard().catch(() => ({})),
-    si.osInfo().catch(() => ({})),
-    si.cpu().catch(() => ({})),
-    si.diskLayout().catch(() => []),
-    getSecurityInfo()
-  ]);
-
-  cachedSystemDetails = { 
-    installDate, 
-    lastUpdate, 
-    battery, 
-    users, 
-    memLayout, 
-    system, 
-    bios, 
-    baseboard, 
-    os,
-    cpu,
-    diskLayout,
-    securityInfo
-  };
-  lastSystemDetailsFetch = now;
   return cachedSystemDetails;
 }
 
 async function getHostMetrics() {
-  const [cpuLoad, cpuInfo, mem, disks, networkStats, networkInterfaces, osInfo, uptime, processes, temp, graphics, systemDetails] = await Promise.all([
+  // Use cached system details to avoid blocking on slow WMI/PowerShell
+  const systemDetails = await getSystemDetails();
+
+  const [cpuLoad, cpuInfo, mem, disks, networkStats, networkInterfaces, osInfo, uptime, processes, temp, graphics] = await Promise.all([
     si.currentLoad(),
     si.cpu(),
     si.mem(),
@@ -167,7 +199,6 @@ async function getHostMetrics() {
     si.processes(),
     si.cpuTemperature(),
     si.graphics(),
-    getSystemDetails(),
   ]);
 
   const cpuUsage = parseFloat(cpuLoad.currentLoad.toFixed(1));
