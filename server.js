@@ -606,9 +606,11 @@ const frontendPath = path.join(__dirname, 'frontend', 'dist');
 app.use(express.static(frontendPath));
 
 // Catch-all route to serve index.html for React Router (Single Page Application)
-app.get('*', (req, res) => {
+// Note: Express v5 uses '/{*path}' instead of '*'
+app.get('/{*path}', (req, res) => {
   // Only serve index.html for non-API routes
-  if (!req.path.startsWith('/api/') && require('fs').existsSync(path.join(frontendPath, 'index.html'))) {
+  const fs = require('fs');
+  if (!req.path.startsWith('/api/') && fs.existsSync(path.join(frontendPath, 'index.html'))) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   } else {
     res.status(404).json({ error: 'Endpoint not found or Frontend not built.' });
