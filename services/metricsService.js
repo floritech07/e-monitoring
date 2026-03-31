@@ -344,7 +344,7 @@ async function getHostMetrics() {
   const activeInterfaces = allInterfaces.filter(i => i.operstate === 'up');
 
   // ─── Detailed host info ────────────────────────────────────────────────────
-  const { system, bios, baseboard, memLayout, lastUpdate } = systemDetails;
+  const { system, bios, baseboard, memLayout, lastUpdate, battery } = systemDetails;
 
   const memSlotsUsed = (memLayout || []).filter(m => m && m.size > 0);
   const totalSlots = (memLayout || []).length || memSlotsUsed.length;
