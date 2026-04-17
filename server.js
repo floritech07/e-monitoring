@@ -6,14 +6,15 @@ const cors     = require('cors');
 const cron     = require('node-cron');
 const { exec } = require('child_process');
 
-const metricsService  = require('./services/metricsService');
-const vmwareService   = require('./services/virtualizationService');  // universal hypervisor detection
-const alertsService   = require('./services/alertRulesService');   // upgraded
-const activityService = require('./services/activityService');
-const storageService  = require('./services/storageService');
-const networkService  = require('./services/networkService');
-const paymentService  = require('./services/paymentService');
-const veeamService    = require('./services/veeamService');
+const metricsService    = require('./services/metricsService');
+const vmwareService     = require('./services/virtualizationService');  // universal hypervisor detection
+const alertsService     = require('./services/alertRulesService');   // upgraded
+const activityService   = require('./services/activityService');
+const storageService    = require('./services/storageService');
+const networkService    = require('./services/networkService');
+const paymentService    = require('./services/paymentService');
+const veeamService      = require('./services/veeamService');
+const datacenterService = require('./services/datacenterService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -507,11 +508,109 @@ app.get('/api/reports/availability', (req, res) => {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DATACENTER TOPOLOGY (Rooms / Racks / Devices) — alimente le viewer 3D
+// ─────────────────────────────────────────────────────────────────────────────
+
+function broadcastTopology() {
+  io.emit('topology_update', {
+    datacenter: datacenterService.getDatacenter(),
+    timestamp: Date.now()
+  });
+}
+
+app.get('/api/datacenter', (req, res) => {
+  try {
+    res.json(datacenterService.getDatacenter());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/datacenter/device-types', (req, res) => {
+  res.json(datacenterService.getDeviceTypes());
+});
+
+app.put('/api/datacenter', (req, res) => {
+  try {
+    const dc = datacenterService.updateDatacenterMeta(req.body);
+    activityService.log('info', `Méta-données datacenter mises à jour`, 'Datacenter');
+    broadcastTopology();
+    res.json(dc);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/datacenter/rooms/:roomId', (req, res) => {
+  try {
+    const room = datacenterService.updateRoom(req.params.roomId, req.body);
+    activityService.log('info', `Salle "${room.name}" mise à jour`, 'Datacenter');
+    broadcastTopology();
+    res.json(room);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/datacenter/rooms/:roomId/racks', (req, res) => {
+  try {
+    const rack = datacenterService.addRack(req.params.roomId, req.body);
+    activityService.log('success', `Rack "${rack.name}" ajouté (${rack.uHeight}U)`, 'Datacenter');
+    broadcastTopology();
+    res.status(201).json(rack);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/datacenter/racks/:rackId', (req, res) => {
+  try {
+    const rack = datacenterService.updateRack(req.params.rackId, req.body);
+    activityService.log('info', `Rack "${rack.name}" modifié`, 'Datacenter');
+    broadcastTopology();
+    res.json(rack);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/datacenter/racks/:rackId', (req, res) => {
+  try {
+    datacenterService.deleteRack(req.params.rackId);
+    activityService.log('warning', `Rack ${req.params.rackId} supprimé`, 'Datacenter');
+    broadcastTopology();
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/datacenter/racks/:rackId/devices', (req, res) => {
+  try {
+    const device = datacenterService.addDevice(req.params.rackId, req.body);
+    activityService.log('success', `Équipement "${device.name}" monté en U${device.uStart}`, 'Datacenter');
+    broadcastTopology();
+    res.status(201).json(device);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/datacenter/devices/:deviceId', (req, res) => {
+  try {
+    const device = datacenterService.updateDevice(req.params.deviceId, req.body);
+    activityService.log('info', `Équipement "${device.name}" modifié`, 'Datacenter');
+    broadcastTopology();
+    res.json(device);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/datacenter/devices/:deviceId', (req, res) => {
+  try {
+    datacenterService.deleteDevice(req.params.deviceId);
+    activityService.log('warning', `Équipement ${req.params.deviceId} retiré`, 'Datacenter');
+    broadcastTopology();
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET
 // ─────────────────────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
   console.log(`[WS] Client connected: ${socket.id}`);
+  // Pousser la topologie courante à chaque nouveau client
+  socket.emit('topology_update', {
+    datacenter: datacenterService.getDatacenter(),
+    timestamp: Date.now()
+  });
   socket.on('disconnect', () => console.log(`[WS] Client disconnected: ${socket.id}`));
 });
 
