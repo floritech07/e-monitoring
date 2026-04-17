@@ -77,6 +77,18 @@ export const api = {
   getSystemScan:    ()              => req('/system/scan'),
   getHypervisors:   ()              => req('/system/hypervisors'),
 
+  // Datacenter 3D (topologie physique : salles / racks / équipements)
+  getDatacenter:       ()                     => req('/datacenter'),
+  getDeviceTypes:      ()                     => req('/datacenter/device-types'),
+  updateDatacenter:    (body)                 => req('/datacenter', { method: 'PUT', body: JSON.stringify(body) }),
+  updateRoom:          (roomId, body)         => req(`/datacenter/rooms/${roomId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  addRack:             (roomId, body)         => req(`/datacenter/rooms/${roomId}/racks`, { method: 'POST', body: JSON.stringify(body) }),
+  updateRack:          (rackId, body)         => req(`/datacenter/racks/${rackId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteRack:          (rackId)               => req(`/datacenter/racks/${rackId}`, { method: 'DELETE' }),
+  addDevice:           (rackId, body)         => req(`/datacenter/racks/${rackId}/devices`, { method: 'POST', body: JSON.stringify(body) }),
+  updateDevice:        (deviceId, body)       => req(`/datacenter/devices/${deviceId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDevice:        (deviceId)             => req(`/datacenter/devices/${deviceId}`, { method: 'DELETE' }),
+
   // Payment Trends
   getPrepaidTrend:  (range)         => req(`/payments/trends/prepaid?range=${range || '24h'}`),
   getPostpaidTrend: (range)         => req(`/payments/trends/postpaid?range=${range || '24h'}`),

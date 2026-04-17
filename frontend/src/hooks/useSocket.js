@@ -17,6 +17,7 @@ export function useSocket() {
   const [vms, setVms] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [datacenter, setDatacenter] = useState(null);
 
   useEffect(() => {
     const socket = io(BACKEND_URL, {
@@ -50,6 +51,10 @@ export function useSocket() {
       if (data.activity) setActivity(data.activity);
     });
 
+    socket.on('topology_update', (data) => {
+      if (data?.datacenter) setDatacenter(data.datacenter);
+    });
+
     return () => socket.disconnect();
   }, []);
 
@@ -57,5 +62,5 @@ export function useSocket() {
     socketRef.current?.emit(event, data);
   }, []);
 
-  return { connected, metrics, vms, alerts, activity, emit };
+  return { connected, metrics, vms, alerts, activity, datacenter, emit };
 }

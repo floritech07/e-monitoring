@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users,
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
-  Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List
+  Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
+  Menu, ChevronLeft, Box
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -22,13 +23,15 @@ import NetworkTopology from './pages/NetworkTopology';
 import AlertRulesPage from './pages/AlertRulesPage';
 import PaymentMonitor from './pages/PaymentMonitor';
 import PaymentRecap from './pages/PaymentRecap';
+import Datacenter3D from './pages/Datacenter3D';
 import './index.css';
 
-function Sidebar({ alertCount }) {
+function Sidebar({ alertCount, collapsed }) {
   const navItems = [
     { to: '/',        icon: LayoutDashboard, label: 'Dashboard'       },
     { to: '/problems',icon: BellRing,        label: 'Problèmes',    badge: alertCount },
     { to: '/infrastructure', icon: GitBranch, label: 'Infrastructure' },
+    { to: '/datacenter-3d', icon: Box,       label: 'Salle serveur 3D' },
     { to: '/topology',icon: Map,             label: 'Topologie Réseau' },
     { to: '/alerts',  icon: Bell,            label: 'Alertes',      badge: alertCount },
     { section: 'Intégrations' },
@@ -42,7 +45,7 @@ function Sidebar({ alertCount }) {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {navItems.map((item, i) => {
         if (item.section) return <div key={i} className="nav-section-title">{item.section}</div>;
         const Icon = item.icon;
@@ -54,7 +57,7 @@ function Sidebar({ alertCount }) {
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
             <Icon size={16} />
-            {item.label}
+            {!collapsed && <span className="label-text">{item.label}</span>}
             {item.badge > 0 && <span className="badge">{item.badge}</span>}
           </NavLink>
         );
@@ -276,8 +279,14 @@ function App() {
   const [refreshRate, setRefreshRate] = useState('10');
   const [timeRange,   setTimeRange]   = useState('1h');
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
 
   const alertStatus = useMetricSounds(metrics, vms, alerts);
+
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', sidebarCollapsed);
+    document.documentElement.style.setProperty('--sidebar-width', sidebarCollapsed ? '64px' : '240px');
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -325,9 +334,18 @@ function App() {
         <div className="app-shell">
           {/* Header */}
           <header className="app-header">
-            <div className="logo">
-              <Activity size={20} color="var(--accent)" />
-              <span>SBEE</span> Monitor
+            <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+                className="sidebar-toggle-btn"
+              >
+                {sidebarCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+              </button>
+              <div className="logo">
+                <Activity size={20} color="var(--accent)" />
+                {!sidebarCollapsed && <span>SBEE <span style={{ color: 'var(--text-primary)', fontWeight: 400 }}>Monitor</span></span>}
+              </div>
             </div>
             <div className="header-right">
               <div className={`header-badge ${connected ? 'online' : 'offline'}`}>
@@ -374,7 +392,7 @@ function App() {
             </div>
           </header>
 
-          <Sidebar alertCount={activeAlerts.length} />
+          <Sidebar alertCount={activeAlerts.length} collapsed={sidebarCollapsed} />
 
           <main className="main-content">
             <Routes>
@@ -384,6 +402,7 @@ function App() {
               <Route path="/infrastructure/new" element={<AddSystem />} />
               <Route path="/infrastructure/host-details" element={<HostDetail metrics={metrics} />} />
               <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
+              <Route path="/datacenter-3d" element={<Datacenter3D />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />
