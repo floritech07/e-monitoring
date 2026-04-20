@@ -78,19 +78,19 @@ const RACKS = [
       { uStart: 19, uSize: 2, name: 'HPE DL380 Gen9',            type: 'server.physical', manufacturer: 'HPE',    model: 'ProLiant DL380 Gen9' },
       { uStart: 22, uSize: 1, name: 'HPE DL360 Gen9 #2',         type: 'server.physical', manufacturer: 'HPE',    model: 'ProLiant DL360 Gen9' },
       { uStart: 26, uSize: 1, name: 'HPE DL320 Gen8 v2',         type: 'server.physical', manufacturer: 'HPE',    model: 'ProLiant DL320 Gen8 v2' },
-      { uStart: 29, uSize: 1, name: 'Synology DS1520+ #1',       type: 'storage.nas',     manufacturer: 'Synology', model: 'DS1520+' },
-      { uStart: 30, uSize: 1, name: 'Cisco SG500-28P #1',        type: 'network.switch',  manufacturer: 'Cisco',  model: 'SG500-28P' },
-      // CONFLIT signalé : l'utilisateur mentionne « A 31U un Cisco SG500-28P »
-      // ET « A 30U, y'a aussi une Cisco SG500-28P » — traité comme 2 switches.
-      { uStart: 31, uSize: 1, name: 'Cisco SG500-28P #2',        type: 'network.switch',  manufacturer: 'Cisco',  model: 'SG500-28P' },
-      { uStart: 32, uSize: 1, name: 'Cisco Catalyst 3750',       type: 'network.switch',  manufacturer: 'Cisco',  model: 'Catalyst 3750' },
-      { uStart: 33, uSize: 1, name: 'Cisco Catalyst 2960-S',     type: 'network.switch',  manufacturer: 'Cisco',  model: 'Catalyst 2960-S' },
-      { uStart: 34, uSize: 1, name: 'Mikrotik CRS312-4C+8XG',    type: 'network.switch',  manufacturer: 'Mikrotik', model: 'CRS312-4C+8XG' },
-      { uStart: 36, uSize: 1, name: 'Stockage HP (2 disques)',   type: 'storage.san',     manufacturer: 'HPE',    model: 'Stockage 2 disques' },
-      { uStart: 38, uSize: 1, name: 'Cisco C3850-NM #1',         type: 'network.switch',  manufacturer: 'Cisco',  model: 'Catalyst 3850-NM' },
-      { uStart: 41, uSize: 1, name: 'Cisco C3850-NM #2',         type: 'network.switch',  manufacturer: 'Cisco',  model: 'Catalyst 3850-NM' },
-      // NOTE : le 2e Synology DS1520+ mentionné "de U29 à U32" n'a pas été
-      // placé — la plage U29-U32 se heurte aux 3 switches Cisco. À clarifier.
+      // U29-U32 : étagère portant les deux Synology DS1520+ à l'avant,
+      // avec les switches Cisco montés au fond du rack sur rails.
+      { uStart: 29, uSize: 1, name: 'Étagère support NAS',        type: 'infra.shelf',     manufacturer: '',       model: 'Étagère 19"', mounting: 'shelf' },
+      { uStart: 29, uSize: 2, name: 'Synology DS1520+ #1',        type: 'storage.nas',     manufacturer: 'Synology', model: 'DS1520+',      slot: 'left',  depth: 'front', mounting: 'loose', notes: 'Posé sur l\'étagère U29' },
+      { uStart: 29, uSize: 2, name: 'Synology DS1520+ #2',        type: 'storage.nas',     manufacturer: 'Synology', model: 'DS1520+',      slot: 'right', depth: 'front', mounting: 'loose', notes: 'Posé sur l\'étagère U29' },
+      { uStart: 30, uSize: 1, name: 'Cisco SG500-28P #1',         type: 'network.switch',  manufacturer: 'Cisco',    model: 'SG500-28P',    depth: 'back', notes: 'Monté au fond, demi-profondeur' },
+      { uStart: 31, uSize: 1, name: 'Cisco SG500-28P #2',         type: 'network.switch',  manufacturer: 'Cisco',    model: 'SG500-28P',    depth: 'back' },
+      { uStart: 32, uSize: 1, name: 'Cisco Catalyst 3750',        type: 'network.switch',  manufacturer: 'Cisco',    model: 'Catalyst 3750',depth: 'back' },
+      { uStart: 33, uSize: 1, name: 'Cisco Catalyst 2960-S',      type: 'network.switch',  manufacturer: 'Cisco',    model: 'Catalyst 2960-S', depth: 'back' },
+      { uStart: 34, uSize: 1, name: 'Mikrotik CRS312-4C+8XG',     type: 'network.switch',  manufacturer: 'Mikrotik', model: 'CRS312-4C+8XG' },
+      { uStart: 36, uSize: 1, name: 'Stockage HP (2 disques)',    type: 'storage.san',     manufacturer: 'HPE',      model: 'Stockage 2 disques' },
+      { uStart: 38, uSize: 1, name: 'Cisco C3850-NM #1',          type: 'network.switch',  manufacturer: 'Cisco',    model: 'Catalyst 3850-NM' },
+      { uStart: 41, uSize: 1, name: 'Cisco C3850-NM #2',          type: 'network.switch',  manufacturer: 'Cisco',    model: 'Catalyst 3850-NM' },
     ]
   },
 
@@ -110,8 +110,8 @@ const RACKS = [
       { uStart: 26, uSize: 1, name: 'HPE DL360 Gen10 #1',        type: 'server.hypervisor', manufacturer: 'HPE', model: 'ProLiant DL360 Gen10' },
       { uStart: 28, uSize: 1, name: 'HPE DL360 Gen10 #2',        type: 'server.hypervisor', manufacturer: 'HPE', model: 'ProLiant DL360 Gen10' },
       { uStart: 30, uSize: 1, name: 'HPE DL360 Gen10 #3',        type: 'server.hypervisor', manufacturer: 'HPE', model: 'ProLiant DL360 Gen10' },
-      { uStart: 33, uSize: 1, name: 'PRISM TSM 500i v1.1',       type: 'server.physical',   manufacturer: 'PRISM', model: 'TSM 500i v1.1', notes: 'Équipement prépayé' },
-      { uStart: 35, uSize: 1, name: 'PRISM TSM 500i N55 v1.2',   type: 'server.physical',   manufacturer: 'PRISM', model: 'TSM 500i N55 v1.2', notes: 'Équipement prépayé' },
+      { uStart: 33, uSize: 1, name: 'PRISM TSM 500i v1.1',       type: 'vending.hsm',       manufacturer: 'PRISM', model: 'TSM 500i',       notes: 'HSM STS — génération des tokens de crédit prépayé. Critique revenus.' },
+      { uStart: 35, uSize: 1, name: 'PRISM TSM 500i N55 v1.2',   type: 'vending.hsm',       manufacturer: 'PRISM', model: 'TSM 500i N55',   notes: 'HSM STS — génération des tokens de crédit prépayé. Critique revenus.' },
       { uStart: 36, uSize: 1, name: 'Cisco 2960 #1',             type: 'network.switch',    manufacturer: 'Cisco', model: 'Catalyst 2960' },
       { uStart: 38, uSize: 1, name: 'Cisco 2960 #2',             type: 'network.switch',    manufacturer: 'Cisco', model: 'Catalyst 2960' },
       { uStart: 40, uSize: 2, name: 'HPE DL380p Gen8',           type: 'server.physical',   manufacturer: 'HPE', model: 'ProLiant DL380p Gen8' },

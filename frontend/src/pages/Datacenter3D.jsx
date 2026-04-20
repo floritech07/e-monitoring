@@ -292,6 +292,9 @@ function DevicePanel({ device, rack, typeMeta, onClose, onDelete }) {
       <StatRow label="Hostname"     value={device.hostname || '—'} />
       <StatRow label="IP"           value={device.ip || '—'} />
       <StatRow label="Position"     value={`U${device.uStart}${device.uSize > 1 ? `–U${device.uStart + device.uSize - 1}` : ''} (${device.uSize}U)`} />
+      <StatRow label="Slot"         value={device.slot === 'left' ? 'Moitié gauche' : device.slot === 'right' ? 'Moitié droite' : 'Pleine largeur'} />
+      <StatRow label="Profondeur"   value={device.depth === 'front' ? 'Façade' : device.depth === 'back' ? 'Fond' : 'Pleine profondeur'} />
+      <StatRow label="Montage"      value={device.mounting === 'shelf' ? 'Étagère' : device.mounting === 'loose' ? 'Posé' : 'Rails 19"'} />
       <StatRow label="Statut"       value={device.status} />
 
       {device.notes && (
@@ -368,7 +371,8 @@ function AddDeviceModal({ racks, deviceTypes, preselectRackId, onClose, onSubmit
     rackId: preselectRackId || racks[0]?.id || '',
     name: '', type: 'server.physical', manufacturer: '', model: '',
     hostname: '', ip: '', serial: '',
-    uStart: 1, uSize: 2, status: 'online', notes: ''
+    uStart: 1, uSize: 2, status: 'online', notes: '',
+    slot: 'full', depth: 'full', mounting: 'rail',
   });
 
   // Quand on change de type, ajuster uSize au defaultU du type
@@ -402,6 +406,24 @@ function AddDeviceModal({ racks, deviceTypes, preselectRackId, onClose, onSubmit
         <Field label="Taille (U)" type="number" value={form.uSize}
           onChange={v => setForm(f => ({ ...f, uSize: Number(v) }))} />
         <Field label="Statut"     value={form.status} onChange={v => setForm(f => ({ ...f, status: v }))} placeholder="online / offline / warning / critical" />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Select label="Largeur (slot)" value={form.slot} onChange={v => setForm(f => ({ ...f, slot: v }))}>
+          <option value="full">Pleine largeur</option>
+          <option value="left">Moitié gauche</option>
+          <option value="right">Moitié droite</option>
+        </Select>
+        <Select label="Profondeur" value={form.depth} onChange={v => setForm(f => ({ ...f, depth: v }))}>
+          <option value="full">Pleine profondeur</option>
+          <option value="front">Façade uniquement</option>
+          <option value="back">Fond uniquement</option>
+        </Select>
+        <Select label="Type de montage" value={form.mounting} onChange={v => setForm(f => ({ ...f, mounting: v }))}>
+          <option value="rail">Sur rails 19"</option>
+          <option value="shelf">Étagère (support)</option>
+          <option value="loose">Posé (non fixé)</option>
+        </Select>
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
