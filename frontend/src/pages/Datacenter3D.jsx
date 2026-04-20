@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Box, Server, Layers, Plus, Trash2, RefreshCw, MapPin, Info,
   Thermometer, Zap, HardDrive, Network, Cpu, Save, X,
+  LayoutGrid, Rotate3D,
 } from 'lucide-react';
 import { api } from '../api';
 import { useSocket } from '../hooks/useSocket';
 import DatacenterScene from '../components/datacenter3d/DatacenterScene';
+import RacksRow2D from '../components/datacenter2d/RacksRow2D';
 
 /**
  * Page principale du jumeau numérique 3D.
@@ -23,6 +25,14 @@ export default function Datacenter3D() {
   const [error, setError] = useState(null);
   const [showAddRack, setShowAddRack] = useState(false);
   const [showAddDevice, setShowAddDevice] = useState(false);
+  // Mode de vue : '2d' (rack elevation réaliste DCIM) par défaut, '3d' (showcase)
+  const [viewMode, setViewMode] = useState(() => {
+    try { return localStorage.getItem('datacenter.viewMode') || '2d'; }
+    catch { return '2d'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('datacenter.viewMode', viewMode); } catch {}
+  }, [viewMode]);
 
   // Chargement initial via REST (au cas où le WS prenne une seconde à pousser)
   useEffect(() => {
@@ -113,7 +123,24 @@ export default function Datacenter3D() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Toggle vue 2D ↔ 3D */}
+          <div style={viewToggleStyle}>
+            <button
+              style={viewMode === '2d' ? viewToggleBtnActive : viewToggleBtn}
+              onClick={() => setViewMode('2d')}
+              title="Vue rack réaliste (DCIM)"
+            >
+              <LayoutGrid size={13} /> 2D
+            </button>
+            <button
+              style={viewMode === '3d' ? viewToggleBtnActive : viewToggleBtn}
+              onClick={() => setViewMode('3d')}
+              title="Vue 3D immersive"
+            >
+              <Rotate3D size={13} /> 3D
+            </button>
+          </div>
           <button style={btnStyle} onClick={refresh} title="Recharger">
             <RefreshCw size={14} /> Actualiser
           </button>
@@ -157,8 +184,17 @@ export default function Datacenter3D() {
                 <Plus size={14} /> Créer le premier rack
               </button>
             </div>
-          ) : (
+          ) : viewMode === '3d' ? (
             <DatacenterScene
+              room={room}
+              selectedRackId={selection.kind === 'rack' ? selection.id : null}
+              selectedDeviceId={selection.kind === 'device' ? selection.id : null}
+              onSelectRack={(r) => setSelection({ kind: 'rack', id: r.id })}
+              onSelectDevice={(d) => setSelection({ kind: 'device', id: d.id })}
+              onBackgroundClick={() => setSelection({ kind: null, id: null })}
+            />
+          ) : (
+            <RacksRow2D
               room={room}
               selectedRackId={selection.kind === 'rack' ? selection.id : null}
               selectedDeviceId={selection.kind === 'device' ? selection.id : null}
@@ -168,8 +204,8 @@ export default function Datacenter3D() {
             />
           )}
 
-          {/* Légende flottante */}
-          {room?.racks.length > 0 && (
+          {/* Légende flottante — uniquement en mode 3D (la 2D a sa propre légende intégrée) */}
+          {room?.racks.length > 0 && viewMode === '3d' && (
             <div style={legendStyle}>
               <div style={{ fontSize: 10, color: '#8e8e8e', marginBottom: 4 }}>NAVIGATION</div>
               <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Clic-gauche : rotation</div>
@@ -535,6 +571,14 @@ const btnStyle = {
   display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', fontSize: 11,
   background: '#181b1f', border: '1px solid #2c3235', color: '#e8eaf0', borderRadius: 2, cursor: 'pointer',
 };
+const viewToggleStyle = {
+  display: 'flex', background: '#0b0d11', border: '1px solid #2c3235', borderRadius: 3, padding: 2, marginRight: 6,
+};
+const viewToggleBtn = {
+  display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', fontSize: 11,
+  background: 'transparent', border: 'none', color: '#8e8e8e', cursor: 'pointer', borderRadius: 2,
+};
+const viewToggleBtnActive = { ...viewToggleBtn, background: '#3274d9', color: '#ffffff', fontWeight: 600 };
 const btnPrimaryStyle = { ...btnStyle, background: '#3274d9', borderColor: '#3274d9', fontWeight: 600 };
 const btnSmallStyle = { ...btnStyle, padding: '5px 9px', fontSize: 10 };
 const btnSmallDangerStyle = { ...btnSmallStyle, background: '#3a1a1a', borderColor: '#5a2626', color: '#f87171' };
