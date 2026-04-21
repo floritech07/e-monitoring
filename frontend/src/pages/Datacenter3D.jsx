@@ -102,6 +102,19 @@ export default function Datacenter3D() {
     catch (e) { setError(e.message); }
   }
 
+  // Drag & drop 2D : déplacement d'un équipement vers un U libre du même rack.
+  // Le backend valide la position via assertUnitRangeFree() — si conflit, on affiche l'erreur.
+  async function handleMoveDevice(deviceId, newUStart) {
+    try {
+      await api.updateDevice(deviceId, { uStart: newUStart });
+      await refresh();
+    } catch (e) {
+      setError(`Déplacement refusé : ${e.message}`);
+      // Recharge quand même pour reprendre l'état serveur (au cas où l'UI optimiste diverge)
+      await refresh();
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: 'var(--bg-primary, #0b0c10)' }}>
       {/* Header */}
@@ -201,6 +214,7 @@ export default function Datacenter3D() {
               onSelectRack={(r) => setSelection({ kind: 'rack', id: r.id })}
               onSelectDevice={(d) => setSelection({ kind: 'device', id: d.id })}
               onBackgroundClick={() => setSelection({ kind: null, id: null })}
+              onMoveDevice={handleMoveDevice}
             />
           )}
 

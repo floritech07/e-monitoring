@@ -38,10 +38,9 @@
   filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.12));
 }
 
-/* Équipement cliquable — retour visuel */
-.dc2d-device {
-  transition: transform 0.15s ease-out;
-}
-.dc2d-device:hover {
-  transform: translateY(-0.5px);
-}
+/* Équipement cliquable : PAS de transform/filter au survol.
+   ⚠ Le <g> porte déjà un transform SVG + un filter drop-shadow. Y ajouter
+   un transform/filter CSS au :hover produit un hover-flicker insupportable
+   (l'élément bouge, le curseur sort de la zone, mouseleave, retour, boucle).
+   Le changement de cursor (grab → grabbing) + le tooltip React + le halo
+   bleu de sélection offrent déjà un feedback visuel largement suffisant. */

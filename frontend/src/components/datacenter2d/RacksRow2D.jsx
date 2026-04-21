@@ -16,6 +16,7 @@ export default function RacksRow2D({
   onSelectRack,
   onSelectDevice,
   onBackgroundClick,
+  onMoveDevice,
 }) {
   const theme = useTheme();
   const P     = getPalette(theme);
@@ -87,6 +88,7 @@ export default function RacksRow2D({
               selectedDeviceId={selectedDeviceId}
               onSelectRack={onSelectRack}
               onSelectDevice={onSelectDevice}
+              onMoveDevice={onMoveDevice}
             />
           </div>
         ))}
