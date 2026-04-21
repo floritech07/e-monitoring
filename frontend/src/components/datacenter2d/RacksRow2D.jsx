@@ -1,13 +1,13 @@
 import { useRef, useState, useEffect } from 'react';
 import Rack2D from './Rack2D';
-import { PALETTE } from './constants';
+import { getPalette } from './constants';
+import { useTheme } from './useTheme';
+import './datacenter2d.css';
 
 /**
  * Affiche tous les racks d'une salle côte à côte avec scroll horizontal
- * (vue classique "rangée de racks" style Netbox / RackTables / Device42).
- *
- * Un clic dans le vide désélectionne ; clic sur un rack ou un équipement
- * remonte la sélection au parent.
+ * et grille technique en fond — style Netbox / RackTables / Device42.
+ * S'adapte au thème clair/sombre via useTheme().
  */
 export default function RacksRow2D({
   room,
@@ -17,19 +17,20 @@ export default function RacksRow2D({
   onSelectDevice,
   onBackgroundClick,
 }) {
+  const theme = useTheme();
+  const P     = getPalette(theme);
   const scrollerRef = useRef(null);
   const [zoom, setZoom] = useState(1);
 
-  // Adapter le zoom pour que tous les racks tiennent dans la largeur dispo
+  // Adapter le zoom pour que tous les racks tiennent dans la largeur
   useEffect(() => {
     if (!scrollerRef.current || !room) return;
     const el = scrollerRef.current;
     const observer = new ResizeObserver(() => {
       const w = el.clientWidth;
       const rackCount = room.racks.length || 1;
-      // Chaque rack fait ~700px + 20px margin. Si ça rentre pas on zoom out.
       const neededWidth = rackCount * 720;
-      if (neededWidth > w * 1.8) setZoom(Math.max(0.55, w * 1.8 / neededWidth));
+      if (neededWidth > w * 1.6) setZoom(Math.max(0.55, (w * 1.6) / neededWidth));
       else setZoom(1);
     });
     observer.observe(el);
@@ -45,22 +46,22 @@ export default function RacksRow2D({
         width: '100%',
         height: '100%',
         overflow: 'auto',
-        background: 'linear-gradient(180deg, #0b0d11 0%, #050608 100%)',
-        padding: '24px 20px',
+        background: `linear-gradient(180deg, ${P.pageBgTop} 0%, ${P.pageBgBot} 100%)`,
+        padding: '28px 24px',
         position: 'relative',
       }}
       onClick={onBackgroundClick}
     >
-      {/* Grille de fond (effet dalle technique) */}
+      {/* Grille de fond technique */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           backgroundImage: `
-            linear-gradient(rgba(35, 40, 47, 0.3) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(35, 40, 47, 0.3) 1px, transparent 1px)
+            linear-gradient(${P.pageGrid} 1px, transparent 1px),
+            linear-gradient(90deg, ${P.pageGrid} 1px, transparent 1px)
           `,
-          backgroundSize: '40px 40px',
+          backgroundSize: '48px 48px',
           pointerEvents: 'none',
         }}
       />
@@ -68,7 +69,7 @@ export default function RacksRow2D({
       <div
         style={{
           display: 'flex',
-          gap: 20,
+          gap: 24,
           alignItems: 'flex-start',
           position: 'relative',
           minWidth: 'max-content',
@@ -92,21 +93,21 @@ export default function RacksRow2D({
       </div>
 
       {/* Légende flottante */}
-      <div style={legendStyle}>
-        <div style={{ fontSize: 10, color: PALETTE.labelMid, marginBottom: 4, letterSpacing: 1 }}>
-          VUE RACK
+      <div style={legendStyle(P)}>
+        <div style={{ fontSize: 10, color: P.labelMid, marginBottom: 6, letterSpacing: 1, fontWeight: 600 }}>
+          VUE RACK · {theme === 'light' ? 'CLAIR' : 'SOMBRE'}
         </div>
-        <LegendItem color="#22c55e" label="En ligne" />
-        <LegendItem color="#f59e0b" label="Avertissement" />
-        <LegendItem color="#ef4444" label="Critique" />
-        <LegendItem color="#64748b" label="Hors ligne" />
-        <div style={{ height: 1, background: '#2c3235', margin: '6px 0' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: PALETTE.labelMid }}>
+        <LegendItem P={P} color={P.ledOnline}   label="En ligne"     pulse />
+        <LegendItem P={P} color={P.ledWarning}  label="Avertissement" />
+        <LegendItem P={P} color={P.ledCritical} label="Critique"      />
+        <LegendItem P={P} color={P.ledOffline}  label="Hors ligne"    />
+        <div style={{ height: 1, background: P.badgeBorder, margin: '8px 0' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: P.labelMid }}>
           <span style={{
             display: 'inline-block', width: 0, height: 0,
-            borderLeft: '5px solid transparent',
-            borderBottom: '5px solid #38bdf8',
-            opacity: 0.8,
+            borderLeft: '6px solid transparent',
+            borderBottom: '6px solid #38bdf8',
+            opacity: 0.85,
           }} />
           Monté au fond
         </div>
@@ -115,25 +116,33 @@ export default function RacksRow2D({
   );
 }
 
-function LegendItem({ color, label }) {
+function LegendItem({ P, color, label, pulse }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: PALETTE.labelMid, lineHeight: 1.8 }}>
-      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 4px ${color}` }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: P.labelMid, lineHeight: 1.9 }}>
+      <span
+        className={pulse ? 'dc2d-led-online' : ''}
+        style={{
+          display: 'inline-block',
+          width: 9, height: 9, borderRadius: '50%',
+          background: color,
+          boxShadow: `0 0 5px ${color}`,
+        }}
+      />
       {label}
     </div>
   );
 }
 
-const legendStyle = {
+const legendStyle = (P) => ({
   position: 'fixed',
-  right: 320,
-  bottom: 24,
-  background: 'rgba(10, 12, 15, 0.92)',
-  border: '1px solid #2c3235',
-  borderRadius: 4,
-  padding: '10px 12px',
+  right: 340,
+  bottom: 28,
+  background: P.badgeBg,
+  border: `1px solid ${P.badgeBorder}`,
+  borderRadius: 8,
+  padding: '12px 14px',
   fontFamily: 'Inter, system-ui, sans-serif',
-  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-  backdropFilter: 'blur(6px)',
+  boxShadow: '0 8px 24px rgba(15, 23, 42, 0.18)',
+  backdropFilter: 'blur(8px)',
   zIndex: 10,
-};
+});

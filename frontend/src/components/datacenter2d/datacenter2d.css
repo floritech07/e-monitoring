@@ -1,0 +1,47 @@
+/* ------------------------------------------------------------------
+ * Animations + effets visuels pour la vue 2D DCIM.
+ * Les LEDs 'online' pulsent doucement pour donner un effet "vivant".
+ * ------------------------------------------------------------------ */
+
+@keyframes dc2d-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+@keyframes dc2d-activity-blink {
+  0%, 70%, 100% { opacity: 0.25; }
+  5%, 20%       { opacity: 1;    }
+  30%           { opacity: 0.55; }
+}
+@keyframes dc2d-soft-pulse {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.5; }
+}
+
+.dc2d-led-online { animation: dc2d-pulse 2.4s ease-in-out infinite; }
+.dc2d-led-activity { animation: dc2d-activity-blink 1.8s linear infinite; }
+.dc2d-led-warning { animation: dc2d-soft-pulse 1.2s ease-in-out infinite; }
+.dc2d-led-critical { animation: dc2d-soft-pulse 0.8s ease-in-out infinite; }
+
+/* Ombre douce sur chaque équipement — améliore la lisibilité dans les 2 thèmes */
+.dc2d-device-shadow {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+.light-mode .dc2d-device-shadow {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18));
+}
+
+/* Rack : frame plus doux avec reflet subtil sur le dessus */
+.dc2d-rack-frame {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+.light-mode .dc2d-rack-frame {
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.12));
+}
+
+/* Équipement cliquable — retour visuel */
+.dc2d-device {
+  transition: transform 0.15s ease-out;
+}
+.dc2d-device:hover {
+  transform: translateY(-0.5px);
+}

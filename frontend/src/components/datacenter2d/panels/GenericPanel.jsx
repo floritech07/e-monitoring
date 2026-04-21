@@ -1,53 +1,60 @@
-import { BRANDS, statusLedColor } from '../constants';
+import { ledAnimClass, statusLedColor } from '../constants';
 
 /**
- * Panneau fallback pour les types non spécialisés (firewall, routeur, console KVM, etc.).
+ * Panneau fallback pour les types non spécialisés.
  */
-export default function GenericPanel({ device, brand, width, height, label, selected, hovered }) {
-  const palette = BRANDS[brand] || BRANDS.generic;
-  const statusLed = statusLedColor(device.status);
+export default function GenericPanel({ device, brand, P, theme, width, height, label, selected, hovered }) {
+  const statusLed = statusLedColor(device.status, theme);
 
   return (
     <g>
-      <rect x={0} y={0} width={width} height={height} fill={palette.body} rx={1.5} />
-      <rect x={0} y={0} width={width} height={1.2} fill={palette.bezel} />
-      <rect x={0} y={height - 1.2} width={width} height={1.2} fill={palette.bezel} />
+      <defs>
+        <linearGradient id={`gen-body-${device.id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={brand.bodyLite || brand.body} />
+          <stop offset="100%" stopColor={brand.body} />
+        </linearGradient>
+      </defs>
 
-      {/* Bande accent */}
-      <rect x={0} y={2} width={2.5} height={height - 4} fill={palette.accent} opacity={0.8} />
+      <rect x={0} y={0} width={width} height={height} fill={`url(#gen-body-${device.id})`} rx={4} />
+      <rect x={0} y={0} width={width} height={1.5} fill={brand.bezel} rx={2} />
+      <rect x={0} y={height - 1.5} width={width} height={1.5} fill={brand.bezel} rx={2} />
 
-      {/* Nom de l'équipement centré */}
+      <rect x={0} y={3} width={3} height={height - 6} fill={brand.accent} rx={1.5} opacity={0.85} />
+
       <text
-        x={10}
+        x={12}
         y={height / 2 - 3}
         dominantBaseline="middle"
-        fontSize={7}
+        fontSize={8}
         fontFamily="Inter, system-ui, sans-serif"
         fontWeight={700}
-        fill={palette.logoText}
+        fill={brand.logoText}
         letterSpacing={0.3}
       >
         {label || shortName(device.name)}
       </text>
       <text
-        x={10}
-        y={height / 2 + 6}
+        x={12}
+        y={height / 2 + 7}
         dominantBaseline="middle"
-        fontSize={4}
+        fontSize={4.5}
         fontFamily="monospace"
-        fill={palette.labelDim || '#71717a'}
+        fill="#a1a1aa"
       >
         {device.type || ''}
       </text>
 
-      {/* LED status à droite */}
-      <g transform={`translate(${width - 12}, ${height / 2})`}>
-        <circle r={1.5} fill={statusLed} opacity={device.status === 'online' ? 0.9 : 0.4} />
+      <g transform={`translate(${width - 14}, ${height / 2})`}>
+        <circle
+          r={1.8}
+          fill={statusLed}
+          className={ledAnimClass(device.status)}
+          opacity={device.status === 'online' ? 0.95 : 0.4}
+        />
       </g>
 
-      {/* Halo */}
       {(selected || hovered) && (
-        <rect x={0} y={0} width={width} height={height} fill="none" stroke={selected ? '#3b82f6' : '#60a5fa'} strokeWidth={1.5} rx={1.5} />
+        <rect x={0} y={0} width={width} height={height} fill="none" stroke={selected ? '#3b82f6' : '#60a5fa'} strokeWidth={1.8} rx={4} />
       )}
     </g>
   );
@@ -55,5 +62,5 @@ export default function GenericPanel({ device, brand, width, height, label, sele
 
 function shortName(name) {
   if (!name) return 'Device';
-  return name.length > 28 ? name.substring(0, 26) + '…' : name;
+  return name.length > 32 ? name.substring(0, 30) + '…' : name;
 }

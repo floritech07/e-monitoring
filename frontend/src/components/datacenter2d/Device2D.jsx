@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { detectBrand } from './constants';
+import { detectBrand, getBrandPalette, getPalette } from './constants';
 import ServerPanel      from './panels/ServerPanel';
 import SwitchPanel      from './panels/SwitchPanel';
 import NASPanel         from './panels/NASPanel';
@@ -12,15 +12,20 @@ import GenericPanel     from './panels/GenericPanel';
 
 /**
  * Dispatcher : choisit le bon panneau SVG en fonction du type d'équipement.
- * Injecte brand + dimensions + callbacks click/hover.
+ * Injecte brand + palette thématisée + dimensions + callbacks click/hover.
  */
-export default function Device2D({ device, x, y, width, height, selected, onSelect }) {
+export default function Device2D({ device, x, y, width, height, theme = 'dark', selected, onSelect }) {
   const [hovered, setHovered] = useState(false);
-  const brand = detectBrand(device);
+  const brandKey = detectBrand(device);
+  const brand    = getBrandPalette(brandKey, theme);
+  const P        = getPalette(theme);
 
   const commonProps = {
     device,
+    brandKey,
     brand,
+    P,
+    theme,
     width,
     height,
     selected,
@@ -31,6 +36,7 @@ export default function Device2D({ device, x, y, width, height, selected, onSele
 
   return (
     <g
+      className="dc2d-device dc2d-device-shadow"
       transform={`translate(${x}, ${y})`}
       style={{ cursor: 'pointer' }}
       onMouseEnter={() => setHovered(true)}
@@ -40,21 +46,22 @@ export default function Device2D({ device, x, y, width, height, selected, onSele
       <Panel {...commonProps} />
       {/* Tooltip SVG — survol */}
       {hovered && (
-        <g transform={`translate(${width / 2}, -4)`}>
+        <g transform={`translate(${width / 2}, -4)`} style={{ pointerEvents: 'none' }}>
           <rect
-            x={-70} y={-18}
-            width={140} height={14}
-            fill="rgba(10, 12, 15, 0.95)"
-            stroke="#2c3235" strokeWidth={0.5}
-            rx={2}
+            x={-80} y={-20}
+            width={160} height={16}
+            fill={theme === 'light' ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 12, 15, 0.96)'}
+            stroke={P.badgeBorder}
+            strokeWidth={0.5}
+            rx={4}
           />
           <text
-            x={0} y={-8}
+            x={0} y={-9}
             textAnchor="middle"
-            fontSize={6}
+            fontSize={7}
             fontFamily="Inter, system-ui, sans-serif"
             fontWeight={600}
-            fill="#e8eaf0"
+            fill={P.labelLight}
           >
             {device.name}
           </text>
