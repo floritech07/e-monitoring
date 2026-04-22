@@ -33,6 +33,7 @@ export default function Rack2D({
   onSelectDevice,
   onSelectRack,
   onMoveDevice,
+  side = 'front',     // 'front' | 'back' — face visible des équipements
 }) {
   const theme = useTheme();
   const P     = getPalette(theme);
@@ -50,9 +51,12 @@ export default function Rack2D({
   const innerY = headerH + 4;
   const selected = selectedRackId === rack.id;
 
+  // En vue façade : 'back' est au fond (dessiné en 1er, translucide) ; 'front' devant.
+  // En vue fond   : 'front' est au fond (dessiné en 1er, translucide) ; 'back' devant.
+  const farDepth = side === 'back' ? 'front' : 'back';
   const sorted = [...devices].sort((a, b) => {
-    const depthOrder = { back: 0, full: 1, front: 2 };
-    return (depthOrder[a.depth || 'full'] ?? 1) - (depthOrder[b.depth || 'full'] ?? 1);
+    const order = (d) => d === farDepth ? 0 : d === 'full' || !d ? 1 : 2;
+    return order(a.depth) - order(b.depth);
   });
 
   // ─── DRAG & DROP ────────────────────────────────────────────────────────
@@ -160,7 +164,7 @@ export default function Rack2D({
           fontFamily="monospace"
           fill={selected ? '#dbeafe' : P.labelDim}
         >
-          {rackU}U · {devices.length} équip.
+          {rackU}U · {devices.length} équip. · {side === 'back' ? 'FOND' : 'FAÇADE'}
         </text>
       </g>
 
@@ -262,7 +266,7 @@ export default function Rack2D({
         return (
           <g
             key={device.id}
-            opacity={depth === 'back' && !isDragging ? 0.55 : 1}
+            opacity={depth === farDepth && !isDragging ? 0.55 : 1}
             style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
             onPointerDown={(e) => handleDeviceDown(device, e)}
           >
@@ -273,11 +277,12 @@ export default function Rack2D({
               width={width}
               height={height}
               theme={theme}
+              side={side}
               selected={selectedDeviceId === device.id && !isDragging}
               onSelect={null}
             />
-            {/* Marqueur "monté au fond" */}
-            {depth === 'back' && !isDragging && (
+            {/* Marqueur "équipement côté opposé" (dimmed car regardé de l'autre face) */}
+            {depth === farDepth && !isDragging && (
               <g transform={`translate(${x + width - 8}, ${y + 2})`}>
                 <path d="M 0 0 L 6 0 L 6 6 Z" fill="#38bdf8" opacity={0.8} />
               </g>

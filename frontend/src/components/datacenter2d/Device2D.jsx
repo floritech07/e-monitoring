@@ -9,12 +9,19 @@ import PDUPanel         from './panels/PDUPanel';
 import ShelfPanel       from './panels/ShelfPanel';
 import TapeLibraryPanel from './panels/TapeLibraryPanel';
 import GenericPanel     from './panels/GenericPanel';
+import ServerBackPanel  from './panels/ServerBackPanel';
+import SwitchBackPanel  from './panels/SwitchBackPanel';
+import NASBackPanel     from './panels/NASBackPanel';
+import UPSBackPanel     from './panels/UPSBackPanel';
+import PDUBackPanel     from './panels/PDUBackPanel';
+import GenericBackPanel from './panels/GenericBackPanel';
 
 /**
- * Dispatcher : choisit le bon panneau SVG en fonction du type d'équipement.
+ * Dispatcher : choisit le bon panneau SVG en fonction du type d'équipement
+ * ET du côté visible (side='front' | 'back').
  * Injecte brand + palette thématisée + dimensions + callbacks click/hover.
  */
-export default function Device2D({ device, x, y, width, height, theme = 'dark', selected, onSelect }) {
+export default function Device2D({ device, x, y, width, height, theme = 'dark', side = 'front', selected, onSelect }) {
   const [hovered, setHovered] = useState(false);
   const brandKey = detectBrand(device);
   const brand    = getBrandPalette(brandKey, theme);
@@ -30,9 +37,10 @@ export default function Device2D({ device, x, y, width, height, theme = 'dark', 
     height,
     selected,
     hovered,
+    side,
   };
 
-  const Panel = pickPanel(device.type);
+  const Panel = side === 'back' ? pickBackPanel(device.type) : pickPanel(device.type);
 
   return (
     <g
@@ -101,5 +109,29 @@ function pickPanel(type) {
       return ShelfPanel;
     default:
       return GenericPanel;
+  }
+}
+
+function pickBackPanel(type) {
+  switch (type) {
+    case 'server.physical':
+    case 'server.hypervisor':
+    case 'server.blade':
+    case 'backup.server':
+    case 'storage.san':
+      return ServerBackPanel;
+    case 'network.switch':
+      return SwitchBackPanel;
+    case 'storage.nas':
+      return NASBackPanel;
+    case 'power.ups':
+    case 'power.ecoflow':
+    case 'power.battery':
+      return UPSBackPanel;
+    case 'power.pdu':
+      return PDUBackPanel;
+    // router, firewall, HSM, tape, shelf → face arrière générique
+    default:
+      return GenericBackPanel;
   }
 }

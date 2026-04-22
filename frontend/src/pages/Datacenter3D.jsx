@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Server, Layers, Plus, Trash2, RefreshCw, MapPin, Info,
   Thermometer, Zap, HardDrive, Network, Cpu, Save, X,
@@ -8,6 +9,7 @@ import { api } from '../api';
 import { useSocket } from '../hooks/useSocket';
 import DatacenterScene from '../components/datacenter3d/DatacenterScene';
 import RacksRow2D from '../components/datacenter2d/RacksRow2D';
+import DeviceWidget from '../components/datacenter2d/DeviceWidget';
 
 /**
  * Page principale du jumeau numérique 3D.
@@ -18,6 +20,7 @@ import RacksRow2D from '../components/datacenter2d/RacksRow2D';
  *  - modales : formulaires d'ajout rack / équipement
  */
 export default function Datacenter3D() {
+  const navigate = useNavigate();
   const { datacenter: liveDatacenter, connected } = useSocket();
   const [datacenter, setDatacenter] = useState(null);
   const [deviceTypes, setDeviceTypes] = useState({});
@@ -229,9 +232,9 @@ export default function Datacenter3D() {
           )}
         </div>
 
-        {/* Panneau latéral */}
+        {/* Panneau latéral — affiche uniquement l'idle/rack ; le device utilise le widget flottant */}
         <div style={sidePanelStyle}>
-          {selection.kind === null && (
+          {(selection.kind === null || selection.kind === 'device') && (
             <IdlePanel stats={stats} room={room} />
           )}
           {selectedRack && (
@@ -242,17 +245,20 @@ export default function Datacenter3D() {
               onAddDevice={() => setShowAddDevice(true)}
             />
           )}
-          {selectedDevice && (
-            <DevicePanel
-              device={selectedDevice.device}
-              rack={selectedDevice.rack}
-              typeMeta={deviceTypes[selectedDevice.device.type]}
-              onClose={() => setSelection({ kind: null, id: null })}
-              onDelete={() => handleDeleteDevice(selectedDevice.device.id)}
-            />
-          )}
         </div>
       </div>
+
+      {/* Widget flottant d'équipement — remplace le panneau latéral device */}
+      {selectedDevice && (
+        <DeviceWidget
+          device={selectedDevice.device}
+          rack={selectedDevice.rack}
+          typeMeta={deviceTypes[selectedDevice.device.type]}
+          onClose={() => setSelection({ kind: null, id: null })}
+          onDelete={() => handleDeleteDevice(selectedDevice.device.id)}
+          onOpenDetails={(d) => navigate(`/datacenter-3d/device/${d.id}`)}
+        />
+      )}
 
       {showAddRack && (
         <AddRackModal onClose={() => setShowAddRack(false)} onSubmit={handleAddRack} />
@@ -322,41 +328,6 @@ function RackPanel({ rack, onClose, onDelete, onAddDevice }) {
       <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
         <button style={btnSmallStyle} onClick={onAddDevice}><Plus size={12} /> Équipement</button>
         <button style={btnSmallDangerStyle} onClick={onDelete}><Trash2 size={12} /> Supprimer</button>
-      </div>
-    </div>
-  );
-}
-
-function DevicePanel({ device, rack, typeMeta, onClose, onDelete }) {
-  return (
-    <div style={{ padding: 16 }}>
-      <PanelHeader
-        title={device.name}
-        subtitle={`${typeMeta?.label || device.type} · ${rack.name}`}
-        color={device.color}
-        onClose={onClose}
-      />
-      <StatRow label="Constructeur" value={device.manufacturer || '—'} />
-      <StatRow label="Modèle"       value={device.model || '—'} />
-      <StatRow label="Série"        value={device.serial || '—'} />
-      <StatRow label="Hostname"     value={device.hostname || '—'} />
-      <StatRow label="IP"           value={device.ip || '—'} />
-      <StatRow label="Position"     value={`U${device.uStart}${device.uSize > 1 ? `–U${device.uStart + device.uSize - 1}` : ''} (${device.uSize}U)`} />
-      <StatRow label="Slot"         value={device.slot === 'left' ? 'Moitié gauche' : device.slot === 'right' ? 'Moitié droite' : 'Pleine largeur'} />
-      <StatRow label="Profondeur"   value={device.depth === 'front' ? 'Façade' : device.depth === 'back' ? 'Fond' : 'Pleine profondeur'} />
-      <StatRow label="Montage"      value={device.mounting === 'shelf' ? 'Étagère' : device.mounting === 'loose' ? 'Posé' : 'Rails 19"'} />
-      <StatRow label="Statut"       value={device.status} />
-
-      {device.notes && (
-        <>
-          <div style={{ margin: '12px 0', height: 1, background: '#2c3235' }} />
-          <div style={{ fontSize: 11, color: '#8e8e8e', marginBottom: 4 }}>NOTES</div>
-          <div style={{ fontSize: 11, color: '#c0c4cb', lineHeight: 1.5 }}>{device.notes}</div>
-        </>
-      )}
-
-      <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
-        <button style={btnSmallDangerStyle} onClick={onDelete}><Trash2 size={12} /> Retirer</button>
       </div>
     </div>
   );

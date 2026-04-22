@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { RotateCw, ArrowLeftRight } from 'lucide-react';
 import Rack2D from './Rack2D';
 import { getPalette } from './constants';
 import { useTheme } from './useTheme';
@@ -7,7 +8,9 @@ import './datacenter2d.css';
 /**
  * Affiche tous les racks d'une salle côte à côte avec scroll horizontal
  * et grille technique en fond — style Netbox / RackTables / Device42.
- * S'adapte au thème clair/sombre via useTheme().
+ *
+ * Toggle façade/fond : bouton ↺ en haut à droite. Chaque rack peut aussi être
+ * flippé individuellement via une touche F quand il est sélectionné (voir footer).
  */
 export default function RacksRow2D({
   room,
@@ -22,6 +25,22 @@ export default function RacksRow2D({
   const P     = getPalette(theme);
   const scrollerRef = useRef(null);
   const [zoom, setZoom] = useState(1);
+
+  // Vue globale façade ('front') ou fond ('back'). Persistée en localStorage.
+  const [side, setSide] = useState(() => {
+    try { return localStorage.getItem('datacenter.rackSide') || 'front'; }
+    catch { return 'front'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('datacenter.rackSide', side); } catch {}
+  }, [side]);
+
+  // Vue individuelle par rack (override du global). Map rackId → 'front'|'back'
+  const [perRackSide, setPerRackSide] = useState({});
+  const sideOf = (rackId) => perRackSide[rackId] || side;
+  const flipRack = (rackId) => {
+    setPerRackSide(prev => ({ ...prev, [rackId]: sideOf(rackId) === 'front' ? 'back' : 'front' }));
+  };
 
   // Adapter le zoom pour que tous les racks tiennent dans la largeur
   useEffect(() => {
@@ -67,6 +86,28 @@ export default function RacksRow2D({
         }}
       />
 
+      {/* Toggle global façade/fond — barre d'outils flottante en haut */}
+      <div style={toolbarStyle(P)} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontSize: 10, color: P.labelMid, fontWeight: 600, letterSpacing: 0.6, marginRight: 4 }}>
+          VUE
+        </div>
+        <button
+          style={side === 'front' ? toolbarBtnActive(P) : toolbarBtn(P)}
+          onClick={() => { setSide('front'); setPerRackSide({}); }}
+          title="Voir la façade de tous les racks"
+        >
+          Façade
+        </button>
+        <button
+          style={side === 'back' ? toolbarBtnActive(P) : toolbarBtn(P)}
+          onClick={() => { setSide('back'); setPerRackSide({}); }}
+          title="Voir le fond de tous les racks (ports / alimentations / câbles)"
+        >
+          <ArrowLeftRight size={11} style={{ marginRight: 4, verticalAlign: '-1px' }} />
+          Fond
+        </button>
+      </div>
+
       <div
         style={{
           display: 'flex',
@@ -79,19 +120,39 @@ export default function RacksRow2D({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {room.racks.map((rack) => (
-          <div key={rack.id} style={{ flexShrink: 0 }}>
-            <Rack2D
-              rack={rack}
-              devices={rack.devices || []}
-              selectedRackId={selectedRackId}
-              selectedDeviceId={selectedDeviceId}
-              onSelectRack={onSelectRack}
-              onSelectDevice={onSelectDevice}
-              onMoveDevice={onMoveDevice}
-            />
-          </div>
-        ))}
+        {room.racks.map((rack) => {
+          const rackSide = sideOf(rack.id);
+          return (
+            <div key={rack.id} style={{ flexShrink: 0, position: 'relative' }}>
+              <Rack2D
+                rack={rack}
+                devices={rack.devices || []}
+                selectedRackId={selectedRackId}
+                selectedDeviceId={selectedDeviceId}
+                onSelectRack={onSelectRack}
+                onSelectDevice={onSelectDevice}
+                onMoveDevice={onMoveDevice}
+                side={rackSide}
+              />
+              {/* Bouton flip individuel sous le rack */}
+              <div style={{
+                position: 'absolute',
+                top: 2, right: 8,
+                display: 'flex', alignItems: 'center', gap: 4,
+                pointerEvents: 'auto',
+              }}>
+                <button
+                  style={flipBtn(P)}
+                  onClick={(e) => { e.stopPropagation(); flipRack(rack.id); }}
+                  title={`Retourner ce rack (actuellement : ${rackSide === 'back' ? 'fond' : 'façade'})`}
+                >
+                  <RotateCw size={10} />
+                  {rackSide === 'back' ? 'FOND' : 'FAÇADE'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Légende flottante */}
@@ -111,7 +172,7 @@ export default function RacksRow2D({
             borderBottom: '6px solid #38bdf8',
             opacity: 0.85,
           }} />
-          Monté au fond
+          Face opposée
         </div>
       </div>
     </div>
@@ -134,6 +195,52 @@ function LegendItem({ P, color, label, pulse }) {
     </div>
   );
 }
+
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
+const toolbarStyle = (P) => ({
+  position: 'sticky',
+  top: 0,
+  zIndex: 20,
+  display: 'flex', alignItems: 'center', gap: 6,
+  padding: '8px 12px',
+  background: P.badgeBg,
+  border: `1px solid ${P.badgeBorder}`,
+  borderRadius: 8,
+  marginBottom: 18,
+  width: 'fit-content',
+  boxShadow: '0 4px 12px rgba(15,23,42,0.12)',
+  backdropFilter: 'blur(6px)',
+});
+
+const toolbarBtn = (P) => ({
+  display: 'inline-flex', alignItems: 'center',
+  padding: '5px 12px',
+  fontSize: 11, fontWeight: 600,
+  background: 'transparent',
+  border: 'none',
+  color: P.labelMid,
+  borderRadius: 5,
+  cursor: 'pointer',
+  transition: 'background 0.12s',
+});
+const toolbarBtnActive = (P) => ({
+  ...toolbarBtn(P),
+  background: '#3274d9',
+  color: '#ffffff',
+});
+
+const flipBtn = (P) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 3,
+  padding: '3px 6px',
+  fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
+  background: P.badgeBg,
+  border: `1px solid ${P.badgeBorder}`,
+  color: P.labelMid,
+  borderRadius: 4,
+  cursor: 'pointer',
+  opacity: 0.85,
+});
 
 const legendStyle = (P) => ({
   position: 'fixed',
