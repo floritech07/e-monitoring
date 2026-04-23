@@ -89,6 +89,26 @@ export const api = {
   updateDevice:        (deviceId, body)       => req(`/datacenter/devices/${deviceId}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteDevice:        (deviceId)             => req(`/datacenter/devices/${deviceId}`, { method: 'DELETE' }),
 
+  // ESXi / Virtualisation
+  getClusters:         ()               => req('/esxi/clusters'),
+  getEsxiHosts:        ()               => req('/esxi/hosts'),
+  getEsxiHost:         (id)             => req(`/esxi/hosts/${id}`),
+  getHostVMs:          (id)             => req(`/esxi/hosts/${id}/vms`),
+  getHostStorage:      (id)             => req(`/esxi/hosts/${id}/storage`),
+  getHostNetwork:      (id)             => req(`/esxi/hosts/${id}/network`),
+  getHostPerfHistory:  (id)             => req(`/esxi/hosts/${id}/perf`),
+  esxiVmAction:        (vmId, action)   => req(`/esxi/vms/${vmId}/action`, { method: 'POST', body: JSON.stringify({ action }) }),
+
+  // Services Map
+  getServicesMap:      ()               => req('/services-map'),
+  createService:       (svc)            => req('/services-map', { method: 'POST', body: JSON.stringify(svc) }),
+  updateService:       (id, svc)        => req(`/services-map/${id}`, { method: 'PUT', body: JSON.stringify(svc) }),
+  deleteService:       (id)             => req(`/services-map/${id}`, { method: 'DELETE' }),
+
+  // Stockage
+  getStorageTopology:  ()               => req('/storage/topology'),
+  getStorageStats:     ()               => req('/storage/stats'),
+
   // Payment Trends
   getPrepaidTrend:  (range)         => req(`/payments/trends/prepaid?range=${range || '24h'}`),
   getPostpaidTrend: (range)         => req(`/payments/trends/postpaid?range=${range || '24h'}`),

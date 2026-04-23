@@ -15,6 +15,9 @@ const networkService    = require('./services/networkService');
 const paymentService    = require('./services/paymentService');
 const veeamService      = require('./services/veeamService');
 const datacenterService = require('./services/datacenterService');
+const esxiService       = require('./services/esxiService');
+const servicesMapService= require('./services/servicesMapService');
+const storageTopoService= require('./services/storageTopoService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -598,6 +601,82 @@ app.delete('/api/datacenter/devices/:deviceId', (req, res) => {
     broadcastTopology();
     res.json({ success: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESXi / Clusters / Virtualisation
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/esxi/clusters', async (req, res) => {
+  try { res.json(await esxiService.getClusters()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts', async (req, res) => {
+  try { res.json(await esxiService.getHosts()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts/:id', async (req, res) => {
+  try {
+    const host = await esxiService.getHost(req.params.id);
+    if (!host) return res.status(404).json({ error: 'Hôte non trouvé' });
+    res.json(host);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts/:id/vms', async (req, res) => {
+  try { res.json(await esxiService.getHostVMs(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts/:id/storage', async (req, res) => {
+  try { res.json(await esxiService.getHostStorage(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts/:id/network', async (req, res) => {
+  try { res.json(await esxiService.getHostNetwork(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/hosts/:id/perf', async (req, res) => {
+  try { res.json(await esxiService.getHostPerfHistory(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/esxi/vms/:id/action', async (req, res) => {
+  try {
+    const result = await esxiService.esxiVmAction(req.params.id, req.body.action);
+    if (result.success) activityService.log('info', result.message, 'ESXi');
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Services Métier (Service Map)
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/services-map', (req, res) => {
+  try { res.json(servicesMapService.getServices()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/services-map', (req, res) => {
+  try { res.json(servicesMapService.saveService(req.body)); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/services-map/:id', (req, res) => {
+  try { res.json(servicesMapService.saveService({ ...req.body, id: req.params.id })); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/services-map/:id', (req, res) => {
+  try { servicesMapService.deleteService(req.params.id); res.json({ success: true }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Topologie Stockage
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/storage/topology', (req, res) => {
+  try { res.json(storageTopoService.getStorageTopology()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/storage/stats', (req, res) => {
+  try { res.json(storageTopoService.getStorageStats()); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

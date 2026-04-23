@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users,
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
-  Menu, ChevronLeft, Box
+  Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -25,6 +25,11 @@ import PaymentMonitor from './pages/PaymentMonitor';
 import PaymentRecap from './pages/PaymentRecap';
 import Datacenter3D from './pages/Datacenter3D';
 import DeviceDetail from './pages/DeviceDetail';
+import ESXiHostDetail from './pages/ESXiHostDetail';
+import ClusterView from './pages/ClusterView';
+import ServiceMap from './pages/ServiceMap';
+import StorageTopology from './pages/StorageTopology';
+import NetworkFabric from './pages/NetworkFabric';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
@@ -35,6 +40,12 @@ function Sidebar({ alertCount, collapsed }) {
     { to: '/datacenter-3d', icon: Box,       label: 'Salle serveur 3D' },
     { to: '/topology',icon: Map,             label: 'Topologie Réseau' },
     { to: '/alerts',  icon: Bell,            label: 'Alertes',      badge: alertCount },
+    { section: 'Virtualisation' },
+    { to: '/clusters',       icon: Layers,     label: 'Clusters & Pools'   },
+    { to: '/services',       icon: AppWindow,  label: 'Carte des services' },
+    { section: 'Infrastructure DC' },
+    { to: '/storage',        icon: HardDrive,  label: 'Stockage'           },
+    { to: '/network-fabric', icon: Network,    label: 'Fabric réseau'      },
     { section: 'Intégrations' },
     { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
     { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
@@ -405,6 +416,11 @@ function App() {
               <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
               <Route path="/datacenter-3d" element={<Datacenter3D />} />
               <Route path="/datacenter-3d/device/:deviceId" element={<DeviceDetail />} />
+              <Route path="/infrastructure/esxi/:hostId" element={<ESXiHostDetail />} />
+              <Route path="/clusters" element={<ClusterView />} />
+              <Route path="/services" element={<ServiceMap />} />
+              <Route path="/storage" element={<StorageTopology />} />
+              <Route path="/network-fabric" element={<NetworkFabric />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />

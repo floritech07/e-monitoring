@@ -26,6 +26,7 @@ function TreeNode({ node, depth = 0, selectedId, onSelect }) {
   function handleClick() {
     onSelect(node.id);
     if (node.type === 'vm') navigate(`/infrastructure/${node.id}`);
+    if (node.type === 'host' || node.type === 'hypervisor') navigate(`/infrastructure/esxi/${node.id}`);
     if (hasChildren) setExpanded(e => !e);
   }
 
