@@ -935,6 +935,26 @@ app.get('/api/environment/power-quality', (_req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/environment/tgbt', (_req, res) => {
+  try { res.json(environmentService.getTGBTCircuits()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/bms/batteries', (_req, res) => {
+  try { res.json(environmentService.getBMSBatteries()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/wue', (_req, res) => {
+  try { res.json(environmentService.getWUE()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/crac/detail', (_req, res) => {
+  try { res.json(environmentService.getCRACDetailStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // REDFISH — SMART, RAID/BBU, SEL
 // ─────────────────────────────────────────────────────────────────────────────

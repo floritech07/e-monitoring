@@ -201,4 +201,10 @@ export const api = {
 
   // RBAC info
   getRbacInfo:        ()           => req('/rbac/info'),
+
+  // Environnement étendu — TGBT, BMS, WUE, CRAC détail
+  getEnvTGBT:         ()           => req('/environment/tgbt'),
+  getEnvBMSBatteries: ()           => req('/environment/bms/batteries'),
+  getEnvWUE:          ()           => req('/environment/wue'),
+  getEnvCRACDetail:   ()           => req('/environment/crac/detail'),
 };
