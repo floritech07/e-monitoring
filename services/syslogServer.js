@@ -2,16 +2,79 @@
 /**
  * Serveur Syslog UDP réel — RFC 5424 + RFC 3164 (legacy)
  * Écoute sur UDP 514 (ou SYSLOG_PORT) + corrélation basique
+ * Rétention configurable : fichiers journaliers YYYY-MM-DD.ndjson (LOG_RETENTION_DAYS)
  */
 
 const dgram  = require('dgram');
 const net    = require('net');
 const crypto = require('crypto');
+const fs     = require('fs');
+const path   = require('path');
 const EventEmitter = require('events');
 
-const UDP_PORT   = parseInt(process.env.SYSLOG_PORT || '5140'); // 514 nécessite root, 5140 pour dev
-const TCP_PORT   = parseInt(process.env.SYSLOG_TCP_PORT || '5141');
-const BUFFER_MAX = 5000;
+const UDP_PORT       = parseInt(process.env.SYSLOG_PORT || '5140');
+const TCP_PORT       = parseInt(process.env.SYSLOG_TCP_PORT || '5141');
+const BUFFER_MAX     = 5000;
+let   RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || '7');
+
+// ── Répertoire de stockage sur disque ────────────────────────────────────────
+const LOG_DIR = path.join(__dirname, '..', 'data', 'syslog_archive');
+try { if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true }); } catch (_) {}
+
+function todayFile() {
+  const d = new Date().toISOString().slice(0, 10);
+  return path.join(LOG_DIR, `${d}.ndjson`);
+}
+
+function appendLogToDisk(log) {
+  try {
+    fs.appendFileSync(todayFile(), JSON.stringify(log) + '\n', { flag: 'a' });
+  } catch (_) {}
+}
+
+function purgeOldLogs() {
+  try {
+    const cutoff = Date.now() - RETENTION_DAYS * 86400_000;
+    for (const f of fs.readdirSync(LOG_DIR)) {
+      if (!f.endsWith('.ndjson')) continue;
+      const dateStr = f.replace('.ndjson', '');
+      const ts = new Date(dateStr).getTime();
+      if (!isNaN(ts) && ts < cutoff) {
+        fs.unlinkSync(path.join(LOG_DIR, f));
+        console.log(`[Syslog] Purge fichier ancien: ${f}`);
+      }
+    }
+  } catch (_) {}
+}
+
+function getRetentionConfig() {
+  let files = [];
+  try {
+    files = fs.readdirSync(LOG_DIR).filter(f => f.endsWith('.ndjson')).sort();
+  } catch (_) {}
+  const totalBytes = files.reduce((s, f) => {
+    try { return s + fs.statSync(path.join(LOG_DIR, f)).size; } catch { return s; }
+  }, 0);
+  return {
+    retentionDays: RETENTION_DAYS,
+    logDir:        LOG_DIR,
+    archivedFiles: files.length,
+    totalSizeKB:   Math.round(totalBytes / 1024),
+    oldest:        files[0]?.replace('.ndjson', '') || null,
+    newest:        files.at(-1)?.replace('.ndjson', '') || null,
+  };
+}
+
+function setRetentionDays(days) {
+  RETENTION_DAYS = Math.max(1, Math.min(365, parseInt(days) || 7));
+  purgeOldLogs();
+  return getRetentionConfig();
+}
+
+// Purge au démarrage
+purgeOldLogs();
+// Purge quotidienne à minuit
+setInterval(purgeOldLogs, 24 * 3600_000);
 
 // ── Parseurs RFC ──────────────────────────────────────────────────────────────
 
@@ -210,9 +273,10 @@ class SyslogServer extends EventEmitter {
     log.raw        = rawBuffer.toString('utf8').trim().slice(0, 512);
     log.signature  = signLog(log);
 
-    // Buffer circulaire
+    // Buffer circulaire en mémoire + écriture disque
     this._buffer.unshift(log);
     if (this._buffer.length > BUFFER_MAX) this._buffer = this._buffer.slice(0, BUFFER_MAX);
+    appendLogToDisk(log);
 
     // Corrélation
     runCorrelation(log, (event) => {
@@ -295,7 +359,9 @@ class SyslogServer extends EventEmitter {
   }
 
   getCorrelationRules() { return CORRELATION_RULES; }
-  isStarted() { return this._started; }
+  isStarted()          { return this._started; }
+  getRetentionConfig() { return getRetentionConfig(); }
+  setRetentionDays(d)  { return setRetentionDays(d); }
 }
 
 const server = new SyslogServer();

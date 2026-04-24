@@ -181,4 +181,24 @@ export const api = {
   createPaymentRule:(rule)          => req('/payments/rules', { method: 'POST', body: JSON.stringify(rule) }),
   updatePaymentRule:(id, rule)      => req(`/payments/rules/${id}`, { method: 'PUT', body: JSON.stringify(rule) }),
   deletePaymentRule:(id)            => req(`/payments/rules/${id}`, { method: 'DELETE' }),
+
+  // Audit Trail
+  getAuditTrail:      (p = {})     => req(`/audit?${new URLSearchParams(p).toString()}`),
+
+  // Veeam GFS + Immutabilité
+  getVeeamGFS:        ()           => req('/veeam/gfs'),
+
+  // Room Map layout (éditeur admin)
+  getRoomLayout:      ()           => req('/room/layout'),
+  saveRoomLayout:     (data)       => req('/room/layout', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Capacity Planning
+  getCapacityHistory: ()           => req('/capacity/history'),
+
+  // Syslog rétention configurable
+  getSyslogRetention: ()           => req('/syslog/retention'),
+  setSyslogRetention: (days)       => req('/syslog/retention', { method: 'PUT', body: JSON.stringify({ days }) }),
+
+  // RBAC info
+  getRbacInfo:        ()           => req('/rbac/info'),
 };

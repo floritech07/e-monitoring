@@ -22,6 +22,8 @@ const snmpService       = require('./services/snmpService');
 const redfishService    = require('./services/redfishService');
 const cmdbService       = require('./services/cmdbService');
 const alertEngine       = require('./services/alertEngineService');
+const { requireRole, injectRole } = require('./services/rbacService');
+const veeamService      = require('./services/veeamService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -31,6 +33,69 @@ const io     = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT TRAIL MIDDLEWARE
+// ─────────────────────────────────────────────────────────────────────────────
+
+const fs   = require('fs');
+const path = require('path');
+const AUDIT_FILE = path.join(__dirname, 'data', 'audit.json');
+let   _auditLog  = [];
+
+try {
+  const raw = fs.readFileSync(AUDIT_FILE, 'utf8');
+  _auditLog = JSON.parse(raw);
+} catch (_) { _auditLog = []; }
+
+function saveAuditLog() {
+  const keep = _auditLog.slice(0, 5000);
+  fs.writeFile(AUDIT_FILE, JSON.stringify(keep), () => {});
+}
+
+app.use(injectRole);
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') && req.method !== 'OPTIONS') {
+    const start = Date.now();
+    const origEnd = res.end.bind(res);
+    res.end = function (...args) {
+      const entry = {
+        ts:          new Date().toISOString(),
+        method:      req.method,
+        path:        req.path,
+        ip:          req.ip || req.connection?.remoteAddress || '?',
+        user:        req.userRole || 'anonymous',
+        status:      res.statusCode,
+        durationMs:  Date.now() - start,
+        userAgent:   req.headers['user-agent'] || '',
+        body:        ['POST','PUT','PATCH'].includes(req.method)
+                       ? (typeof req.body === 'object' ? req.body : {})
+                       : undefined,
+      };
+      _auditLog.unshift(entry);
+      if (_auditLog.length > 5000) _auditLog = _auditLog.slice(0, 5000);
+      if (_auditLog.length % 50 === 0) saveAuditLog();
+      return origEnd(...args);
+    };
+  }
+  next();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT TRAIL ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/audit', (req, res) => {
+  let   logs   = _auditLog;
+  const limit  = Math.min(parseInt(req.query.limit  || '50'), 500);
+  const offset = parseInt(req.query.offset || '0');
+  if (req.query.method) logs = logs.filter(e => e.method === req.query.method);
+  if (req.query.q) {
+    const q = req.query.q.toLowerCase();
+    logs = logs.filter(e => e.path.toLowerCase().includes(q) || e.ip.includes(q) || (e.user || '').includes(q));
+  }
+  res.json({ entries: logs.slice(offset, offset + limit), total: logs.length });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SELF-HEALING & PERMISSIONS (Windows Auto-Setup)
@@ -1135,6 +1200,92 @@ cron.schedule('0 */5 * * * *', async () => {
   } catch (e) {
     console.error('[Payment evaluation] Error:', e.message);
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GFS + IMMUTABILITÉ VEEAM
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/veeam/gfs', (_req, res) => {
+  res.json(veeamService.getGFSData());
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOM MAP LAYOUT (éditeur plan admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ROOM_LAYOUT_FILE = path.join(__dirname, 'data', 'roomLayout.json');
+
+app.get('/api/room/layout', (_req, res) => {
+  try {
+    const data = JSON.parse(fs.readFileSync(ROOM_LAYOUT_FILE, 'utf8'));
+    res.json(data);
+  } catch { res.json({ racks: [] }); }
+});
+
+app.put('/api/room/layout', requireRole('operator'), (req, res) => {
+  try {
+    fs.writeFileSync(ROOM_LAYOUT_FILE, JSON.stringify(req.body, null, 2));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAPACITY PLANNING
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/capacity/history', (_req, res) => {
+  // Retourne les 30 derniers points de métriques agrégés
+  // (en prod, lire depuis VictoriaMetrics — ici, simulation depuis l'historique en RAM)
+  try {
+    const metricsHist = metricsService.getHistory ? metricsService.getHistory(30) : null;
+    if (metricsHist && metricsHist.length > 0) {
+      return res.json({ points: metricsHist, source: 'live' });
+    }
+  } catch (_) {}
+
+  // Fallback simulation : 30 jours de tendance réaliste
+  const points = Array.from({ length: 30 }, (_, i) => ({
+    day:            i,
+    cpuPct:         Math.min(100, 30 + i * 0.9 + (Math.random() - 0.5) * 5),
+    ramPct:         Math.min(100, 45 + i * 1.1 + (Math.random() - 0.5) * 4),
+    storagePct:     Math.min(100, 52 + i * 0.4 + (Math.random() - 0.5) * 2),
+    dataTransferGB: Math.max(0, 110 + i * 3 + (Math.random() - 0.5) * 20),
+  }));
+  res.json({ points, source: 'simulation' });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSLOG RÉTENTION CONFIGURABLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+const syslogService = (() => { try { return require('./services/syslogServer'); } catch { return null; } })();
+
+app.get('/api/syslog/retention', (_req, res) => {
+  if (!syslogService) return res.json({ retentionDays: 7, archivedFiles: 0 });
+  res.json(syslogService.getRetentionConfig());
+});
+
+app.put('/api/syslog/retention', requireRole('admin'), (req, res) => {
+  if (!syslogService) return res.status(503).json({ error: 'Syslog non démarré' });
+  const cfg = syslogService.setRetentionDays(req.body.days);
+  res.json(cfg);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RBAC INFO (lecture des rôles/tokens status)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const { ROLES, DEV_MODE: rbacDevMode } = require('./services/rbacService');
+
+app.get('/api/rbac/info', requireRole('admin'), (_req, res) => {
+  res.json({
+    devMode:  rbacDevMode,
+    roles:    ROLES,
+    message:  rbacDevMode
+      ? 'Mode développement — aucun token requis. Définir ADMIN_TOKEN, OPERATOR_TOKEN, VIEWER_TOKEN dans .env.'
+      : 'Tokens configurés — contrôle d\'accès actif.',
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

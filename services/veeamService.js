@@ -280,4 +280,62 @@ async function triggerJobAction(jobId, action) {
   }
 }
 
-module.exports = { getVeeamData, pollVeeam, triggerJobAction };
+// ─── GFS Simulation ──────────────────────────────────────────────────────────
+
+const GFS_POLICIES_SIM = [
+  { jobName: 'Backup-VM-Prod-Daily',  daily: 7,  weekly: 4, monthly: 3, yearly: 1 },
+  { jobName: 'Backup-VM-Backup-Daily', daily: 7,  weekly: 4, monthly: 0, yearly: 0 },
+  { jobName: 'Backup-Files-Exchange', daily: 14, weekly: 8, monthly: 6, yearly: 2 },
+];
+
+function makeRestorePoints(jobName, count = 20) {
+  const points = [];
+  const policy = GFS_POLICIES_SIM.find(p => p.jobName === jobName) || { daily: 7, weekly: 0, monthly: 0, yearly: 0 };
+  const now = Date.now();
+
+  for (let i = 0; i < count; i++) {
+    const ts    = new Date(now - i * 24 * 3600_000);
+    const dayN  = i + 1;
+    const isWeekly  = dayN % 7  === 0 && policy.weekly  > 0 && Math.floor(dayN / 7)  <= policy.weekly;
+    const isMonthly = dayN % 30 === 0 && policy.monthly > 0 && Math.floor(dayN / 30) <= policy.monthly;
+    const isYearly  = dayN === 365    && policy.yearly  > 0;
+    const isDaily   = dayN <= policy.daily && !isWeekly && !isMonthly;
+
+    let gfsType = null;
+    if (isYearly)  gfsType = 'yearly';
+    else if (isMonthly) gfsType = 'monthly';
+    else if (isWeekly)  gfsType = 'weekly';
+    else if (isDaily)   gfsType = 'daily';
+
+    const immutable = gfsType === 'monthly' || gfsType === 'yearly';
+    const sizeGB    = +(15 + Math.random() * 40).toFixed(1);
+
+    points.push({
+      id:          `rp-${jobName.replace(/\s/g,'-')}-${i}`,
+      jobName,
+      timestamp:   ts.toISOString(),
+      sizeGB,
+      type:        i === 0 ? 'Full' : i % 7 === 0 ? 'Incremental (weekly)' : 'Incremental',
+      gfsType,
+      immutable,
+      immutableUntil: immutable
+        ? new Date(ts.getTime() + (gfsType === 'yearly' ? 365 : 90) * 24 * 3600_000).toISOString()
+        : null,
+      status:      Math.random() > 0.05 ? 'OK' : 'Warning',
+    });
+  }
+  return points;
+}
+
+function getGFSData() {
+  const jobs = ['Backup-VM-Prod-Daily', 'Backup-VM-Backup-Daily', 'Backup-Files-Exchange'];
+  const restorePoints = jobs.flatMap(j => makeRestorePoints(j, 35));
+  return {
+    policies:      GFS_POLICIES_SIM,
+    restorePoints,
+    immutableCount: restorePoints.filter(p => p.immutable).length,
+    totalSizeGB:    +restorePoints.reduce((s, p) => s + p.sizeGB, 0).toFixed(1),
+  };
+}
+
+module.exports = { getVeeamData, pollVeeam, triggerJobAction, getGFSData };

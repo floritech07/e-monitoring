@@ -5,7 +5,8 @@ import {
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
   Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network,
-  Building2, Thermometer, FileText, TrendingUp, CheckSquare, Phone, BarChart2
+  Building2, Thermometer, FileText, TrendingUp, CheckSquare, Phone, BarChart2,
+  ClipboardList, Lock,
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -38,6 +39,8 @@ import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import ServiceChecks from './pages/ServiceChecks';
 import OnCallPage from './pages/OnCallPage';
 import ReportsPage from './pages/ReportsPage';
+import AuditTrailPage from './pages/AuditTrailPage';
+import CapacityPlanningPage from './pages/CapacityPlanningPage';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
@@ -60,9 +63,12 @@ function Sidebar({ alertCount, collapsed }) {
     { to: '/storage',        icon: HardDrive,  label: 'Stockage'           },
     { to: '/network-fabric', icon: Network,    label: 'Fabric réseau'      },
     { section: 'Opérations' },
-    { to: '/service-checks', icon: CheckSquare, label: 'Vérif. services'   },
-    { to: '/oncall',         icon: Phone,        label: 'Astreinte & ITIL'  },
-    { to: '/reports',        icon: BarChart2,    label: 'Rapports'          },
+    { to: '/service-checks',   icon: CheckSquare,   label: 'Vérif. services'    },
+    { to: '/oncall',           icon: Phone,          label: 'Astreinte & ITIL'   },
+    { to: '/reports',          icon: BarChart2,      label: 'Rapports'           },
+    { to: '/capacity',         icon: TrendingUp,     label: 'Capacity Planning'  },
+    { section: 'Sécurité & Conformité' },
+    { to: '/audit',            icon: ClipboardList,  label: 'Piste d\'audit'     },
     { section: 'Intégrations' },
     { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
     { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
@@ -445,6 +451,8 @@ function App() {
               <Route path="/service-checks" element={<ServiceChecks />} />
               <Route path="/oncall"         element={<OnCallPage />} />
               <Route path="/reports"        element={<ReportsPage />} />
+              <Route path="/capacity"       element={<CapacityPlanningPage />} />
+              <Route path="/audit"          element={<AuditTrailPage />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />
