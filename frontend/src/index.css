@@ -229,6 +229,33 @@ html, body, #root {
   text-align: center;
 }
 
+/* ===== Nav Groups ===== */
+.nav-group-header {
+  transition: background 0.2s, color 0.2s;
+}
+.nav-group-header:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.nav-group.expanded .nav-group-header {
+  color: var(--text-primary);
+}
+
+.nav-sub-item {
+  transition: all 0.2s;
+  display: block;
+  border-left: 2px solid transparent;
+}
+.nav-sub-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary) !important;
+}
+.nav-sub-item.active {
+  color: var(--accent) !important;
+  border-left-color: var(--accent);
+  background: var(--accent-glow) !important;
+}
+
 /* ===== Main Content ===== */
 .main-content {
   overflow-y: auto;
