@@ -6,7 +6,7 @@ import {
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
   Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network,
   Building2, Thermometer, FileText, TrendingUp, CheckSquare, Phone, BarChart2,
-  ClipboardList, Lock, Database,
+  ClipboardList, Lock, Database, LayoutGrid,
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -50,6 +50,7 @@ import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
   const navItems = [
+    { to: '/',             icon: LayoutGrid,      label: 'Centre de Commande'  },
     { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
     { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
     { section: 'Environnement & Logs' },
