@@ -828,7 +828,109 @@ app.get('/api/environment/crac', (_req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOGS SYSLOG — explorateur (Phase 5)
+// ENVIRONNEMENT — PDU, groupe électrogène, ATS, qualité air, pression, portes
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/environment/pdu', (_req, res) => {
+  try { res.json(environmentService.getPDUStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/genset', (_req, res) => {
+  try { res.json(environmentService.getGensetStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/ats', (_req, res) => {
+  try { res.json(environmentService.getATSStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/air-quality', (_req, res) => {
+  try { res.json(environmentService.getAirQuality()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/pressure', (_req, res) => {
+  try { res.json(environmentService.getDifferentialPressure()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/doors', (_req, res) => {
+  try { res.json(environmentService.getDoorStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/doors/events', (req, res) => {
+  try { res.json(environmentService.getDoorEvents(parseInt(req.query.limit) || 50)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/power-quality', (_req, res) => {
+  try { res.json(environmentService.getPowerQuality()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REDFISH — SMART, RAID/BBU, SEL
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/redfish/servers/:id/smart', async (req, res) => {
+  try {
+    const d = await redfishService.getServerSMART(req.params.id);
+    if (!d) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(d);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/redfish/servers/:id/raid', async (req, res) => {
+  try {
+    const d = await redfishService.getServerRAID(req.params.id);
+    if (!d) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(d);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/redfish/servers/:id/sel', async (req, res) => {
+  try {
+    const d = await redfishService.getServerSEL(req.params.id);
+    if (!d) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(d);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSLOG SERVEUR RÉEL — RFC 5424/3164
+// ─────────────────────────────────────────────────────────────────────────────
+
+const syslogServer = require('./services/syslogServer');
+syslogServer.start();
+
+app.get('/api/syslog/logs', (req, res) => {
+  try {
+    const { limit, severity, source, search } = req.query;
+    res.json(syslogServer.getLogs({ limit: parseInt(limit) || 200, severity: severity || null, source: source || null, search: search || null }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/syslog/stats', (_req, res) => {
+  try { res.json(syslogServer.getStats()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/syslog/rules', (_req, res) => {
+  try { res.json(syslogServer.getCorrelationRules()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Forward correlation events to WebSocket clients
+syslogServer.on('correlation', (event) => {
+  io.emit('syslog:correlation', event);
+  alertEngine.evaluate({ [`corr.${event.ruleId}`]: true }, event.hostname || 'syslog');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGS SYSLOG — explorateur (Phase 5 — simulation)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const logsService = require('./services/logsService');
@@ -849,6 +951,76 @@ app.get('/api/logs/stats', (_req, res) => {
   try { res.json(logsService.getLogStats()); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ASTREINTE (On-Call) + INCIDENTS ITIL
+// ─────────────────────────────────────────────────────────────────────────────
+
+const onCallService = require('./services/onCallService');
+
+app.get('/api/oncall/current',            (_req, res) => res.json({ N1: onCallService.getCurrentOnCall('N1'), N2: onCallService.getCurrentOnCall('N2'), N3: onCallService.getCurrentOnCall('N3') }));
+app.get('/api/oncall/incidents',          (req, res)  => res.json(onCallService.getIncidents({ status: req.query.status || null, limit: parseInt(req.query.limit) || 50, priority: req.query.priority || null })));
+app.get('/api/oncall/incidents/stats',    (_req, res) => res.json(onCallService.getIncidentStats()));
+app.get('/api/oncall/incidents/:id',      (req, res)  => { const inc = onCallService.getIncident(req.params.id); inc ? res.json(inc) : res.status(404).json({ error: 'Incident non trouvé' }); });
+app.put('/api/oncall/incidents/:id',      (req, res)  => { const inc = onCallService.updateIncident(req.params.id, req.body); inc ? res.json(inc) : res.status(404).json({ error: 'Incident non trouvé' }); });
+app.post('/api/oncall/incidents/:id/note',(req, res)  => { const inc = onCallService.addNote(req.params.id, req.body); inc ? res.json(inc) : res.status(404).json({ error: 'Incident non trouvé' }); });
+app.post('/api/oncall/incidents/:id/escalate', (req, res) => { const r = onCallService.escalateIncident(req.params.id, req.body.toLevel || 'N2'); r ? res.json(r) : res.status(404).json({ error: 'Incident non trouvé' }); });
+app.get('/api/oncall/schedules',          (_req, res) => res.json(onCallService.getSchedules()));
+app.put('/api/oncall/schedules/:id',      (req, res)  => { const s = onCallService.updateSchedule(req.params.id, req.body); s ? res.json(s) : res.status(404).json({ error: 'Rotation non trouvée' }); });
+app.get('/api/oncall/overrides',          (_req, res) => res.json(onCallService.getOverrides()));
+app.post('/api/oncall/overrides',         (req, res)  => res.status(201).json(onCallService.addOverride(req.body)));
+app.delete('/api/oncall/overrides/:id',   (req, res)  => { onCallService.removeOverride(req.params.id); res.json({ success: true }); });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VÉRIFICATIONS DE SERVICES (Service Checks)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const serviceChecksService = require('./services/serviceChecksService');
+// Note: startLoop() is already called on module load inside serviceChecksService.js
+
+app.get('/api/service-checks', (_req, res) => {
+  const svcs    = serviceChecksService.getServices();
+  const results = serviceChecksService.getResults();
+  res.json(svcs.map(s => ({ ...s, ...(results[s.id] || {}), status: results[s.id]?.status || 'unknown' })));
+});
+app.get('/api/service-checks/all-status', (_req, res) => {
+  const svcs    = serviceChecksService.getServices();
+  const results = serviceChecksService.getResults();
+  res.json(svcs.map(s => ({ ...s, ...(results[s.id] || {}), status: results[s.id]?.status || 'unknown' })));
+});
+app.get('/api/service-checks/:id', (req, res) => {
+  const results = serviceChecksService.getResults();
+  const svc     = serviceChecksService.getServices().find(s => s.id === req.params.id);
+  if (!svc) return res.status(404).json({ error: 'Service non trouvé' });
+  res.json({ ...svc, ...(results[svc.id] || {}), status: results[svc.id]?.status || 'unknown' });
+});
+app.post('/api/service-checks/:id/check', async (req, res) => {
+  try { res.json(await serviceChecksService.checkNow(req.params.id)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/service-checks/maintenance/list', (_req, res) => res.json(serviceChecksService.getMaintenanceWindows()));
+app.post('/api/service-checks/maintenance',     (req, res)  => res.status(201).json(serviceChecksService.addMaintenance(req.body)));
+app.delete('/api/service-checks/maintenance/:id', (req, res)=> { serviceChecksService.removeMaintenance(req.params.id); res.json({ success: true }); });
+
+// Forward service status changes to WebSocket
+serviceChecksService.on('status_change', (ev) => io.emit('service:status_change', ev));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS — test + historique
+// ─────────────────────────────────────────────────────────────────────────────
+
+const notificationService = require('./services/notificationService');
+
+app.get('/api/notifications/channels', (_req, res) => res.json(notificationService.getChannelStatus()));
+app.get('/api/notifications/history',  (req, res)  => res.json(notificationService.getHistory(parseInt(req.query.limit) || 100)));
+app.post('/api/notifications/test',    async (req, res) => {
+  try {
+    const { channel, target } = req.body;
+    if (!channel) return res.status(400).json({ error: 'channel requis' });
+    res.json(await notificationService.test(channel, target));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+notificationService.refresh();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET

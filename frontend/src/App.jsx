@@ -5,7 +5,7 @@ import {
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
   Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network,
-  Building2, Thermometer, FileText, TrendingUp
+  Building2, Thermometer, FileText, TrendingUp, CheckSquare, Phone, BarChart2
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -35,6 +35,9 @@ import RoomMap from './pages/RoomMap';
 import PhysicalDashboard from './pages/PhysicalDashboard';
 import LogsExplorer from './pages/LogsExplorer';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
+import ServiceChecks from './pages/ServiceChecks';
+import OnCallPage from './pages/OnCallPage';
+import ReportsPage from './pages/ReportsPage';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
@@ -56,6 +59,10 @@ function Sidebar({ alertCount, collapsed }) {
     { section: 'Infrastructure DC' },
     { to: '/storage',        icon: HardDrive,  label: 'Stockage'           },
     { to: '/network-fabric', icon: Network,    label: 'Fabric réseau'      },
+    { section: 'Opérations' },
+    { to: '/service-checks', icon: CheckSquare, label: 'Vérif. services'   },
+    { to: '/oncall',         icon: Phone,        label: 'Astreinte & ITIL'  },
+    { to: '/reports',        icon: BarChart2,    label: 'Rapports'          },
     { section: 'Intégrations' },
     { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
     { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
@@ -435,6 +442,9 @@ function App() {
               <Route path="/physical" element={<PhysicalDashboard />} />
               <Route path="/logs" element={<LogsExplorer />} />
               <Route path="/executive" element={<ExecutiveDashboard />} />
+              <Route path="/service-checks" element={<ServiceChecks />} />
+              <Route path="/oncall"         element={<OnCallPage />} />
+              <Route path="/reports"        element={<ReportsPage />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />

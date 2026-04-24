@@ -122,6 +122,56 @@ export const api = {
   // Alert Engine v2
   getActiveAlerts:     ()               => req('/alerts/active'),
   getAlertEngineStats: ()               => req('/alerts/engine/stats'),
+  getAlertHistory:     ()               => req('/alerts/engine/history'),
+  ackAlertEngine:      (key, user)      => req(`/alerts/engine/${encodeURIComponent(key)}/ack`, { method: 'POST', body: JSON.stringify({ user }) }),
+
+  // Environnement étendu (PDU, groupe élec, ATS, qualité air, pression, portes)
+  getEnvPDU:           ()               => req('/environment/pdu'),
+  getEnvGenset:        ()               => req('/environment/genset'),
+  getEnvATS:           ()               => req('/environment/ats'),
+  getEnvAirQuality:    ()               => req('/environment/air-quality'),
+  getEnvPressure:      ()               => req('/environment/pressure'),
+  getEnvDoors:         ()               => req('/environment/doors'),
+  getEnvDoorEvents:    (limit = 50)     => req(`/environment/doors/events?limit=${limit}`),
+  getEnvPowerQuality:  ()               => req('/environment/power-quality'),
+
+  // Redfish étendu (SMART, RAID/BBU, SEL)
+  getServerSMART:      (id)             => req(`/redfish/servers/${id}/smart`),
+  getServerRAID:       (id)             => req(`/redfish/servers/${id}/raid`),
+  getServerSEL:        (id)             => req(`/redfish/servers/${id}/sel`),
+
+  // Syslog serveur réel
+  getSyslogLogs:       (params = {})    => req(`/syslog/logs?${new URLSearchParams(params).toString()}`),
+  getSyslogStats:      ()               => req('/syslog/stats'),
+  getSyslogRules:      ()               => req('/syslog/rules'),
+
+  // Astreinte + Incidents ITIL
+  getOnCallCurrent:    ()               => req('/oncall/current'),
+  getIncidents:        (p = {})         => req(`/oncall/incidents?${new URLSearchParams(p).toString()}`),
+  getIncidentStats:    ()               => req('/oncall/incidents/stats'),
+  getIncident:         (id)             => req(`/oncall/incidents/${id}`),
+  updateIncident:      (id, data)       => req(`/oncall/incidents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  addIncidentNote:     (id, note)       => req(`/oncall/incidents/${id}/note`, { method: 'POST', body: JSON.stringify(note) }),
+  escalateIncident:    (id, toLevel)    => req(`/oncall/incidents/${id}/escalate`, { method: 'POST', body: JSON.stringify({ toLevel }) }),
+  getSchedules:        ()               => req('/oncall/schedules'),
+  updateSchedule:      (id, data)       => req(`/oncall/schedules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getOverrides:        ()               => req('/oncall/overrides'),
+  addOverride:         (o)              => req('/oncall/overrides', { method: 'POST', body: JSON.stringify(o) }),
+  deleteOverride:      (id)             => req(`/oncall/overrides/${id}`, { method: 'DELETE' }),
+
+  // Vérifications de services
+  getServiceChecks:    ()               => req('/service-checks'),
+  getServiceChecksAll: ()               => req('/service-checks/all-status'),
+  getServiceCheck:     (id)             => req(`/service-checks/${id}`),
+  triggerServiceCheck: (id)             => req(`/service-checks/${id}/check`, { method: 'POST' }),
+  getMaintenanceWindows:()              => req('/service-checks/maintenance/list'),
+  addMaintenanceWindow:(w)              => req('/service-checks/maintenance', { method: 'POST', body: JSON.stringify(w) }),
+  deleteMaintenanceWindow:(id)          => req(`/service-checks/maintenance/${id}`, { method: 'DELETE' }),
+
+  // Notifications
+  getNotifChannels:    ()               => req('/notifications/channels'),
+  getNotifHistory:     (limit = 100)    => req(`/notifications/history?limit=${limit}`),
+  testNotifChannel:    (channel, target)=> req('/notifications/test', { method: 'POST', body: JSON.stringify({ channel, target }) }),
 
   // Payment Trends
   getPrepaidTrend:  (range)         => req(`/payments/trends/prepaid?range=${range || '24h'}`),

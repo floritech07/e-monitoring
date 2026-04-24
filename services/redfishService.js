@@ -311,6 +311,107 @@ function simulateServer(srv) {
   };
 }
 
+// ─── SMART disques — simulation ──────────────────────────────────────────────
+
+function simulateSMART(srv) {
+  const isDL380 = srv.model?.includes('DL380');
+  const driveCount = isDL380 ? 8 : 4;
+  const drives = [];
+  for (let i = 0; i < driveCount; i++) {
+    const hours = Math.floor(8760 + Math.random() * 12000);
+    drives.push({
+      slot:             i,
+      name:             `Bay ${i + 1}`,
+      model:            i < 2 ? 'HP EG1200JEHMD 1.2TB SAS' : 'HP EH0300JDYTH 300GB SAS',
+      serialNumber:     `PHY${(100000 + Math.floor(Math.random() * 900000)).toString()}`,
+      capacityGB:       i < 2 ? 1200 : 300,
+      interfaceType:    'SAS',
+      rotationRPM:      10000,
+      status:           'OK',
+      smartStatus:      Math.random() > 0.05 ? 'PASSED' : 'CAUTION',
+      powerOnHours:     hours,
+      reallocatedSectors: Math.random() > 0.9 ? Math.floor(Math.random() * 5) : 0,
+      pendingSectors:   0,
+      uncorrectableErrors: 0,
+      temperatureC:     fluctuate(35, 5),
+      firmwareRevision: '4.01',
+    });
+  }
+  return { serverId: srv.id, serverName: srv.name, timestamp: new Date().toISOString(), drives };
+}
+
+// ─── RAID Controller / BBU ────────────────────────────────────────────────────
+
+function simulateRAIDStatus(srv) {
+  const isDL380 = srv.model?.includes('DL380');
+  return {
+    serverId:   srv.id,
+    serverName: srv.name,
+    timestamp:  new Date().toISOString(),
+    controllers: [
+      {
+        id:          'smartarray-p408i-a',
+        name:        'HPE Smart Array P408i-a SR Gen10',
+        status:      'OK',
+        firmwareVer: '1.65-0',
+        cacheGB:     isDL380 ? 4 : 2,
+        cacheStatus: 'OK',
+        bbu: {
+          present:        true,
+          status:         'OK',
+          chargePercent:  fluctuate(100, 3),
+          type:           'FBWC (Flash-Backed Write Cache)',
+          capacitorStatus: 'OK',
+          chargeWarning:  false,
+        },
+        logicalDrives: [
+          {
+            id:          'ld-0',
+            name:        'Logical Drive 0',
+            raidLevel:   isDL380 ? 'RAID 5' : 'RAID 10',
+            status:      'OK',
+            capacityGB:  isDL380 ? 3300 : 550,
+            driveCount:  isDL380 ? 8 : 4,
+            stripeSize:  256,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+// ─── SEL (System Event Log) — simulation ─────────────────────────────────────
+
+const _SEL_TEMPLATES = [
+  { severity: 'info',     sensor: 'Power Supply',    message: 'Power supply redundancy restored' },
+  { severity: 'info',     sensor: 'System Board',    message: 'POST completed successfully' },
+  { severity: 'warning',  sensor: 'Temperature',     message: 'Ambient temperature above upper non-critical threshold' },
+  { severity: 'info',     sensor: 'Fan',             message: 'Fan redundancy has been degraded' },
+  { severity: 'info',     sensor: 'Memory',          message: 'Memory ECC correctable error logged (DIMM A2)' },
+  { severity: 'critical', sensor: 'Drive',           message: 'Drive failure predicted on Bay 3 — backup recommended' },
+  { severity: 'info',     sensor: 'Network',         message: 'NIC team failover occurred — active adapter changed' },
+  { severity: 'warning',  sensor: 'Power',           message: 'Input power outside acceptable range on supply 1' },
+];
+
+function simulateSEL(srv) {
+  const events = [];
+  const count = 20 + Math.floor(Math.random() * 30);
+  for (let i = 0; i < count; i++) {
+    const tpl = _SEL_TEMPLATES[Math.floor(Math.random() * _SEL_TEMPLATES.length)];
+    const msAgo = Math.floor(Math.random() * 7 * 86_400_000);
+    events.push({
+      id:        i + 1,
+      timestamp: new Date(Date.now() - msAgo).toISOString(),
+      severity:  tpl.severity,
+      sensor:    tpl.sensor,
+      message:   tpl.message,
+      source:    srv.name,
+    });
+  }
+  events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return { serverId: srv.id, serverName: srv.name, timestamp: new Date().toISOString(), events, total: events.length };
+}
+
 // ─── API publique ─────────────────────────────────────────────────────────────
 
 let _cache = {};
@@ -361,10 +462,31 @@ async function getServerPower(id) {
   return data.power;
 }
 
+async function getServerSMART(id) {
+  const srv = SERVERS.find(s => s.id === id);
+  if (!srv) return null;
+  return simulateSMART(srv);
+}
+
+async function getServerRAID(id) {
+  const srv = SERVERS.find(s => s.id === id);
+  if (!srv) return null;
+  return simulateRAIDStatus(srv);
+}
+
+async function getServerSEL(id) {
+  const srv = SERVERS.find(s => s.id === id);
+  if (!srv) return null;
+  return simulateSEL(srv);
+}
+
 module.exports = {
   collectAllServers,
   getServer,
   getServerThermal,
   getServerPower,
+  getServerSMART,
+  getServerRAID,
+  getServerSEL,
   SERVERS,
 };

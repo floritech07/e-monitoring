@@ -1,11 +1,212 @@
 'use strict';
 /**
- * Service de simulation des capteurs environnementaux Phase 1
- * Température, hygrométrie, fumée, fuite d'eau par rack
+ * Service de simulation des capteurs environnementaux — Phase 1 complet
+ * Température · Hygrométrie · Point de rosée · Pression diff. · Qualité air
+ * PDU intelligents · Groupe électrogène · ATS/STS · THD/cos φ
  */
 
 function fluctuate(base, spread = 1) {
   return +(base + (Math.random() - 0.5) * spread * 2).toFixed(1);
+}
+
+// ── Point de rosée (formule d'August-Roche-Magnus) ──────────────────────────
+function dewPoint(tempC, humPct) {
+  const a = 17.27, b = 237.7;
+  const alpha = ((a * tempC) / (b + tempC)) + Math.log(humPct / 100);
+  return +((b * alpha) / (a - alpha)).toFixed(1);
+}
+
+// ── PDU Intelligents (2 PDU par rangée, 8 prises chacun) ────────────────────
+const PDU_DEF = [
+  { id: 'pdu-rack-a', name: 'PDU-A (APC AP7800)', rack: 'rack-a', phases: 1, circuitAmps: 20, outlets: 8 },
+  { id: 'pdu-rack-b', name: 'PDU-B (APC AP7800)', rack: 'rack-b', phases: 1, circuitAmps: 20, outlets: 8 },
+  { id: 'pdu-3ph-a',  name: 'PDU-3PH-A (Raritan PX3)', rack: null, phases: 3, circuitAmps: 32, outlets: 24 },
+];
+
+function getPDUStatus() {
+  return PDU_DEF.map(pdu => ({
+    ...pdu,
+    timestamp: new Date().toISOString(),
+    voltageV:   fluctuate(230, 3),
+    currentA:   fluctuate(8, 2),
+    powerKW:    fluctuate(1.8, 0.4),
+    powerFactorCos: fluctuate(0.92, 0.04),
+    thdPct:     fluctuate(4.5, 1.5),
+    frequencyHz: fluctuate(50, 0.1),
+    status:     'ok',
+    outlets: Array.from({ length: pdu.outlets }, (_, i) => ({
+      id:      i + 1,
+      name:    `Prise ${i + 1}`,
+      state:   i < 6 ? 'on' : (Math.random() > 0.9 ? 'on' : 'off'),
+      powerW:  i < 6 ? fluctuate(220, 50) : 0,
+      currentA: i < 6 ? fluctuate(0.95, 0.2) : 0,
+    })),
+  }));
+}
+
+// ── Groupe Électrogène ────────────────────────────────────────────────────────
+let _gensetState = 'stopped';
+let _gensetLastStart = null;
+
+function getGensetStatus() {
+  const running = _gensetState === 'running';
+  return {
+    id:             'genset-01',
+    name:           'Groupe Électrogène Cummins C220D5',
+    model:          'Cummins C220D5 — 220 kVA',
+    status:         _gensetState,   // stopped | auto | test | running | fault
+    fuelLevelPct:   fluctuate(72, 2),
+    fuelLiters:     fluctuate(576, 16),
+    engineTempC:    running ? fluctuate(85, 5) : fluctuate(28, 3),
+    oilPressureBar: running ? fluctuate(3.2, 0.3) : 0,
+    voltageV:       running ? fluctuate(400, 5) : 0,
+    frequencyHz:    running ? fluctuate(50, 0.2) : 0,
+    loadKW:         running ? fluctuate(85, 15) : 0,
+    loadPct:        running ? fluctuate(39, 7) : 0,
+    engineHours:    1247,
+    lastTestDate:   '2026-04-15T10:00:00Z',
+    lastStartDate:  _gensetLastStart,
+    runningMinutes: running && _gensetLastStart ? Math.floor((Date.now() - new Date(_gensetLastStart).getTime()) / 60_000) : 0,
+    alarms:         [],
+    batteryV:       fluctuate(24.1, 0.3),
+    coolantTempC:   running ? fluctuate(82, 4) : fluctuate(26, 2),
+  };
+}
+
+// ── ATS / STS (Automatic Transfer Switch) ────────────────────────────────────
+function getATSStatus() {
+  return [
+    {
+      id:          'ats-main',
+      name:        'ATS Principal — Entrée HT/Génset',
+      model:       'Socomec ATYS 3S 160A',
+      sourceActive: 'utility',    // utility | generator
+      utilityOk:   true,
+      generatorOk: _gensetState === 'running',
+      voltageSource1V: fluctuate(400, 4),
+      voltageSource2V: _gensetState === 'running' ? fluctuate(400, 5) : 0,
+      lastTransferAt: null,
+      transferTimeMs: 80,
+      status:      'ok',
+    },
+    {
+      id:          'sts-ups-a',
+      name:        'STS Statique UPS-A',
+      model:       'Socomec STATICS 200A',
+      sourceActive: 'source1',
+      source1Ok:   true,
+      source2Ok:   true,
+      voltageSource1V: fluctuate(230, 3),
+      voltageSource2V: fluctuate(230, 3),
+      lastTransferAt: null,
+      transferTimeMs: 4,
+      status:      'ok',
+    },
+  ];
+}
+
+// ── Qualité de l'air ──────────────────────────────────────────────────────────
+function getAirQuality() {
+  return {
+    timestamp:  new Date().toISOString(),
+    sensors: [
+      {
+        id: 'aq-main',
+        location: 'Salle principale — milieu',
+        pm25:     fluctuate(8, 3),      // µg/m³ (bon < 12)
+        pm10:     fluctuate(15, 5),     // µg/m³ (bon < 20)
+        co2Ppm:   fluctuate(650, 80),   // ppm (normal 400-1000)
+        tvocPpb:  fluctuate(120, 40),   // ppb (bon < 220)
+        status:   'ok',
+      },
+      {
+        id: 'aq-battery-room',
+        location: 'Local batteries UPS',
+        pm25:     fluctuate(5, 2),
+        pm10:     fluctuate(10, 3),
+        co2Ppm:   fluctuate(500, 60),
+        tvocPpb:  fluctuate(180, 50),   // plus élevé — émissions batteries
+        h2Ppm:    fluctuate(0.3, 0.1),  // H₂ dégagé par batteries Pb
+        status:   'ok',
+      },
+    ],
+  };
+}
+
+// ── Pression différentielle allées ────────────────────────────────────────────
+function getDifferentialPressure() {
+  return {
+    timestamp: new Date().toISOString(),
+    sensors: [
+      { id: 'dp-aisle-north', location: 'Allée froide Nord', pressurePa: fluctuate(12, 2),  status: 'ok', targetPa: 12.5 },
+      { id: 'dp-aisle-south', location: 'Allée froide Sud',  pressurePa: fluctuate(11, 2),  status: 'ok', targetPa: 12.5 },
+      { id: 'dp-subfloor',    location: 'Sous faux plancher', pressurePa: fluctuate(25, 3), status: 'ok', targetPa: 25   },
+    ],
+  };
+}
+
+// ── Portes avec journalisation ────────────────────────────────────────────────
+const _doorEvents = [];
+const DOORS = [
+  { id: 'door-main', name: 'Porte principale salle serveur', location: 'Entrée nord' },
+  { id: 'door-back', name: 'Porte accès technique arrière',  location: 'Sortie sud' },
+  { id: 'door-rack-a', name: 'Armoire Rack-A (verrouillée)',  location: 'Rack A' },
+];
+let _doorStates = { 'door-main': 'closed', 'door-back': 'closed', 'door-rack-a': 'locked' };
+
+function getDoorStatus() {
+  return DOORS.map(d => ({
+    ...d,
+    state:       _doorStates[d.id] || 'unknown',
+    lastEventAt: _doorEvents.findLast?.(e => e.doorId === d.id)?.timestamp || null,
+  }));
+}
+
+function getDoorEvents(limit = 50) {
+  return _doorEvents.slice(-limit);
+}
+
+function logDoorEvent(doorId, state, user = 'system') {
+  _doorEvents.push({ doorId, state, user, timestamp: new Date().toISOString() });
+  if (_doorEvents.length > 500) _doorEvents.shift();
+  _doorStates[doorId] = state;
+}
+
+// ── THD + cos φ par circuit ───────────────────────────────────────────────────
+function getPowerQuality() {
+  return {
+    timestamp: new Date().toISOString(),
+    circuits: [
+      {
+        id: 'pq-arrivee-ht',
+        name: 'Arrivée HT — Transformateur SBEE',
+        voltageL1N: fluctuate(231, 3), voltageL2N: fluctuate(230, 3), voltageL3N: fluctuate(229, 3),
+        currentL1A: fluctuate(42, 5), currentL2A: fluctuate(41, 5), currentL3A: fluctuate(43, 5),
+        activePowerKW: fluctuate(28.5, 2),
+        reactivePowerKVAR: fluctuate(6.2, 1),
+        apparentPowerKVA: fluctuate(29.2, 2),
+        cosPhi: fluctuate(0.96, 0.02),
+        frequencyHz: fluctuate(50.01, 0.05),
+        thdVoltPct: fluctuate(2.1, 0.5),
+        thdCurrentPct: fluctuate(4.8, 1.2),
+        imbalancePct: fluctuate(1.2, 0.5),
+        status: 'ok',
+      },
+      {
+        id: 'pq-sortie-ups',
+        name: 'Sortie UPS — Tableau DC',
+        voltageL1N: fluctuate(230, 2),
+        currentL1A: fluctuate(18, 3),
+        activePowerKW: fluctuate(4.1, 0.5),
+        cosPhi: fluctuate(0.99, 0.01),
+        frequencyHz: fluctuate(50.00, 0.01),
+        thdVoltPct: fluctuate(1.2, 0.3),
+        thdCurrentPct: fluctuate(2.8, 0.8),
+        imbalancePct: 0,
+        status: 'ok',
+      },
+    ],
+  };
 }
 
 const SENSOR_POSITIONS = [
@@ -43,6 +244,7 @@ function getSensors() {
     const humBase  = BASE_HUMIDITY[s.zone] || 47;
     const temp     = fluctuate(tempBase, 1.5);
     const humidity = fluctuate(humBase, 3);
+    const dp       = dewPoint(temp, humidity);
 
     let status = 'ok';
     if (temp > 35 || temp < 15) status = 'critical';
@@ -53,6 +255,7 @@ function getSensors() {
       timestamp:  new Date().toISOString(),
       tempC:      temp,
       humidity,
+      dewPointC:  dp,
       smoke:      false,
       water:      false,
       status,
@@ -129,4 +332,11 @@ function getCRACStatus() {
   ];
 }
 
-module.exports = { getSensors, getRoomSummary, getHeatmapGrid, getCRACStatus };
+module.exports = {
+  getSensors, getRoomSummary, getHeatmapGrid, getCRACStatus,
+  getPDUStatus, getGensetStatus, getATSStatus,
+  getAirQuality, getDifferentialPressure,
+  getDoorStatus, getDoorEvents, logDoorEvent,
+  getPowerQuality,
+  dewPoint,
+};
