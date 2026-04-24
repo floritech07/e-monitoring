@@ -49,58 +49,136 @@ import DatastoreBrowserPage from './pages/DatastoreBrowserPage';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
-  const navItems = [
-    { to: '/',             icon: LayoutGrid,      label: 'Centre de Commande'  },
-    { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
-    { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
-    { section: 'Environnement & Logs' },
-    { to: '/physical',     icon: Thermometer,     label: 'Environnement DC'    },
-    { to: '/logs',         icon: FileText,        label: 'Explorateur Logs'    },
-    { section: 'Virtualisation' },
-    { to: '/clusters',       icon: Layers,     label: 'Clusters & Pools'   },
-    { to: '/services',       icon: AppWindow,  label: 'Carte des services' },
-    { section: 'Infrastructure DC' },
-    { to: '/storage',         icon: HardDrive,  label: 'Stockage'              },
-    { to: '/datastore',       icon: Database,   label: 'Datastore Browser'     },
-    { to: '/network-fabric',  icon: Network,    label: 'Fabric réseau'         },
-    { to: '/vpn-wan',         icon: Globe,      label: 'Réseau WAN & VPN'      },
-    { to: '/ups-diagram',     icon: Zap,        label: 'Schéma électrique UPS' },
-    { section: 'Opérations' },
-    { to: '/service-checks',   icon: CheckSquare,   label: 'Vérif. services'    },
-    { to: '/oncall',           icon: Phone,          label: 'Astreinte & ITIL'   },
-    { to: '/reports',          icon: BarChart2,      label: 'Rapports'           },
-    { to: '/capacity',         icon: TrendingUp,     label: 'Capacity Planning'  },
-    { to: '/veeam/gfs',       icon: Shield,     label: 'GFS & Immutabilité'    },
-    { section: 'Sécurité & Conformité' },
-    { to: '/audit',            icon: ClipboardList,  label: 'Piste d\'audit'     },
-    { section: 'Intégrations' },
-    { to: '/payments',icon: CreditCard,       label: 'Monitoring Paiements' },
-    { to: '/payments/recap', icon: List,      label: 'Récapitulatif Paiements' },
-    { to: '/actions', icon: Zap,             label: 'Actions à distance' },
-    { section: 'Configuration' },
-    { to: '/rules',   icon: BellRing,        label: 'Règles d\'alertes' },
-    { to: '/settings',icon: Settings,        label: 'Paramètres'   },
-    { to: '/users',   icon: Users,           label: 'Utilisateurs' },
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sbee_sidebar_expanded') || '["Infrastructure", "Environnement & Logs"]');
+    } catch { return ["Infrastructure", "Environnement & Logs"]; }
+  });
+
+  const toggleGroup = (groupLabel) => {
+    setExpandedGroups(prev => {
+      const next = prev.includes(groupLabel) 
+        ? prev.filter(g => g !== groupLabel) 
+        : [...prev, groupLabel];
+      localStorage.setItem('sbee_sidebar_expanded', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const menu = [
+    { type: 'link',  to: '/',             icon: LayoutGrid,      label: 'Centre de Commande'  },
+    { type: 'link',  to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
+    { type: 'link',  to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
+    
+    { 
+      type: 'group', label: 'Infrastructure', icon: Layers,
+      items: [
+        { to: '/clusters',       label: 'Clusters & Pools' },
+        { to: '/storage',        label: 'Stockage & Datastores' },
+        { to: '/network-fabric', label: 'Fabric réseau' },
+        { to: '/services',       label: 'Carte des services' },
+      ]
+    },
+    {
+      type: 'group', label: 'Environnement & Logs', icon: Building2,
+      items: [
+        { to: '/physical',       label: 'Conditions DC (Capteurs)' },
+        { to: '/ups-diagram',     label: 'Schéma électrique UPS' },
+        { to: '/vpn-wan',         label: 'Réseau WAN & VPN' },
+        { to: '/logs',           label: 'Explorateur Logs SI' },
+      ]
+    },
+    {
+      type: 'group', label: 'Opérations & Planning', icon: Activity,
+      items: [
+        { to: '/service-checks',  label: 'Vérif. services' },
+        { to: '/oncall',          label: 'Astreinte & ITIL' },
+        { to: '/capacity',        label: 'Capacity Planning' },
+        { to: '/veeam/gfs',      label: 'Sauvegardes GFS' },
+        { to: '/actions',         label: 'Actions à distance' },
+      ]
+    },
+    {
+      type: 'group', label: 'Sécurité & Audit', icon: Shield,
+      items: [
+        { to: '/audit',           label: 'Piste d\'audit' },
+        { to: '/payments',        label: 'Monitoring Paiements' },
+      ]
+    },
+    {
+      type: 'group', label: 'Configuration', icon: Settings,
+      items: [
+        { to: '/rules',          label: 'Règles d\'alertes' },
+        { to: '/users',          label: 'Utilisateurs' },
+        { to: '/settings',       label: 'Paramètres système' },
+      ]
+    }
   ];
 
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-      {navItems.map((item, i) => {
-        if (item.section) return <div key={i} className="nav-section-title">{item.section}</div>;
-        const Icon = item.icon;
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-          >
-            <Icon size={16} />
-            {!collapsed && <span className="label-text">{item.label}</span>}
-            {item.badge > 0 && <span className="badge">{item.badge}</span>}
-          </NavLink>
-        );
-      })}
+      <div className="nav-container" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {menu.map((item, i) => {
+          if (item.type === 'link') {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <Icon size={16} />
+                {!collapsed && <span className="label-text">{item.label}</span>}
+                {item.badge > 0 && <span className="badge">{item.badge}</span>}
+              </NavLink>
+            );
+          }
+
+          const isExpanded = expandedGroups.includes(item.label);
+          const GroupIcon = item.icon;
+
+          return (
+            <div key={item.label} className={`nav-group${isExpanded ? ' expanded' : ''}`}>
+              <div 
+                className="nav-group-header" 
+                onClick={() => toggleGroup(item.label)}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', 
+                  cursor: 'pointer', borderRadius: 6, color: isExpanded ? 'var(--text-primary)' : 'var(--text-muted)' 
+                }}
+              >
+                <GroupIcon size={16} />
+                {!collapsed && (
+                  <>
+                    <span className="label-text" style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{item.label}</span>
+                    <ChevronDown size={14} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                  </>
+                )}
+              </div>
+              
+              {!collapsed && isExpanded && (
+                <div className="nav-group-items" style={{ display: 'flex', flexDirection: 'column', paddingLeft: 30, gap: 2, marginTop: 2 }}>
+                  {item.items.map(sub => (
+                    <NavLink
+                      key={sub.to}
+                      to={sub.to}
+                      className={({ isActive }) => `nav-sub-item${isActive ? ' active' : ''}`}
+                      style={({ isActive }) => ({
+                        fontSize: 12, padding: '8px 12px', borderRadius: 4, textDecoration: 'none',
+                        color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                        backgroundColor: isActive ? 'rgba(50, 116, 217, 0.05)' : 'transparent'
+                      })}
+                    >
+                      {sub.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </aside>
   );
 }
