@@ -52,9 +52,6 @@ function Sidebar({ alertCount, collapsed }) {
   const navItems = [
     { to: '/executive',    icon: TrendingUp,      label: 'Tableau de bord DG'  },
     { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
-    { to: '/room-map',     icon: Layers,          label: 'Couches & Serveurs'  },
-    { to: '/room-map',     icon: Zap,             label: 'Alimentations'       },
-    { to: '/room-map',     icon: Thermometer,     label: 'Capteurs & autres'   },
     { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
     { section: 'Environnement & Logs' },
     { to: '/physical',     icon: Thermometer,     label: 'Environnement DC'    },

@@ -37,6 +37,13 @@ export default function Datacenter3D() {
     try { localStorage.setItem('datacenter.viewMode', viewMode); } catch {}
   }, [viewMode]);
 
+  // Couches fonctionnelles (Serveurs, Alimentation, Capteurs)
+  const [layers, setLayers] = useState({
+    servers: true,
+    power: false,
+    sensors: false,
+  });
+
   // Chargement initial via REST (au cas où le WS prenne une seconde à pousser)
   useEffect(() => {
     Promise.all([api.getDatacenter(), api.getDeviceTypes()])
@@ -223,12 +230,38 @@ export default function Datacenter3D() {
 
           {/* Légende flottante — uniquement en mode 3D (la 2D a sa propre légende intégrée) */}
           {room?.racks.length > 0 && viewMode === '3d' && (
-            <div style={legendStyle}>
-              <div style={{ fontSize: 10, color: '#8e8e8e', marginBottom: 4 }}>NAVIGATION</div>
-              <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Clic-gauche : rotation</div>
-              <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Clic-droit : panoramique</div>
-              <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Molette : zoom</div>
-            </div>
+            <>
+              {/* Navigation help */}
+              <div style={legendStyle}>
+                <div style={{ fontSize: 10, color: '#8e8e8e', marginBottom: 4 }}>NAVIGATION</div>
+                <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Clic-gauche : rotation</div>
+                <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Clic-droit : panoramique</div>
+                <div style={{ fontSize: 11, color: '#e8eaf0' }}>🖱️ Molette : zoom</div>
+              </div>
+
+              {/* COUCHES & FONCTIONNALITÉS (Nouvel ajout) */}
+              <div style={floatingLayersStyle}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8e8e8e', marginBottom: 8, textTransform: 'uppercase' }}>Fonctionnalités Salle</div>
+                <LayerToggle
+                  active={layers.servers}
+                  icon={<Layers size={12} />}
+                  label="Couches & Serveurs"
+                  onClick={() => setLayers(l => ({ ...l, servers: !l.servers }))}
+                />
+                <LayerToggle
+                  active={layers.power}
+                  icon={<Zap size={12} />}
+                  label="Alimentations"
+                  onClick={() => setLayers(l => ({ ...l, power: !l.power }))}
+                />
+                <LayerToggle
+                  active={layers.sensors}
+                  icon={<Thermometer size={12} />}
+                  label="Capteurs & autres"
+                  onClick={() => setLayers(l => ({ ...l, sensors: !l.sensors }))}
+                />
+              </div>
+            </>
           )}
         </div>
 
@@ -584,6 +617,32 @@ const inputStyle = {
   width: '100%', marginTop: 3, padding: '6px 8px', background: '#0b0c10',
   border: '1px solid #2c3235', color: '#e8eaf0', fontSize: 12, borderRadius: 2, boxSizing: 'border-box',
 };
+
+const floatingLayersStyle = {
+  position: 'absolute', top: 12, left: 12, padding: '12px',
+  background: 'rgba(15,17,21,0.9)', border: '1px solid #2c3235', borderRadius: 6,
+  backdropFilter: 'blur(10px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+  display: 'flex', flexDirection: 'column', gap: 4, zIndex: 10,
+};
+
+function LayerToggle({ active, icon, label, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+        borderRadius: 4, cursor: 'pointer', transition: 'all 0.2s',
+        background: active ? 'rgba(50,116,217,0.2)' : 'transparent',
+        border: `1px solid ${active ? '#3274d9' : 'transparent'}`,
+        color: active ? '#ffffff' : '#8e8e8e',
+        fontSize: 11, fontWeight: active ? 600 : 400,
+      }}
+    >
+      <span style={{ color: active ? '#3274d9' : '#8e8e8e' }}>{icon}</span>
+      {label}
+    </div>
+  );
+}
 const deviceRowStyle = {
   display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px',
   borderBottom: '1px solid #1a1f26',
