@@ -6,7 +6,7 @@ import {
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
   Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network,
   Building2, Thermometer, FileText, TrendingUp, CheckSquare, Phone, BarChart2,
-  ClipboardList, Lock,
+  ClipboardList, Lock, Database,
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -41,6 +41,10 @@ import OnCallPage from './pages/OnCallPage';
 import ReportsPage from './pages/ReportsPage';
 import AuditTrailPage from './pages/AuditTrailPage';
 import CapacityPlanningPage from './pages/CapacityPlanningPage';
+import DiagrammeUnifilaireUPS from './pages/DiagrammeUnifilaireUPS';
+import GFSDetailPage from './pages/GFSDetailPage';
+import VPNWANPage from './pages/VPNWANPage';
+import DatastoreBrowserPage from './pages/DatastoreBrowserPage';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
@@ -60,13 +64,17 @@ function Sidebar({ alertCount, collapsed }) {
     { to: '/clusters',       icon: Layers,     label: 'Clusters & Pools'   },
     { to: '/services',       icon: AppWindow,  label: 'Carte des services' },
     { section: 'Infrastructure DC' },
-    { to: '/storage',        icon: HardDrive,  label: 'Stockage'           },
-    { to: '/network-fabric', icon: Network,    label: 'Fabric réseau'      },
+    { to: '/storage',         icon: HardDrive,  label: 'Stockage'              },
+    { to: '/datastore',       icon: Database,   label: 'Datastore Browser'     },
+    { to: '/network-fabric',  icon: Network,    label: 'Fabric réseau'         },
+    { to: '/vpn-wan',         icon: Globe,      label: 'Réseau WAN & VPN'      },
+    { to: '/ups-diagram',     icon: Zap,        label: 'Schéma électrique UPS' },
     { section: 'Opérations' },
     { to: '/service-checks',   icon: CheckSquare,   label: 'Vérif. services'    },
     { to: '/oncall',           icon: Phone,          label: 'Astreinte & ITIL'   },
     { to: '/reports',          icon: BarChart2,      label: 'Rapports'           },
     { to: '/capacity',         icon: TrendingUp,     label: 'Capacity Planning'  },
+    { to: '/veeam/gfs',       icon: Shield,     label: 'GFS & Immutabilité'    },
     { section: 'Sécurité & Conformité' },
     { to: '/audit',            icon: ClipboardList,  label: 'Piste d\'audit'     },
     { section: 'Intégrations' },
@@ -453,6 +461,10 @@ function App() {
               <Route path="/reports"        element={<ReportsPage />} />
               <Route path="/capacity"       element={<CapacityPlanningPage />} />
               <Route path="/audit"          element={<AuditTrailPage />} />
+              <Route path="/ups-diagram"    element={<DiagrammeUnifilaireUPS />} />
+              <Route path="/veeam/gfs"      element={<GFSDetailPage />} />
+              <Route path="/vpn-wan"        element={<VPNWANPage />} />
+              <Route path="/datastore"      element={<DatastoreBrowserPage />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />

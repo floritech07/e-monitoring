@@ -23,7 +23,6 @@ const redfishService    = require('./services/redfishService');
 const cmdbService       = require('./services/cmdbService');
 const alertEngine       = require('./services/alertEngineService');
 const { requireRole, injectRole } = require('./services/rbacService');
-const veeamService      = require('./services/veeamService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -1291,7 +1290,6 @@ app.get('/api/rbac/info', requireRole('admin'), (_req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // STATIC FRONTEND SERVING (PRODUCTION MODE)
 // ─────────────────────────────────────────────────────────────────────────────
-const path = require('path');
 const frontendPath = path.join(__dirname, 'frontend', 'dist');
 
 // If the frontend has been built, serve it statically!
