@@ -226,4 +226,5 @@ export const api = {
   getSnmpDiscovery:    ()           => req('/snmp/discovery'),
   getSnmpVpn:          ()           => req('/snmp/vpn'),
   getSnmpWan:          ()           => req('/snmp/wan'),
+  getSnmpData:         ()           => req('/snmp/collect'),
 };

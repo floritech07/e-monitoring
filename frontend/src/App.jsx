@@ -50,7 +50,6 @@ import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
   const navItems = [
-    { to: '/executive',    icon: TrendingUp,      label: 'Tableau de bord DG'  },
     { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
     { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
     { section: 'Environnement & Logs' },

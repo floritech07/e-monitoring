@@ -10,6 +10,7 @@ import Rack3D from './Rack3D';
  */
 export default function DatacenterScene({
   room,
+  layers,
   selectedRackId,
   selectedDeviceId,
   onSelectRack,

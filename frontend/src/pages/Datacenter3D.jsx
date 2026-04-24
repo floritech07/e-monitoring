@@ -210,6 +210,7 @@ export default function Datacenter3D() {
           ) : viewMode === '3d' ? (
             <DatacenterScene
               room={room}
+              layers={layers}
               selectedRackId={selection.kind === 'rack' ? selection.id : null}
               selectedDeviceId={selection.kind === 'device' ? selection.id : null}
               onSelectRack={(r) => setSelection({ kind: 'rack', id: r.id })}
