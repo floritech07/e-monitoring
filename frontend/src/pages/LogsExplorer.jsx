@@ -1,11 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Filter, RefreshCw, Download, ChevronDown, AlertTriangle, Info, AlertCircle, Activity } from 'lucide-react';
+import { Search, Filter, RefreshCw, Download, ChevronDown, AlertTriangle, Info, AlertCircle, Activity, Globe } from 'lucide-react';
 import { api } from '../api';
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
 const SEVERITIES = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'];
-const SOURCES    = ['ESXi-01-SBEE', 'ESXi-02-SBEE', 'ESXi-03-SBEE', 'SW-CORE-01', 'UPS-SUKAM-01', 'NAS-SYNOLOGY-01', 'SICA-APP-01', 'AD-DC-01'];
+const SOURCES    = ['ESXi-01-SBEE', 'ESXi-02-SBEE', 'ESXi-03-SBEE', 'SW-CORE-01', 'UPS-SUKAM-01', 'NAS-SYNOLOGY-01', 'SICA-APP-01', 'AD-DC-01',
+                    'WEF-AD-DC-01', 'WEF-SRV-EXCHANGE', 'WEF-SRV-SGBD'];
+const EXPORT_FORMATS = [
+  { id: 'json',  label: 'JSON' },
+  { id: 'csv',   label: 'CSV' },
+  { id: 'cef',   label: 'CEF (ArcSight)' },
+  { id: 'leef',  label: 'LEEF (QRadar)' },
+];
+
+// ── GeoIP enrichment simulation ────────────────────────────────────────────────
+const GEOIP_DB = {
+  '192.168.10.11': { country: 'BJ', city: 'Cotonou',    flag: '🇧🇯', lat: 6.36, lon: 2.42 },
+  '192.168.10.12': { country: 'BJ', city: 'Cotonou',    flag: '🇧🇯', lat: 6.36, lon: 2.42 },
+  '192.168.10.13': { country: 'BJ', city: 'Cotonou',    flag: '🇧🇯', lat: 6.36, lon: 2.42 },
+  '192.168.1.1':   { country: 'BJ', city: 'Cotonou',    flag: '🇧🇯', lat: 6.36, lon: 2.42 },
+  '105.234.12.8':  { country: 'BJ', city: 'Parakou',    flag: '🇧🇯', lat: 9.34, lon: 2.62 },
+  '41.203.194.22': { country: 'NG', city: 'Lagos',      flag: '🇳🇬', lat: 6.45, lon: 3.38 },
+  '102.89.44.18':  { country: 'BJ', city: 'Porto-Novo', flag: '🇧🇯', lat: 6.49, lon: 2.63 },
+  '197.234.88.41': { country: 'BJ', city: 'Natitingou', flag: '🇧🇯', lat: 10.30, lon: 1.38 },
+  '91.120.43.11':  { country: 'FR', city: 'Paris',      flag: '🇫🇷', lat: 48.86, lon: 2.35 },
+  '185.220.101.5': { country: 'DE', city: 'Frankfurt',  flag: '🇩🇪', lat: 50.11, lon: 8.68 },
+};
+function geoip(ip) { return GEOIP_DB[ip] || null; }
 
 const SEV_STYLES = {
   emergency: { bg: '#7f1d1d', color: '#fca5a5', label: 'EMERG' },
@@ -57,7 +79,8 @@ export default function LogsExplorer() {
   const [logs,    setLogs]    = useState([]);
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paused,  setPaused]  = useState(false);
+  const [paused,       setPaused]       = useState(false);
+  const [exportFormat, setExportFormat] = useState('json');
 
   // filters
   const [severity, setSeverity] = useState('');
@@ -100,14 +123,43 @@ export default function LogsExplorer() {
     ? logs.filter(l => (SEV_PRIORITY[l.severity] ?? 6) <= (SEV_PRIORITY[minSev] ?? 7))
     : logs;
 
-  // export to JSON
+  // ── export helpers ────────────────────────────────────────────────────────────
+  function buildCSV(logs) {
+    const headers = ['timestamp', 'severity', 'source', 'facility', 'message'];
+    const rows = logs.map(l => headers.map(h => `"${(l[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+    return [headers.join(','), ...rows].join('\n');
+  }
+
+  function buildCEF(logs) {
+    // CEF:Version|Device Vendor|Device Product|Device Version|Event Class ID|Name|Severity|ext
+    const sevMap = { emergency: 10, alert: 9, critical: 8, error: 7, warning: 5, notice: 3, info: 2, debug: 1 };
+    return logs.map(l => {
+      const s = sevMap[l.severity] ?? 2;
+      const msg = (l.message || '').replace(/\|/g, '\\|');
+      const ts  = l.timestamp ? new Date(l.timestamp).getTime() : Date.now();
+      return `CEF:0|SBEE|NexusMonitor|2.0|${l.facility || 'syslog'}|${l.source || 'unknown'}|${s}|msg=${msg} rt=${ts} src=${l.ip || '0.0.0.0'} dhost=${l.source || ''}`;
+    }).join('\n');
+  }
+
+  function buildLEEF(logs) {
+    // LEEF:2.0|Vendor|Product|Version|EventID|key=value...
+    return logs.map(l => {
+      const ts = l.timestamp ? new Date(l.timestamp).toISOString() : '';
+      return `LEEF:2.0|SBEE|NexusMonitor|2.0|${l.facility || 'syslog'}|devTime=${ts}\tsrc=${l.ip || '0.0.0.0'}\tsev=${l.severity || 'info'}\tmsg=${(l.message || '').replace(/\t/g, ' ')}`;
+    }).join('\n');
+  }
+
   function exportLogs() {
-    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], { type: 'application/json' });
+    let content, mime, ext;
+    const base = `logs-sbee-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+    if (exportFormat === 'csv')  { content = buildCSV(filteredLogs);  mime = 'text/csv';          ext = 'csv'; }
+    else if (exportFormat === 'cef')  { content = buildCEF(filteredLogs);  mime = 'text/plain';         ext = 'cef'; }
+    else if (exportFormat === 'leef') { content = buildLEEF(filteredLogs); mime = 'text/plain';         ext = 'leef'; }
+    else                              { content = JSON.stringify(filteredLogs, null, 2); mime = 'application/json'; ext = 'json'; }
+    const blob = new Blob([content], { type: mime });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `logs-sbee-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-    a.click();
+    a.href = url; a.download = `${base}.${ext}`; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -133,6 +185,13 @@ export default function LogsExplorer() {
           >
             {paused ? '▶ Reprendre' : '⏸ Pause'}
           </button>
+          <select
+            value={exportFormat}
+            onChange={e => setExportFormat(e.target.value)}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: 'var(--text-primary)', cursor: 'pointer' }}
+          >
+            {EXPORT_FORMATS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+          </select>
           <button onClick={exportLogs} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Download size={13} />
             <span style={{ fontSize: 11 }}>Exporter</span>
@@ -272,18 +331,33 @@ export default function LogsExplorer() {
                       {log.message}
                     </td>
                   </tr>,
-                  isExpanded && (
-                    <tr key={`${log.id}-detail`}>
-                      <td colSpan={5} style={{ padding: '0 12px 12px', background: 'rgba(0,0,0,0.4)' }}>
-                        <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#94a3b8', padding: '10px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, borderLeft: `3px solid ${sev.color}` }}>
-                          <div style={{ marginBottom: 6, color: 'var(--text-muted)', fontSize: 10 }}>
-                            ID: {log.id} &nbsp;|&nbsp; Timestamp: {log.timestamp}
+                  isExpanded && (() => {
+                    const geo = geoip(log.ip);
+                    const isWEF = (log.source || '').startsWith('WEF-');
+                    return (
+                      <tr key={`${log.id}-detail`}>
+                        <td colSpan={5} style={{ padding: '0 12px 12px', background: 'rgba(0,0,0,0.4)' }}>
+                          <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#94a3b8', padding: '10px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, borderLeft: `3px solid ${sev.color}` }}>
+                            <div style={{ marginBottom: 8, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 10, color: 'var(--text-muted)' }}>
+                              <span>ID: <b style={{ color: '#94a3b8' }}>{log.id}</b></span>
+                              <span>Timestamp: <b style={{ color: '#94a3b8' }}>{log.timestamp}</b></span>
+                              {log.ip && <span>IP source: <b style={{ color: '#60a5fa' }}>{log.ip}</b></span>}
+                              {geo && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Globe size={10} /> GeoIP: <b style={{ color: '#4ade80' }}>{geo.flag} {geo.city}, {geo.country}</b>
+                                  <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>({geo.lat.toFixed(2)}, {geo.lon.toFixed(2)})</span>
+                                </span>
+                              )}
+                              {isWEF && log.eventId && <span>EventID: <b style={{ color: '#fbbf24' }}>{log.eventId}</b></span>}
+                              {isWEF && log.channel && <span>Channel: <b style={{ color: '#c084fc' }}>{log.channel}</b></span>}
+                              {isWEF && log.computer && <span>Computer: <b style={{ color: '#60a5fa' }}>{log.computer}</b></span>}
+                            </div>
+                            <div style={{ wordBreak: 'break-all', color: sev.color }}>{log.raw || log.message}</div>
                           </div>
-                          <div style={{ wordBreak: 'break-all', color: sev.color }}>{log.raw || log.message}</div>
-                        </div>
-                      </td>
-                    </tr>
-                  ),
+                        </td>
+                      </tr>
+                    );
+                  })(),
                 ];
               })}
             </tbody>
