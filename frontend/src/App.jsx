@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
+import Keycloak from 'keycloak-js';
 import Dashboard from './pages/Dashboard';
 import Infrastructure from './pages/Infrastructure';
 import ServerDetail from './pages/ServerDetail';
@@ -49,13 +50,11 @@ import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
   const navItems = [
-    { to: '/',             icon: LayoutDashboard, label: 'Dashboard'           },
     { to: '/executive',    icon: TrendingUp,      label: 'Tableau de bord DG'  },
-    { to: '/problems',     icon: BellRing,        label: 'Problèmes', badge: alertCount },
-    { to: '/infrastructure',icon: GitBranch,      label: 'Infrastructure'      },
     { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
-    { to: '/room-map',     icon: Building2,       label: 'Vue Salle 2D'        },
-    { to: '/topology',     icon: Map,             label: 'Topologie Réseau'    },
+    { to: '/room-map',     icon: Layers,          label: 'Couches & Serveurs'  },
+    { to: '/room-map',     icon: Zap,             label: 'Alimentations'       },
+    { to: '/room-map',     icon: Thermometer,     label: 'Capteurs & autres'   },
     { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
     { section: 'Environnement & Logs' },
     { to: '/physical',     icon: Thermometer,     label: 'Environnement DC'    },
@@ -323,6 +322,32 @@ function App() {
   const [timeRange,   setTimeRange]   = useState('1h');
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+  const [keycloak,    setKeycloak]    = useState(null);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  // Initialize Keycloak if env vars are present
+  useEffect(() => {
+    const kcUrl = import.meta.env.VITE_KEYCLOAK_URL;
+    if (kcUrl) {
+      const kc = new Keycloak({
+        url: kcUrl,
+        realm: import.meta.env.VITE_KEYCLOAK_REALM || 'NexusMonitor',
+        clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'nexus-ui',
+      });
+      kc.init({ onLoad: 'check-sso', checkLoginIframe: false }).then(auth => {
+        setKeycloak(kc);
+        setAuthenticated(auth);
+        if (auth) {
+          handleLogin({
+            name: kc.tokenParsed?.preferred_username || 'OIDC User',
+            role: kc.tokenParsed?.roles?.includes('admin') ? 'admin' : 'operator',
+            token: kc.token,
+            isKeycloak: true
+          });
+        }
+      }).catch(e => console.error('[Auth] Error initializing Keycloak:', e));
+    }
+  }, []);
 
   const alertStatus = useMetricSounds(metrics, vms, alerts);
 
@@ -353,6 +378,9 @@ function App() {
   }
 
   function handleLogout() {
+    if (user?.isKeycloak && keycloak) {
+      keycloak.logout();
+    }
     setUser(null);
     localStorage.removeItem('sbee_user');
   }

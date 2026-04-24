@@ -204,6 +204,10 @@ export const api = {
 
   // Capacity Planning
   getCapacityHistory: ()           => req('/capacity/history'),
+  getCapacityReport:  ()           => req('/capacity/report'),
+
+  // Console VM
+  getConsoleTicket:   (vmId)       => req(`/vms/${vmId}/console-ticket`),
 
   // Syslog rétention configurable
   getSyslogRetention: ()           => req('/syslog/retention'),

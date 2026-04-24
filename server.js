@@ -22,6 +22,7 @@ const snmpService       = require('./services/snmpService');
 const redfishService    = require('./services/redfishService');
 const cmdbService       = require('./services/cmdbService');
 const alertEngine       = require('./services/alertEngineService');
+const capacityService  = require('./services/capacityService');
 const { requireRole, injectRole } = require('./services/rbacService');
 
 const app    = express();
@@ -1414,4 +1415,53 @@ server.listen(PORT, '0.0.0.0', async () => {
   
   // Run initial network probe in background
   setTimeout(() => networkService.probeAll().catch(() => {}), 3000);
+
+  // ─── CRON: Daily Capacity Snapshot (00:05 AM) ───────────────────
+  cron.schedule('5 0 * * *', async () => {
+    console.log('[Capacity] 📊 Enregistrement du snapshot quotidien...');
+    try {
+      const metrics = await metricsService.getHostMetrics();
+      const storage = metrics.clusters.reduce((acc, c) => ({
+        usedGB: acc.usedGB + (c.ram?.usedGB || 0), // Note: ESXi clusters aggregate RAM/CPU
+        totalGB: acc.totalGB + (c.ram?.totalGB || 0)
+      }), { usedGB: 0, totalGB: 0 });
+      
+      // Simuler l'utilisation stockage pour la démo si nécessaire
+      capacityService.recordDailySnapshot({
+        storage: { usedGB: metrics.ram.usedGB, totalGB: metrics.ram.totalGB },
+        cpu: { usage: metrics.cpu.usage }
+      });
+    } catch (e) {
+      console.error('[Capacity] Erreur snapshot:', e.message);
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAPACITY PLANNING ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/capacity/report', requireRole('viewer'), (req, res) => {
+  res.json(capacityService.getPlanningReport());
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIRTUAL MACHINE CONSOLE (VMRC / noVNC)
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/vms/:id/console-ticket', requireRole('operator'), async (req, res) => {
+  try {
+    // Dans une vraie infra, on appellerait AcquireTicket via le SDK VMware
+    // Ici on simule un ticket pour la démo UI
+    const ticket = {
+      host: 'esxi-01-sbee.local',
+      port: 443,
+      ticket: `vmrc-session-${Math.random().toString(36).substring(7)}`,
+      vmId: req.params.id,
+      timestamp: new Date().toISOString()
+    };
+    res.json(ticket);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });

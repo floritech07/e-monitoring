@@ -3,8 +3,10 @@
  * RBAC léger — rôles admin / operator / viewer
  * Utilise un bearer token statique par rôle (évolutif vers JWT/Keycloak)
  * Env vars: ADMIN_TOKEN, OPERATOR_TOKEN, VIEWER_TOKEN
+ * Production : KEYCLOAK_URL, KEYCLOAK_REALM
  * Si aucun token configuré → mode développement permissif (viewer pour tous)
  */
+const { Issuer } = require('openid-client');
 
 const ROLES = {
   admin:    { label: 'Administrateur', level: 3 },
@@ -18,25 +20,47 @@ if (process.env.ADMIN_TOKEN)    TOKEN_MAP[process.env.ADMIN_TOKEN]    = 'admin';
 if (process.env.OPERATOR_TOKEN) TOKEN_MAP[process.env.OPERATOR_TOKEN] = 'operator';
 if (process.env.VIEWER_TOKEN)   TOKEN_MAP[process.env.VIEWER_TOKEN]   = 'viewer';
 
-const DEV_MODE = Object.keys(TOKEN_MAP).length === 0;
+const DEV_MODE = Object.keys(TOKEN_MAP).length === 0 && !process.env.KEYCLOAK_URL;
+
+let client;
+if (process.env.KEYCLOAK_URL) {
+  Issuer.discover(`${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`)
+    .then(issuer => {
+      client = new issuer.Client({ client_id: process.env.KEYCLOAK_CLIENT_ID || 'nexus-api' });
+      console.log('[RBAC] 🔐 Keycloak OIDC découvert avec succès.');
+    }).catch(e => console.error('[RBAC] ❌ Erreur découverte Keycloak:', e.message));
+}
+
 if (DEV_MODE) {
-  console.warn('[RBAC] ⚠ Aucun token configuré — mode développement (tout autorisé en lecture).');
-  console.warn('[RBAC]   Définir ADMIN_TOKEN, OPERATOR_TOKEN, VIEWER_TOKEN dans .env pour activer le contrôle.');
+  console.warn('[RBAC] ⚠ Aucun token ni Keycloak configuré — mode développement (tout autorisé en lecture).');
 }
 
 /**
  * Résoudre le rôle depuis les headers Authorization ou x-api-key.
  */
-function resolveRole(req) {
-  if (DEV_MODE) return 'admin';  // dev permissif
+async function resolveRole(req) {
+  if (DEV_MODE) return 'admin';
 
   const auth = req.headers['authorization'] || '';
-  if (auth.startsWith('Bearer ')) {
-    const tok = auth.slice(7).trim();
-    return TOKEN_MAP[tok] || null;
+  if (!auth.startsWith('Bearer ')) return null;
+  const tok = auth.slice(7).trim();
+
+  // 1. Check local static tokens
+  if (TOKEN_MAP[tok]) return TOKEN_MAP[tok];
+
+  // 2. Check Keycloak JWT
+  if (client) {
+    try {
+      const userinfo = await client.userinfo(tok);
+      // Mapping simplifié : si l'utilisateur a le rôle "admin" dans Keycloak
+      if (userinfo.roles?.includes('admin')) return 'admin';
+      if (userinfo.roles?.includes('operator')) return 'operator';
+      return 'viewer';
+    } catch (e) {
+      return null;
+    }
   }
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey) return TOKEN_MAP[apiKey] || null;
+
   return null;
 }
 
@@ -45,12 +69,12 @@ function resolveRole(req) {
  */
 function requireRole(minRole) {
   const minLevel = ROLES[minRole]?.level ?? 1;
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (DEV_MODE) {
       req.userRole = 'admin';
       return next();
     }
-    const role = resolveRole(req);
+    const role = await resolveRole(req);
     if (!role) {
       return res.status(401).json({ error: 'Authentification requise', hint: 'Fournir Authorization: Bearer <token>' });
     }

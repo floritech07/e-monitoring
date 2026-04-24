@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # BACKEND (NexusMonitor v2)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend:
+    build: .
+    image: nexusmonitor-backend:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres-ha
+      - DB_PORT=5432
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=NexusMonitor
+      - KEYCLOAK_CLIENT_ID=nexus-api
+      - PORT=3001
+    depends_on:
+      - postgres-ha
+      - keycloak
+    networks:
+      - nexus-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # FRONTEND (Nginx)
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - nexus-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # AUTHENTICATION (Keycloak)
+  # ─────────────────────────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start-dev
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres-ha:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-ha
+    networks:
+      - nexus-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # HIGH AVAILABILITY DATABASE (Patroni + PostgreSQL)
+  # ─────────────────────────────────────────────────────────────────────────────
+  postgres-ha:
+    image: bitnami/postgresql-repmgr:latest # Utilise repmgr pour une HA simplifiée ou Patroni
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - REPMGR_PASSWORD=repmgr
+      - REPMGR_PRIMARY_HOST=postgres-ha
+      - REPMGR_PARTNER_NODES=postgres-ha,postgres-replica
+      - REPMGR_NODE_NAME=postgres-ha
+      - REPMGR_NODE_NETWORK_NAME=postgres-ha
+    networks:
+      - nexus-net
+
+  postgres-replica:
+    image: bitnami/postgresql-repmgr:latest
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - REPMGR_PASSWORD=repmgr
+      - REPMGR_PRIMARY_HOST=postgres-ha
+      - REPMGR_PARTNER_NODES=postgres-ha,postgres-replica
+      - REPMGR_NODE_NAME=postgres-replica
+      - REPMGR_NODE_NETWORK_NAME=postgres-replica
+    networks:
+      - nexus-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CONSENSUS STORE (etcd) - Nécessaire pour Patroni
+  # ─────────────────────────────────────────────────────────────────────────────
+  etcd:
+    image: bitnami/etcd:latest
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+    networks:
+      - nexus-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LOAD BALANCER (HAProxy)
+  # ─────────────────────────────────────────────────────────────────────────────
+  haproxy:
+    image: haproxy:latest
+    volumes:
+      - ./infra/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "5432:5432" # Virtual IP for Postgres
+    networks:
+      - nexus-net
+
+networks:
+  nexus-net:
+    driver: bridge

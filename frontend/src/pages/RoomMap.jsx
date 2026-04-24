@@ -166,6 +166,7 @@ export default function RoomMap() {
     heatmap: false, alerts: true, network: false, airflow: false,
     security: false, energy: false, incidents: false, redundancy: false,
   });
+  const [viewRear, setViewRear] = useState(false);
 
   // ── Mode offline ────────────────────────────────────────────────────────────
   const [isOffline,    setIsOffline]    = useState(false);
@@ -596,6 +597,25 @@ export default function RoomMap() {
               🖱 Molette: zoom<br />
               Ctrl+drag: déplacer{editMode && <><br />✏ Drag rack: déplacer</>}
             </div>
+            <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>ORIENTATION</div>
+              <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: 4, padding: 2 }}>
+                <button
+                  className={`btn btn-sm ${!viewRear ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ flex: 1, fontSize: 10 }}
+                  onClick={() => setViewRear(false)}
+                >
+                  AVANT
+                </button>
+                <button
+                  className={`btn btn-sm ${viewRear ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ flex: 1, fontSize: 10 }}
+                  onClick={() => setViewRear(true)}
+                >
+                  ARRIÈRE
+                </button>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
@@ -796,6 +816,17 @@ export default function RoomMap() {
                 </g>
               )}
 
+              {/* ── Zones de Redondance (UPS A/B) ────────────────────── */}
+              {layers.redundancy && (
+                <g opacity="0.15">
+                  <rect x={60} y={150} width={450} height={400} fill="#3b82f6" rx="10" />
+                  <text x={70} y={170} fill="#3b82f6" fontSize="14" fontWeight="bold">ZONE ALIMENTATION A (UPS-1)</text>
+                  
+                  <rect x={550} y={150} width={450} height={400} fill="#f59e0b" rx="10" />
+                  <text x={560} y={170} fill="#f59e0b" fontSize="14" fontWeight="bold">ZONE ALIMENTATION B (UPS-2)</text>
+                </g>
+              )}
+
               {/* ── Racks ───────────────────────────────────────────────── */}
               {layers.racks && displayRacks.map(rack => {
                 const status  = getRackStatus(rack);
@@ -820,13 +851,25 @@ export default function RoomMap() {
                     {/* Corps du rack */}
                     <rect x={rack.x} y={rack.y} width={rack.w} height={rack.h}
                       fill={isEmpty ? 'rgba(30,40,55,0.5)' : 'rgba(20,30,50,0.9)'}
-                      stroke={isEditing ? '#A855F7' : color}
-                      strokeWidth={isEditing ? 2 : (status !== 'ok' && status !== 'unknown' ? 2 : 1)}
+                      stroke={isEditing ? '#A855F7' : (layers.redundancy ? (rack.x < 500 ? '#3b82f6' : '#f59e0b') : color)}
+                      strokeWidth={isEditing ? 2 : (layers.redundancy ? 3 : (status !== 'ok' && status !== 'unknown' ? 2 : 1))}
                       rx="3" filter={status === 'critical' || status === 'disaster' ? 'url(#glow)' : undefined}
                     />
+                    {layers.redundancy && (
+                      <rect x={rack.x} y={rack.y} width={rack.w} height={rack.h}
+                        fill={rack.x < 500 ? 'rgba(59,130,246,0.2)' : 'rgba(245,158,11,0.2)'}
+                        pointerEvents="none" rx="3" />
+                    )}
                     {/* Bandeau couleur en haut */}
                     <rect x={rack.x} y={rack.y} width={rack.w} height={5}
                       fill={isEditing ? '#A855F7' : color} rx="3" />
+
+                    {/* Indicateur Face/Back */}
+                    {zoomLevel !== 'overview' && (
+                      <text x={rack.x + 4} y={rack.y + rack.h - 4} fill="rgba(255,255,255,0.3)" fontSize="6" fontWeight="bold">
+                        {viewRear ? 'REAR' : 'FRONT'}
+                      </text>
+                    )}
 
                     {/* ── Vue OVERVIEW: juste bloc coloré + nom ───── */}
                     {zoomLevel === 'overview' && (
