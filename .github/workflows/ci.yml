@@ -1,0 +1,220 @@
+name: NexusMonitor CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/nexusmonitor-backend
+  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/nexusmonitor-frontend
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # Lint & Syntax check
+  # ─────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install backend deps
+        run: npm ci
+
+      - name: Check server.js syntax
+        run: node --check server.js
+
+      - name: Check all services syntax
+        run: |
+          for f in services/*.js; do
+            echo "Checking $f..."
+            node --check "$f"
+          done
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint --if-present || true
+
+  # ─────────────────────────────────────────────────────────
+  # Frontend build
+  # ─────────────────────────────────────────────────────────
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Vite
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ''
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────
+  # Backend smoke test (no database)
+  # ─────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Smoke Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Create required data dirs
+        run: |
+          mkdir -p data/syslog_archive
+          echo '[]' > data/audit.json
+          echo '[]' > data/active_alerts.json
+          echo '[]' > data/alerts_history.json
+
+      - name: Start server & health check
+        timeout-minutes: 1
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          sleep 5
+          STATUS=$(curl -sf http://localhost:3001/api/health | jq -r '.status')
+          if [ "$STATUS" != "ok" ]; then
+            echo "Health check failed: $STATUS"
+            kill $SERVER_PID
+            exit 1
+          fi
+          echo "Health check passed: $STATUS"
+          # Check a few API endpoints
+          curl -sf http://localhost:3001/api/esxi/clusters > /dev/null && echo "✓ /api/esxi/clusters"
+          curl -sf http://localhost:3001/api/environment/sensors > /dev/null && echo "✓ /api/environment/sensors"
+          curl -sf http://localhost:3001/api/storage/topology > /dev/null && echo "✓ /api/storage/topology"
+          curl -sf http://localhost:3001/api/veeam/gfs > /dev/null && echo "✓ /api/veeam/gfs"
+          curl -sf http://localhost:3001/api/alerts/engine/baseline > /dev/null && echo "✓ /api/alerts/engine/baseline"
+          kill $SERVER_PID
+
+  # ─────────────────────────────────────────────────────────
+  # Docker build & push (main branch only)
+  # ─────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [build-frontend, test-backend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata — Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BACKEND }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────
+  # Security scan (Trivy)
+  # ─────────────────────────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: 0
+          format: table
+
+  # ─────────────────────────────────────────────────────────
+  # Summary job
+  # ─────────────────────────────────────────────────────────
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [lint, build-frontend, test-backend, security-scan]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.build-frontend.result }}" != "success" ]] || \
+             [[ "${{ needs.test-backend.result }}" != "success" ]]; then
+            echo "One or more required jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed ✓"
