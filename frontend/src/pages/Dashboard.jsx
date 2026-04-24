@@ -5,7 +5,8 @@ import {
   AlertTriangle, CheckCircle, Clock, TrendingUp,
   Layers, Database, Cpu, HardDrive, Bell, Phone,
   ArrowRight, Box, LayoutGrid, Monitor, Network,
-  AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle
+  AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle,
+  Building2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
