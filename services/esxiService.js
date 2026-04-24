@@ -198,6 +198,59 @@ function fluctuate(base, range = 5) {
   return Math.max(0, Math.min(100, base + (Math.random() - 0.5) * range * 2));
 }
 
+// ─── New Simulation Data ──────────────────────────────────────────────────────
+
+const SIM_VSAN = {
+  'cl-prod': {
+    health: 'OK', capacityGB: 20480, usedGB: 12500, dedupRatio: '1.4x',
+    components: 342, resyncGB: 0, 
+    hosts: [
+      { id: 'esxi-01', status: 'Connected', capacityGB: 10240, usedGB: 6200, cacheGB: 800, iops: 14500, latency: 1.2 },
+      { id: 'esxi-02', status: 'Connected', capacityGB: 10240, usedGB: 6300, cacheGB: 800, iops: 15200, latency: 1.1 }
+    ]
+  }
+};
+
+const SIM_MULTIPATHING = {
+  'esxi-01': [
+    { target: 'iqn.1992-04.com.hp:storage.msa2060', status: 'Active (I/O)', paths: 4, activePaths: 2, policy: 'Round Robin' },
+    { target: 'iqn.2000-01.com.synology:rs3621xs', status: 'Active', paths: 2, activePaths: 1, policy: 'Fixed' }
+  ],
+  'esxi-02': [
+    { target: 'iqn.1992-04.com.hp:storage.msa2060', status: 'Active (I/O)', paths: 4, activePaths: 2, policy: 'Round Robin' },
+    { target: 'iqn.2000-01.com.synology:rs3621xs', status: 'Active', paths: 2, activePaths: 1, policy: 'Fixed' }
+  ],
+  'esxi-03': []
+};
+
+const SIM_NSX = {
+  edges: [
+    { id: 'edge-01', status: 'Up', tunnels: 12, fwRules: 450, throughputMbps: 1250 },
+    { id: 'edge-02', status: 'Up', tunnels: 12, fwRules: 450, throughputMbps: 1100 }
+  ],
+  logicalSwitches: 24,
+  distributedRouters: 3
+};
+
+const SIM_VMOTION = [
+  { id:1, vm:'VM-AD-01',       src:'esxi-01-sbee', dst:'esxi-02-sbee', durationSec:12, reason:'DRS balance',     status:'success', ts:'2026-04-24 08:14' },
+  { id:2, vm:'VM-SGBD-PROD',   src:'esxi-02-sbee', dst:'esxi-01-sbee', durationSec:45, reason:'Maintenance hôte',status:'success', ts:'2026-04-23 22:30' },
+  { id:3, vm:'VM-EXCHANGE',    src:'esxi-01-sbee', dst:'esxi-02-sbee', durationSec:38, reason:'DRS balance',     status:'success', ts:'2026-04-23 18:05' }
+];
+
+const SIM_DRS_HA = {
+  drs: {
+    enabled: true, mode: 'Automatique', target: 'Conservateur (niveau 2)', lastRun: new Date().toISOString(), score: 32,
+    recommendations: [
+      { vm: 'VM-EXCHANGE',   from: 'esxi-01', to: 'esxi-02', priority: 3, reason: 'Équilibrage CPU' }
+    ]
+  },
+  ha: {
+    enabled: true, admissionControl: 'Politique : pourcentage de cluster', failoverCapacityCPU: 25, failoverCapacityRAM: 25,
+    vmsProtected: 12, vmsUnprotected: 0, heartbeatDatastores: ['ds-san-prod'], isolation: 'Laisser les VMs actives'
+  }
+};
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 async function getClusters() {
@@ -238,7 +291,7 @@ async function getHostVMs(hostId) {
     .filter(v => v.hostId === hostId)
     .map(v => ({
       ...v,
-      cpu: { ...v.cpu, usage: v.state === 'on' ? parseFloat(fluctuate(v.cpu.usage, 4).toFixed(1)) : 0 },
+      cpu: { ...v.cpu, usage: v.state === 'on' ? parseFloat(fluctuate(v.cpu.usage, 4).toFixed(1)) : 0, readyPct: parseFloat(fluctuate(2, 1).toFixed(1)) },
       ram: { ...v.ram, usedGB: v.state === 'on' ? +(v.ram.usedGB * (0.95 + Math.random() * 0.1)).toFixed(1) : 0 },
     }));
 }
@@ -272,6 +325,26 @@ async function getHostPerfHistory(hostId) {
   }));
 }
 
+async function getVSanInfo(clusterId) {
+  return SIM_VSAN[clusterId] || null;
+}
+
+async function getMultipathing(hostId) {
+  return SIM_MULTIPATHING[hostId] || [];
+}
+
+async function getNSXInfo() {
+  return SIM_NSX;
+}
+
+async function getVMotionHistory() {
+  return SIM_VMOTION;
+}
+
+async function getDrsHaInfo() {
+  return SIM_DRS_HA;
+}
+
 module.exports = {
   getClusters,
   getHosts,
@@ -281,4 +354,9 @@ module.exports = {
   getHostNetwork,
   getHostPerfHistory,
   esxiVmAction,
+  getVSanInfo,
+  getMultipathing,
+  getNSXInfo,
+  getVMotionHistory,
+  getDrsHaInfo
 };

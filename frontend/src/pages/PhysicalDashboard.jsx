@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Thermometer, Droplets, Wind, Zap, Battery, AlertTriangle, CheckCircle, Activity, RefreshCw, Shield } from 'lucide-react';
+import { 
+  Thermometer, Droplets, Wind, Zap, Battery, AlertTriangle, 
+  CheckCircle, Activity, RefreshCw, Shield, Layers, 
+  Cpu, Gauge, BarChart, Server, Lock, Unlock, Clock
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart as ReBarChart, Bar } from 'recharts';
 import { api } from '../api';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
@@ -20,14 +25,18 @@ function tempColor(t) {
 }
 
 function StatusDot({ status }) {
-  const colors = { ok: '#10b981', warning: '#f59e0b', critical: '#ef4444', disaster: '#dc2626', running: '#10b981', offline: '#6b7280' };
+  const colors = { 
+    ok: '#10b981', warning: '#f59e0b', critical: '#ef4444', 
+    disaster: '#dc2626', running: '#10b981', stopped: '#6b7280', 
+    on: '#10b981', off: '#6b7280', locked: '#6b7280' 
+  };
   const color = colors[status] || '#6b7280';
   return (
     <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, flexShrink: 0 }} />
   );
 }
 
-function GaugeArc({ value, max = 100, color = '#38bdf8', size = 80 }) {
+function GaugeArc({ value, max = 100, color = '#38bdf8', size = 80, label }) {
   const r = (size - 12) / 2;
   const cx = size / 2;
   const cy = size / 2;
@@ -52,7 +61,8 @@ function GaugeArc({ value, max = 100, color = '#38bdf8', size = 80 }) {
         <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
           fill="none" stroke={color} strokeWidth={6} strokeLinecap="round" />
       )}
-      <text x={cx} y={cy + 6} textAnchor="middle" fill="#e8eaf0" fontSize={14} fontWeight={700}>{value}%</text>
+      <text x={cx} y={cy + 4} textAnchor="middle" fill="#e8eaf0" fontSize={14} fontWeight={700}>{Math.round(value)}%</text>
+      {label && <text x={cx} y={cy + 22} textAnchor="middle" fill="var(--text-muted)" fontSize={9}>{label}</text>}
     </svg>
   );
 }
@@ -92,92 +102,6 @@ function SensorCard({ sensor }) {
   );
 }
 
-function CRACCard({ crac }) {
-  const efficiency = crac.coolingCapacityKW > 0
-    ? Math.round((crac.coolingCapacityKW / crac.powerConsumptionKW) * 10) / 10
-    : 0;
-  const deltaT = +(crac.returnTempC - crac.supplyTempC).toFixed(1);
-  return (
-    <div className="card glass-panel" style={{ padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <Wind size={16} color="#38bdf8" />
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{crac.name}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <StatusDot status={crac.status} />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{crac.status}</span>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        {[
-          { label: 'Soufflage', value: `${crac.supplyTempC?.toFixed(1)}°C`, color: '#38bdf8' },
-          { label: 'Reprise', value: `${crac.returnTempC?.toFixed(1)}°C`, color: '#f97316' },
-          { label: 'ΔT', value: `${deltaT}°C`, color: deltaT > 15 ? '#ef4444' : '#10b981' },
-          { label: 'Puissance frigo', value: `${crac.coolingCapacityKW?.toFixed(1)} kW`, color: '#a78bfa' },
-          { label: 'Consommation', value: `${crac.powerConsumptionKW?.toFixed(1)} kW`, color: '#fbbf24' },
-          { label: 'COP', value: efficiency.toFixed(1), color: efficiency >= 3 ? '#10b981' : '#f59e0b' },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>{label}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color }}>{value}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
-        <span>Débit air : {crac.airflowM3h?.toFixed(0)} m³/h</span>
-        <span>Salle : {crac.id?.toUpperCase()}</span>
-      </div>
-    </div>
-  );
-}
-
-function UPSCard({ ups }) {
-  if (!ups) return null;
-  const charge = ups.battery?.chargePct ?? 0;
-  const load = ups.output?.loadPct ?? 0;
-  const chargeColor = charge > 70 ? '#10b981' : charge > 40 ? '#f59e0b' : '#ef4444';
-  const loadColor = load < 60 ? '#10b981' : load < 80 ? '#f59e0b' : '#ef4444';
-  const onLine = ups.status?.input === 'on_line';
-  return (
-    <div className="card glass-panel" style={{ padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Battery size={16} color={chargeColor} />
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{ups.id || 'UPS-SUKAM-01'}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          {onLine ? <CheckCircle size={14} color="#10b981" /> : <AlertTriangle size={14} color="#ef4444" />}
-          <span style={{ fontSize: 11, fontWeight: 600, color: onLine ? '#10b981' : '#ef4444' }}>
-            {onLine ? 'SUR SECTEUR' : 'SUR BATTERIE'}
-          </span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-        <div style={{ textAlign: 'center' }}>
-          <GaugeArc value={charge} color={chargeColor} size={90} />
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Charge batterie</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <GaugeArc value={load} color={loadColor} size={90} />
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Charge sortie</div>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        {[
-          { label: 'Autonomie', value: `${ups.battery?.autonomyMin ?? '—'} min`, color: '#a78bfa' },
-          { label: 'Tension entrée', value: `${ups.input?.voltageV?.toFixed(0) ?? '—'} V`, color: 'var(--text-primary)' },
-          { label: 'Tension sortie', value: `${ups.output?.voltageV?.toFixed(0) ?? '—'} V`, color: 'var(--text-primary)' },
-          { label: 'Temp batterie', value: `${ups.battery?.temperatureC?.toFixed(1) ?? '—'}°C`, color: tempColor(ups.battery?.temperatureC) },
-          { label: 'Nb alarmes', value: ups.status?.alarmsCount ?? 0, color: ups.status?.alarmsCount > 0 ? '#ef4444' : '#10b981' },
-          { label: 'Source', value: ups.source === 'simulation' ? 'SIM' : 'SNMP', color: '#6b7280' },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '7px 10px' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color }}>{value}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ASHRAEBadge({ compliant, classLabel }) {
   const color = compliant ? '#10b981' : '#ef4444';
   return (
@@ -189,25 +113,265 @@ function ASHRAEBadge({ compliant, classLabel }) {
   );
 }
 
+// ── Energy Components ─────────────────────────────────────────────────────────
+
+function TGBTPanel({ tgbt }) {
+  if (!tgbt) return null;
+  return (
+    <div className="card glass-panel" style={{ padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{tgbt.name}</h3>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Charge globale : {tgbt.totalKW} kW · cos φ {tgbt.powerFactorGlobal}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent)' }}>{tgbt.mainCurrentA} A</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Courant d'arrivée (3φ)</div>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+        {tgbt.circuits.map(c => (
+          <div key={c.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '12px 14px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>{c.label}</span>
+              <StatusDot status={c.status === 'normal' ? 'ok' : c.status} />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: c.status === 'overload' ? '#ef4444' : 'var(--text-primary)' }}>
+              {c.currentA} A <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>/ {c.ratedA}A</span>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', height: 4, borderRadius: 2 }}>
+                <div style={{ width: `${c.loadPct}%`, height: '100%', background: c.loadPct > 80 ? '#ef4444' : '#10b981', borderRadius: 2 }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BMSPanel({ bms }) {
+  if (!bms) return null;
+  return (
+    <div className="card glass-panel" style={{ padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>BMS — Système de Batteries</h3>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{bms.system}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>{bms.overallSOC}%</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>SOC Global</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#38bdf8' }}>{bms.estimatedRuntimeMin} min</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Autonomie est.</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {bms.strings.map(s => (
+          <div key={s.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Battery size={16} color={s.status === 'ok' ? '#10b981' : '#f59e0b'} />
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{s.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>• {s.voltageV} V • {s.currentA} A</span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>SOH: <span style={{ color: s.sohPct < 90 ? '#f59e0b' : '#10b981' }}>{s.sohPct}%</span></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+              {s.cells.map(c => (
+                <div key={c.id} title={`Cellule ${c.id}: ${c.voltage}V / ${c.tempC}°C`} style={{ height: 24, background: c.status === 'ok' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', borderRadius: 3, border: `1px solid ${c.status === 'ok' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}` }} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Cooling Components ────────────────────────────────────────────────────────
+
+function CRACDetailCard({ crac }) {
+  const deltaT = +(crac.returnTempC - crac.supplyTempC).toFixed(1);
+  return (
+    <div className="card glass-panel" style={{ padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <Wind size={18} color="#38bdf8" />
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{crac.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{crac.model}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <StatusDot status={crac.status} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>{crac.status.toUpperCase()}</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+        {[
+          { label: 'Soufflage', value: `${crac.supplyTempC.toFixed(1)}°C`, sub: `Cible ${crac.setpointC}°C` },
+          { label: 'Reprise', value: `${crac.returnTempC.toFixed(1)}°C`, sub: `ΔT ${deltaT}°C` },
+          { label: 'Puissance', value: `${crac.coolingCapacityKW.toFixed(1)} kW`, sub: `COP ${crac.cop.toFixed(1)}` },
+          { label: 'Débit Air', value: `${crac.airflowM3h} m³/h`, sub: `Filtre ${crac.filter.cloggedPct.toFixed(0)}%` },
+        ].map(k => (
+          <div key={k.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{k.value}</div>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: 12 }}>
+        {/* Compresseur */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: 12, border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Activity size={12} /> COMPRESSEUR ({crac.compressor.refrigerant})
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+            <span>Vitesse</span><span style={{ fontWeight: 700 }}>{crac.compressor.speedPct.toFixed(0)}%</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+            <span>Pression HP</span><span style={{ fontWeight: 700 }}>{crac.compressor.pressureHighBar} bar</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+            <span>Pression BP</span><span style={{ fontWeight: 700 }}>{crac.compressor.pressureLowBar} bar</span>
+          </div>
+        </div>
+        {/* Filtre / Condensats */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: 12, border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>FILTRE & CONDENSATS</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+            <span>Perte charge</span><span style={{ fontWeight: 700 }}>{crac.filter.pressureDropPa} Pa</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+            <span>Niveau bac</span><span style={{ fontWeight: 700 }}>{crac.condensate.levelMm} mm</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+            <span>Pompe</span><span style={{ color: '#10b981', fontWeight: 700 }}>{crac.condensate.pumpStatus.toUpperCase()}</span>
+          </div>
+        </div>
+        {/* Alertes */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: 12, border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DIAGNOSTIC</div>
+          {crac.alarms.length > 0 ? (
+            crac.alarms.map((a, i) => (
+              <div key={i} style={{ fontSize: 9, color: a.severity === 'warning' ? '#f59e0b' : '#ef4444', marginBottom: 4 }}>
+                ⚠ {a.msg}
+              </div>
+            ))
+          ) : (
+            <div style={{ fontSize: 11, color: '#10b981' }}>✓ Système nominal</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Efficiency Components ─────────────────────────────────────────────────────
+
+function WUEPanel({ wue }) {
+  if (!wue) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="card glass-panel" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, fontWeight: 800, color: wue.pueStatus === 'good' ? '#10b981' : '#f59e0b' }}>{wue.pue}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>PUE (Indicateur efficacité)</div>
+          <div style={{ fontSize: 10, marginTop: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '2px 8px', display: 'inline-block' }}>Cible : {wue.pueTarget}</div>
+        </div>
+        <div className="card glass-panel" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#38bdf8' }}>{wue.itLoadKW}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Charge IT (kW)</div>
+        </div>
+        <div className="card glass-panel" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#f97316' }}>{wue.coolingKW}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Climatisation (kW)</div>
+        </div>
+        <div className="card glass-panel" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#a78bfa' }}>{wue.coolingEfficiencyPct}%</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Efficacité Frigorifique</div>
+        </div>
+      </div>
+
+      <div className="card glass-panel" style={{ padding: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 20 }}>Historique PUE / Charge IT (24h)</div>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={wue.history}>
+            <defs>
+              <linearGradient id="gpue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+            <YAxis yId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} domain={[1, 2]} />
+            <YAxis yId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+            <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8 }} />
+            <Area yId="left" type="monotone" dataKey="pue" stroke="#10b981" fill="url(#gpue)" strokeWidth={2} name="PUE" />
+            <Area yId="right" type="monotone" dataKey="itKW" stroke="#38bdf8" fill="transparent" strokeWidth={2} strokeDasharray="5 5" name="Charge IT (kW)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 // ── main page ──────────────────────────────────────────────────────────────────
 
 export default function PhysicalDashboard() {
+  const [activeTab, setActiveTab] = useState('general');
   const [summary, setSummary]   = useState(null);
   const [crac, setCrac]         = useState([]);
+  const [cracDetail, setCracDetail] = useState([]);
   const [snmp, setSnmp]         = useState(null);
+  const [tgbt, setTgbt]         = useState(null);
+  const [bms, setBms]           = useState(null);
+  const [wue, setWue]           = useState(null);
+  const [airQuality, setAirQuality] = useState(null);
+  const [pressure, setPressure] = useState(null);
+  const [doors, setDoors]       = useState([]);
+  
   const [loading, setLoading]   = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [envSum, cracData, snmpData] = await Promise.allSettled([
+      const [
+        envSum, cracData, cracDet, snmpData, 
+        tgbtData, bmsData, wueData, airData, 
+        presData, doorData
+      ] = await Promise.allSettled([
         api.getEnvSummary(),
         api.getCracStatus(),
+        api.getEnvCRACDetail(),
         api.getSnmpData(),
+        api.getEnvTGBT(),
+        api.getEnvBMSBatteries(),
+        api.getEnvWUE(),
+        api.getEnvAirQuality(),
+        api.getEnvPressure(),
+        api.getEnvDoors(),
       ]);
-      if (envSum.status === 'fulfilled')  setSummary(envSum.value);
-      if (cracData.status === 'fulfilled') setCrac(cracData.value);
-      if (snmpData.status === 'fulfilled') setSnmp(snmpData.value);
+
+      if (envSum.status === 'fulfilled')   setSummary(envSum.value);
+      if (cracData.status === 'fulfilled')  setCrac(cracData.value);
+      if (cracDet.status === 'fulfilled')   setCracDetail(cracDet.value);
+      if (snmpData.status === 'fulfilled')  setSnmp(snmpData.value);
+      if (tgbtData.status === 'fulfilled')  setTgbt(tgbtData.value);
+      if (bmsData.status === 'fulfilled')   setBms(bmsData.value);
+      if (wueData.status === 'fulfilled')   setWue(wueData.value);
+      if (airData.status === 'fulfilled')   setAirQuality(airData.value);
+      if (presData.status === 'fulfilled')  setPressure(presData.value);
+      if (doorData.status === 'fulfilled')  setDoors(doorData.value);
+
       setLastUpdate(new Date());
     } catch (_) {}
     finally { setLoading(false); }
@@ -219,18 +383,17 @@ export default function PhysicalDashboard() {
     return () => clearInterval(t);
   }, [fetchAll]);
 
-  const primaryUPS = snmp
-    ? Object.values(snmp).find(d => d.type === 'ups')
-    : null;
-
+  const primaryUPS = snmp ? Object.values(snmp).find(d => d.type === 'ups') : null;
   const sensors = summary?.sensors || [];
   const critSensors = sensors.filter(s => s.status === 'critical').length;
   const warnSensors = sensors.filter(s => s.status === 'warning').length;
 
-  // Estimate PUE (Power Usage Effectiveness) — simplified
-  const cracPower = crac.reduce((s, c) => s + (c.powerConsumptionKW || 0), 0);
-  const itPower   = (primaryUPS?.output?.loadPct ?? 40) * 0.5; // kW estimate
-  const pue       = cracPower > 0 && itPower > 0 ? +((itPower + cracPower) / itPower).toFixed(2) : null;
+  const TABS = [
+    { id: 'general', label: 'Général', icon: Layers },
+    { id: 'energy',  label: 'Énergie',  icon: Zap },
+    { id: 'cooling', label: 'Climatisation', icon: Wind },
+    { id: 'efficiency', label: 'Efficacité', icon: Gauge },
+  ];
 
   if (loading) {
     return (
@@ -248,7 +411,7 @@ export default function PhysicalDashboard() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Environnement Physique DC</h1>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-            Capteurs thermiques · UPS · CRAC · Ambiance salle serveur SBEE
+            Infrastructure critique · TGBT · BMS · Climatisation de précision SBEE
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -265,119 +428,119 @@ export default function PhysicalDashboard() {
         </div>
       </div>
 
-      {/* KPI bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-        {[
-          { icon: Thermometer, label: 'Temp. moyenne', value: summary ? `${summary.avgTempC}°C` : '—', color: tempColor(summary?.avgTempC) },
-          { icon: Thermometer, label: 'Temp. max', value: summary ? `${summary.maxTempC}°C` : '—', color: tempColor(summary?.maxTempC) },
-          { icon: Thermometer, label: 'Allée chaude', value: summary ? `${summary.hotAisleTempC}°C` : '—', color: tempColor(summary?.hotAisleTempC) },
-          { icon: Droplets, label: 'Humidité moy.', value: summary ? `${summary.avgHumidity}%` : '—', color: '#38bdf8' },
-          { icon: AlertTriangle, label: 'Capteurs critiques', value: critSensors, color: critSensors > 0 ? '#ef4444' : '#10b981' },
-          { icon: AlertTriangle, label: 'Capteurs warning', value: warnSensors, color: warnSensors > 0 ? '#f59e0b' : '#10b981' },
-          { icon: Wind, label: 'CRAC actifs', value: `${crac.filter(c => c.status === 'running').length} / ${crac.length}`, color: '#a78bfa' },
-          { icon: Zap, label: 'PUE estimé', value: pue ? pue.toFixed(2) : '—', color: pue && pue < 1.5 ? '#10b981' : pue && pue < 2 ? '#f59e0b' : '#ef4444' },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="card glass-panel" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icon size={16} color={color} />
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color }}>{value}</div>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 1 }}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            style={{
+              padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: 'none', border: 'none', color: activeTab === t.id ? 'var(--accent)' : 'var(--text-muted)',
+              borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
+              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 8
+            }}
+          >
+            <t.icon size={14} />
+            {t.label}
+          </button>
         ))}
       </div>
 
-      {/* Body : 2 columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
-        {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* UPS */}
-          <div>
-            <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Alimentation UPS</h2>
-            {primaryUPS
-              ? <UPSCard ups={primaryUPS} />
-              : (
-                <div className="card glass-panel" style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                  Aucune donnée UPS disponible — vérifier SNMP
-                </div>
-              )
-            }
-          </div>
-
-          {/* CRAC units */}
-          <div>
-            <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Unités de climatisation CRAC</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {crac.length > 0
-                ? crac.map(c => <CRACCard key={c.id} crac={c} />)
-                : <div className="card glass-panel" style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>Aucun CRAC disponible</div>
-              }
-            </div>
-          </div>
-        </div>
-
-        {/* Right column — sensors grid */}
-        <div>
-          <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
-            Capteurs environnementaux ({sensors.length})
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {sensors.map(s => <SensorCard key={s.id} sensor={s} />)}
-          </div>
-
-          {/* Smoke / Water status */}
-          <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+      {/* Tab Content */}
+      {activeTab === 'general' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {[
-              { label: 'Détection fumée', active: summary?.smokeAlert, icon: '🔥' },
-              { label: 'Détection fuite eau', active: summary?.waterAlert, icon: '💧' },
-            ].map(({ label, active, icon }) => (
-              <div key={label} className="card glass-panel" style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, border: active ? '1px solid #ef4444' : '1px solid var(--border)' }}>
-                <span style={{ fontSize: 18 }}>{icon}</span>
+              { icon: Thermometer, label: 'Temp. moyenne', value: `${summary?.avgTempC}°C`, color: tempColor(summary?.avgTempC) },
+              { icon: Droplets, label: 'Humidité moy.', value: `${summary?.avgHumidity}%`, color: '#38bdf8' },
+              { icon: AlertTriangle, label: 'Critiques', value: critSensors, color: critSensors > 0 ? '#ef4444' : '#10b981' },
+              { icon: Zap, label: 'PUE', value: wue?.pue || '—', color: wue?.pueStatus === 'good' ? '#10b981' : '#f59e0b' },
+              { icon: Wind, label: 'Clim actifs', value: `${crac.filter(c => c.status === 'running').length} / ${crac.length}`, color: '#a78bfa' },
+              { icon: Gauge, label: 'Pression Diff.', value: `${pressure?.sensors[0]?.pressurePa.toFixed(1)} Pa`, color: '#34d399' },
+            ].map(({ icon: Icon, label, value, color }) => (
+              <div key={label} className="card glass-panel" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon size={16} color={color} />
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#ef4444' : '#10b981' }}>
-                    {active ? '⚠ ALARME ACTIVE' : '✓ Aucune alarme'}
-                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color }}>{value}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* ASHRAE reference table */}
-          <div className="card glass-panel" style={{ marginTop: 14, padding: '14px 16px' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
-              Référentiel ASHRAE TC9.9
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-              <thead>
-                <tr style={{ color: 'var(--text-muted)' }}>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Classe</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Temp. entrée (°C)</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Humidité (%)</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Statut actuel</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { cls: 'A1', temp: '15 – 20', hum: '20 – 80', match: summary?.avgTempC >= 15 && summary?.avgTempC <= 20 },
-                  { cls: 'A2', temp: '10 – 35', hum: '8 – 80',  match: summary?.avgTempC >= 10 && summary?.avgTempC <= 35 },
-                  { cls: 'A3', temp: '5 – 40',  hum: '8 – 85',  match: summary?.avgTempC >= 5  && summary?.avgTempC <= 40 },
-                  { cls: 'A4', temp: '5 – 45',  hum: '8 – 90',  match: summary?.avgTempC >= 5  && summary?.avgTempC <= 45 },
-                ].map(row => (
-                  <tr key={row.cls} style={{ background: row.match ? 'rgba(16,185,129,0.07)' : 'transparent' }}>
-                    <td style={{ padding: '5px 8px', color: row.match ? '#10b981' : 'var(--text-muted)', fontWeight: row.match ? 700 : 400 }}>{row.cls}</td>
-                    <td style={{ padding: '5px 8px', color: 'var(--text-primary)' }}>{row.temp}</td>
-                    <td style={{ padding: '5px 8px', color: 'var(--text-primary)' }}>{row.hum}</td>
-                    <td style={{ padding: '5px 8px' }}>
-                      {row.match && <span style={{ color: '#10b981', fontSize: 10, fontWeight: 700 }}>✓ ACTUELLE</span>}
-                    </td>
-                  </tr>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* Air Quality */}
+            <div className="card glass-panel" style={{ padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Wind size={16} color="#34d399" /> Qualité de l'Air (CO2 / PM2.5)
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {airQuality?.sensors.map(s => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                    <div style={{ fontSize: 12 }}>{s.location}</div>
+                    <div style={{ display: 'flex', gap: 20 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: s.co2Ppm > 1000 ? '#ef4444' : '#10b981' }}>{s.co2Ppm} <span style={{ fontSize: 9 }}>ppm</span></div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>CO₂</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{s.pm25} <span style={{ fontSize: 9 }}>µg/m³</span></div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>PM2.5</div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+
+            {/* Access Doors */}
+            <div className="card glass-panel" style={{ padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Lock size={16} color="#fbbf24" /> Sécurité des Accès (Portes)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                {doors.map(d => (
+                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {d.state === 'closed' || d.state === 'locked' ? <Lock size={14} color="#10b981" /> : <Unlock size={14} color="#ef4444" />}
+                      <div style={{ fontSize: 12 }}>{d.name}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: d.state === 'open' ? '#ef4444' : '#10b981', textTransform: 'uppercase' }}>{d.state}</div>
+                      {d.lastEventAt && <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Dernier event: {new Date(d.lastEventAt).toLocaleTimeString()}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 700, margin: '10px 0 15px' }}>Capteurs Thermiques ({sensors.length})</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {sensors.map(s => <SensorCard key={s.id} sensor={s} />)}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'energy' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <TGBTPanel tgbt={tgbt} />
+          <BMSPanel bms={bms} />
         </div>
-      </div>
+      )}
+
+      {activeTab === 'cooling' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
+          {cracDetail.map(c => <CRACDetailCard key={c.id} crac={c} />)}
+        </div>
+      )}
+
+      {activeTab === 'efficiency' && (
+        <WUEPanel wue={wue} />
+      )}
     </div>
   );
 }

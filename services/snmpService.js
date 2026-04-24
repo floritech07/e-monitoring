@@ -386,6 +386,35 @@ async function collectAll() {
   return data;
 }
 
+// ─── LLDP/CDP, VPN, WAN SLA Simulation ───────────────────────────────────────
+
+function getNetworkDiscovery() {
+  return {
+    lldp: [
+      { localPort: 'GigabitEthernet1/1', remoteDevice: 'ESXi-01-SBEE', remotePort: 'vmnic0', capabilities: 'Station Only' },
+      { localPort: 'GigabitEthernet1/2', remoteDevice: 'ESXi-02-SBEE', remotePort: 'vmnic0', capabilities: 'Station Only' },
+    ],
+    cdp: [
+      { localPort: 'FastEthernet0/24', remoteDevice: 'Cisco-Router-WAN', remotePort: 'GigabitEthernet0/1', capabilities: 'Router, Switch' }
+    ]
+  };
+}
+
+function getVPNTunnels() {
+  return [
+    { id: 'vpn-parakou', name: 'VPN_IPSec_Parakou', peerIp: '197.xxx.xxx.10', status: 'Up', uptimeSeconds: 345600, rxBytes: 104857600, txBytes: 52428800 },
+    { id: 'vpn-porto', name: 'VPN_IPSec_PortoNovo', peerIp: '197.xxx.xxx.20', status: 'Up', uptimeSeconds: 259200, rxBytes: 83886080, txBytes: 41943040 },
+    { id: 'vpn-natitingou', name: 'VPN_IPSec_Natitingou', peerIp: '197.xxx.xxx.30', status: 'Down', uptimeSeconds: 0, rxBytes: 0, txBytes: 0 }
+  ];
+}
+
+function getWANSLA() {
+  return [
+    { linkId: 'wan-isp1', isp: 'Benin Telecom', status: 'Active', latencyMs: fluctuate(15, 3), jitterMs: fluctuate(2, 1), packetLossPct: 0.1, bandwidthMbps: 100, utilizationPct: fluctuate(45, 10) },
+    { linkId: 'wan-isp2', isp: 'Isocel', status: 'Active', latencyMs: fluctuate(25, 5), jitterMs: fluctuate(4, 2), packetLossPct: 0.5, bandwidthMbps: 50, utilizationPct: fluctuate(20, 5) }
+  ];
+}
+
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -394,5 +423,8 @@ module.exports = {
   collectAll,
   simulateUPS,
   simulateSwitch,
+  getNetworkDiscovery,
+  getVPNTunnels,
+  getWANSLA,
   OID,
 };

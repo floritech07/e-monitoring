@@ -1,84 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  Settings, AlertTriangle, BellRing, X, Plus, Trash2 
+  Settings, AlertTriangle, BellRing, X, Plus, Trash2, 
+  Volume2, Clock, Zap, Maximize2, Minimize2, Play
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { useSocket } from '../hooks/useSocket';
 
 const OPERATOR_COLORS = {
   MOOV: '#075dff',
   MTN: '#ffcb05',
-  SBIN: '#4fba2c',
-  ASIN: '#d63030',
-  BANQUES: '#9b9b9b',
+  SBIN: '#10b981',
+  ASIN: '#ef4444',
+  BANQUES: '#6366f1',
   PERFORM: '#a350e8',
-  PNS: '#9c27b0'
 };
+
+const SOUND_OPTIONS = [
+  { id: 'alarm-1', label: 'Alarme Standard', freq: 880 },
+  { id: 'alarm-2', label: 'Bip Urgence', freq: 1046 },
+  { id: 'alarm-3', label: 'Sirène Lente', freq: 440 },
+  { id: 'alarm-critical', label: 'CRITIQUE (Haut)', freq: 1244 },
+];
 
 const RANGE_HOURS = {
   '5m': 0.083, '15m': 0.25, '30m': 0.5,
   '1h': 1, '3h': 3, '6h': 6, '12h': 12, '24h': 24, 
-  '2d': 48, '7d': 168, '30d': 720, '90d': 2160, 
-  '6mo': 4320, '1y': 8760, '2y': 17520, '5y': 43800,
-  'yesterday': 24
+  '2d': 48, '7d': 168, '30d': 720, 'yesterday': 24
 };
 
-// Realistic mock data generator based on time range
-const getMockData = (type, timeRangeValue) => {
-  const hours = RANGE_HOURS[timeRangeValue] || 3;
-  const operators = type === 'prepaid' ? ['MOOV', 'MTN', 'SBIN', 'ASIN'] : ['ASIN', 'MTN', 'MOOV', 'SBIN', 'BANQUES', 'PERFORM'];
-  const points = hours > 3 ? 100 : 60;
-
-  return operators.map(op => {
-    const data = [];
-    let base = type === 'prepaid' ? Math.random() * 20 + 20 : Math.random() * 5 + 5;
-    const now = Date.now();
-    for (let i = 0; i < points; i++) {
-        const time = now - (points - i) * (hours * 3600000 / points);
-        const val = Math.max(0, base + (Math.random() - 0.5) * (type === 'prepaid' ? 8 : 2));
-        data.push({ time, entry_count: Math.round(val) });
-        base = val;
-    }
-    return { [type === 'prepaid' ? 'operator' : 'tier']: op, data };
-  });
-};
-
-export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', refreshCounter = 0 }) {
-  const { connected } = useSocket(); 
+export default function PaymentMonitor({ timeRange = '1h', refreshRate = '30', refreshCounter = 0 }) {
+  const { connected, alerts } = useSocket(); 
   const [prepaidData, setPrepaidData] = useState([]);
   const [postpaidData, setPostpaidData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [useMock, setUseMock] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('fr-FR'));
   const [showRules, setShowRules] = useState(false);
   const [rules, setRules] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('fr-FR'));
 
-  useEffect(() => {
-    fetchRules();
-    fetchTrends();
-    let trendInterval;
-    
-    let ms = 0;
-    if (refreshRate.startsWith('int-')) {
-        ms = parseInt(refreshRate.split('-')[1]);
-    } else if (refreshRate !== '0') {
-        ms = parseInt(refreshRate) * 1000;
-    }
-
-    if (ms > 0) {
-      trendInterval = setInterval(fetchTrends, ms);
-    }
-    const clockInterval = setInterval(() => setCurrentTime(new Date().toLocaleTimeString('fr-FR')), 1000);
-    
-    return () => {
-      if (trendInterval) clearInterval(trendInterval);
-      clearInterval(clockInterval);
-    };
-  }, [timeRange, refreshRate, refreshCounter]);
-
+  // Fetch functions
   const fetchTrends = async () => {
     setLoading(true);
     try {
@@ -86,26 +48,11 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
         fetch(`http://localhost:3001/api/payments/trends/prepaid?range=${timeRange}`),
         fetch(`http://localhost:3001/api/payments/trends/postpaid?range=${timeRange}`)
       ]);
-      const pre = await preRes.json();
-      const post = await postRes.json();
-      
-      const isPreEmpty = !Array.isArray(pre) || pre.length === 0 || pre.every(s => s.data.length === 0);
-      const isPostEmpty = !Array.isArray(post) || post.length === 0 || post.every(s => s.data.length === 0);
-
-      if (isPreEmpty && isPostEmpty) {
-        setPrepaidData(getMockData('prepaid', timeRange));
-        setPostpaidData(getMockData('postpaid', timeRange));
-        setUseMock(true);
-      } else {
-        setPrepaidData(Array.isArray(pre) ? pre : []);
-        setPostpaidData(Array.isArray(post) ? post : []);
-        setUseMock(false);
-      }
-      setLoading(false);
+      setPrepaidData(await preRes.json());
+      setPostpaidData(await postRes.json());
     } catch (e) {
-      setPrepaidData(getMockData('prepaid', timeRange));
-      setPostpaidData(getMockData('postpaid', timeRange));
-      setUseMock(true);
+      console.error("Fetch trends failed", e);
+    } finally {
       setLoading(false);
     }
   };
@@ -113,16 +60,40 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
   const fetchRules = async () => {
     try {
       const res = await fetch('http://localhost:3001/api/payments/rules');
-      const data = await res.json();
-      setRules(data);
+      setRules(await res.json());
     } catch (e) {}
   };
 
+  useEffect(() => {
+    fetchTrends();
+    fetchRules();
+    const clockInterval = setInterval(() => setCurrentTime(new Date().toLocaleTimeString('fr-FR')), 1000);
+    return () => clearInterval(clockInterval);
+  }, [timeRange, refreshCounter]);
+
+  // Chart data formatting
+  const formatData = (raw, key) => {
+    const map = {};
+    if (!Array.isArray(raw)) return [];
+    raw.forEach(op => {
+      if (op.data && Array.isArray(op.data)) {
+        op.data.forEach(p => {
+          if (!map[p.time]) map[p.time] = { time: p.time };
+          map[p.time][op[key]] = p.entry_count;
+        });
+      }
+    });
+    return Object.values(map).sort((a, b) => a.time - b.time);
+  };
+
+  const preFormatted = useMemo(() => formatData(prepaidData, 'operator'), [prepaidData]);
+  const postFormatted = useMemo(() => formatData(postpaidData, 'tier'), [postpaidData]);
+
   const saveRule = async (rule) => {
-    const url = rule.id ? `http://localhost:3001/api/payments/rules/${rule.id}` : 'http://localhost:3001/api/payments/rules';
-    const method = rule.id ? 'PUT' : 'POST';
+    const isNew = !rule.id;
+    const url = isNew ? 'http://localhost:3001/api/payments/rules' : `http://localhost:3001/api/payments/rules/${rule.id}`;
     await fetch(url, {
-      method,
+      method: isNew ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rule)
     });
@@ -134,264 +105,254 @@ export default function PaymentMonitor({ timeRange = '3h', refreshRate = '300', 
     fetchRules();
   };
 
-  const formatChartData = (seriesData, key) => {
-    const timeMap = {};
-    seriesData.forEach(s => {
-      if (s && Array.isArray(s.data)) {
-        s.data.forEach(p => {
-          // Utiliser un timestamp arrondi pour regrouper les données temporellement
-          // et éviter les collisions de clés Recharts
-          const roundedTime = Math.floor(p.time / 1000) * 1000;
-          if (!timeMap[roundedTime]) timeMap[roundedTime] = { time: roundedTime };
-          timeMap[roundedTime][s[key]] = p.entry_count;
-        });
-      }
-    });
-    return Object.values(timeMap).sort((a, b) => a.time - b.time);
+  const testSound = (soundId) => {
+    const option = SOUND_OPTIONS.find(o => o.id === soundId);
+    if (!option) return;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = option.freq;
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => osc.stop(), 1000);
   };
 
-  const prepaidChartData = formatChartData(prepaidData, 'operator');
-  const postpaidChartData = formatChartData(postpaidData, 'tier');
-
   return (
-    <div style={{ padding: '30px', backgroundColor: 'var(--bg-main)', minHeight: '100%', position: 'relative' }}>
+    <div className="payment-monitor-page fade-in" style={{ padding: '24px', height: '100%', overflowY: 'auto' }}>
       
-      {/* Header Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
-        <div style={{ backgroundColor: '#181b1f', border: '1px solid #2c3235', padding: '15px 25px', borderRadius: '2px', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontSize: '10px', color: '#8e8e8e', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '6px' }}>
-            HEURE SYSTÈME :
-          </div>
-          <div style={{ fontSize: '48px', color: '#5794f2', fontFamily: 'monospace', fontWeight: 'bold' }}>
-            {currentTime}
+      {/* Dynamic Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.5px' }}>Monitoring Flux <span className="glow-text" style={{ color: 'var(--accent)' }}>Paiements</span></h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+            <span className="status-badge online" style={{ fontSize: '9px' }}>HAUTE RÉSOLUTION</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{currentTime} — SBEE infrastructure</span>
           </div>
         </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+             <button className="btn btn-ghost" onClick={() => fetchTrends()}>
+               <Clock size={14} /> Rafraîchir
+             </button>
+             <button className="btn btn-primary" onClick={() => setShowRules(true)}>
+               <Settings size={14} /> Alertes Smart
+             </button>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
         
-        <div style={{ textAlign: 'right' }}>
-           <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Vues de Transactions</h1>
-           <p style={{ fontSize: '12px', color: '#8e8e8e' }}>Monitorage en temps réel des flux opérateurs</p>
-           {useMock && (
-             <div style={{ marginTop: '10px', backgroundColor: '#f5912315', color: '#f5a623', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', border: '1px solid #f5912330' }}>
-               DONNÉES SIMULÉES (Mode Démo)
-             </div>
-           )}
-           {loading && <div style={{ fontSize: '10px', color: '#5794f2', marginTop: '4px' }}>Actualisation...</div>}
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-        
-        {/* PREPAID */}
-        <div style={{ backgroundColor: '#111217', border: '1px solid #2c3235', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-          <div style={{ backgroundColor: '#21262d', padding: '10px 20px', fontSize: '11px', fontWeight: 'bold', color: '#ccd3ff', borderBottom: '1px solid #2c3235' }}>
-            PREPAID - EVOLUTION TRANS. ACHAT CRÉDIT / {timeRange.toUpperCase()}
+        {/* Prepaid Card */}
+        <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', backgroundColor: 'var(--accent)', borderRadius: '2px' }} />
+              <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Canaux PREPAID (Vente Crédit)</span>
+            </div>
+            {loading && <div className="loading-spin" />}
           </div>
-          <div style={{ display: 'flex', height: '350px' }}>
-            <div style={{ flex: 1, padding: '15px' }}>
-              {prepaidChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                  <AreaChart key={`pre-${timeRange}-${prepaidChartData.length}`} data={prepaidChartData}>
-                    <defs>
-                      {Object.keys(OPERATOR_COLORS).map(op => (
-                        <linearGradient key={op} id={`grad-pre-${op}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                    <XAxis 
-                      dataKey="time" 
-                      type="number" 
-                      domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
-                      tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
-                      stroke="#444" 
-                      fontSize={10} 
-                      axisLine={false} 
-                      tickLine={false} 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', height: '400px' }}>
+            <div style={{ padding: '24px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={preFormatted}>
+                  <defs>
+                    {Object.entries(OPERATOR_COLORS).map(([op, color]) => (
+                      <linearGradient key={op} id={`grad-${op}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis 
+                    dataKey="time" 
+                    hide={false} 
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(t) => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    stroke="var(--text-muted)"
+                    fontSize={10}
+                  />
+                  <YAxis stroke="var(--text-muted)" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                    labelFormatter={(t) => new Date(t).toLocaleTimeString('fr-FR')}
+                  />
+                  {Array.isArray(prepaidData) && prepaidData.map(s => (
+                    <Area 
+                      key={s.operator} 
+                      type="monotone" 
+                      dataKey={s.operator} 
+                      stroke={OPERATOR_COLORS[s.operator]} 
+                      fill={`url(#grad-${s.operator})`} 
+                      strokeWidth={3}
+                      dot={false}
+                      isAnimationActive={false}
                     />
-                    <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
-                    {prepaidData.map((s, idx) => <Area key={`${s.operator}-${idx}`} type="monotone" dataKey={s.operator} stroke={OPERATOR_COLORS[s.operator]} fill={`url(#grad-pre-${s.operator})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>Initialisation du graphique...</div>
-              )}
+                  ))}
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <div style={{ width: '220px', borderLeft: '1px solid #2c3235', backgroundColor: '#0b0c10', padding: '15px', overflowY: 'auto' }}>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', borderBottom: '1px solid #2c3235', paddingBottom: '6px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', color: '#8e8e8e' }}>
-                <span>OPERATOR</span> <span>MAX / TOTAL</span>
-              </div>
-              {prepaidData.map(s => {
-                const max = Math.max(...s.data.map(d => d.entry_count || 0));
-                const total = s.data.reduce((acc, d) => acc + (d.entry_count || 0), 0);
-                return (
-                  <div key={s.operator} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '8px', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: OPERATOR_COLORS[s.operator] }} />
-                      <span style={{ fontWeight: 500 }}>{s.operator}</span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: '#5794f2', fontWeight: 'bold' }}>{max}</span>
-                      <span style={{ color: '#555', margin: '0 4px' }}>|</span>
-                      <span>{total}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', padding: '24px', borderLeft: '1px solid var(--border)' }}>
+               <h4 style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Status Opérateurs</h4>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {Array.isArray(prepaidData) && prepaidData.map(s => {
+                    const latest = s.data.length > 0 ? s.data[s.data.length-1].entry_count : 0;
+                    return (
+                      <div key={s.operator} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: OPERATOR_COLORS[s.operator] }} />
+                           <span style={{ fontSize: '13px', fontWeight: 600 }}>{s.operator}</span>
+                        </div>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: '14px', color: latest === 0 ? 'var(--danger)' : 'var(--text-primary)' }}>{latest}</span>
+                      </div>
+                    );
+                  })}
+               </div>
             </div>
           </div>
         </div>
 
-        {/* POSTPAID */}
-        <div style={{ backgroundColor: '#111217', border: '1px solid #2c3235', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-          <div style={{ backgroundColor: '#21262d', padding: '10px 20px', fontSize: '11px', fontWeight: 'bold', color: '#ccd3ff', borderBottom: '1px solid #2c3235' }}>
-            POSTPAID - EVOLUTION TRANS. OPÉRATEURS / {timeRange.toUpperCase()}
+        {/* Postpaid Card */}
+        <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', backgroundColor: 'var(--accent-secondary)', borderRadius: '2px' }} />
+              <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Canaux POSTPAID (Facturation)</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', height: '350px' }}>
-            <div style={{ flex: 1, padding: '15px' }}>
-              {postpaidChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                  <AreaChart key={`post-${timeRange}-${postpaidChartData.length}`} data={postpaidChartData}>
-                    <defs>
-                      {Object.keys(OPERATOR_COLORS).map(op => (
-                        <linearGradient key={op} id={`grad-post-${op}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor={OPERATOR_COLORS[op]} stopOpacity={0}/>
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#222" />
-                    <XAxis 
-                      dataKey="time" 
-                      type="number" 
-                      domain={[Date.now() - (RANGE_HOURS[timeRange] || 1) * 3600000, Date.now()]} 
-                      tickFormatter={t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} 
-                      stroke="#444" 
-                      fontSize={10} 
-                      axisLine={false} 
-                      tickLine={false} 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', height: '400px' }}>
+            <div style={{ padding: '24px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={postFormatted}>
+                  <defs>
+                    {Object.entries(OPERATOR_COLORS).map(([op, color]) => (
+                      <linearGradient key={`post-${op}`} id={`grad-post-${op}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis 
+                    dataKey="time" 
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(t) => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    stroke="var(--text-muted)"
+                    fontSize={10}
+                  />
+                  <YAxis stroke="var(--text-muted)" fontSize={10} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                    labelFormatter={(t) => new Date(t).toLocaleTimeString('fr-FR')}
+                  />
+                  {Array.isArray(postpaidData) && postpaidData.map(s => (
+                    <Area 
+                      key={s.tier} 
+                      type="monotone" 
+                      dataKey={s.tier} 
+                      stroke={OPERATOR_COLORS[s.tier] || '#666'} 
+                      fill={`url(#grad-post-${s.tier || 'GENERIC'})`} 
+                      strokeWidth={3}
+                      dot={false}
+                      isAnimationActive={false}
                     />
-                    <YAxis stroke="#444" fontSize={10} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#181b1f', border: '1px solid #333', color: '#fff' }} labelFormatter={t => new Date(t).toLocaleString()} />
-                    {postpaidData.map((s, idx) => <Area key={`${s.tier}-${idx}`} type="monotone" dataKey={s.tier} stroke={OPERATOR_COLORS[s.tier]} fill={`url(#grad-post-${s.tier})`} strokeWidth={2} dot={false} isAnimationActive={false} />)}
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>Initialisation du graphique...</div>
-              )}
+                  ))}
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <div style={{ width: '220px', borderLeft: '1px solid #2c3235', backgroundColor: '#0b0c10', padding: '15px', overflowY: 'auto' }}>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', borderBottom: '1px solid #2c3235', paddingBottom: '6px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', color: '#8e8e8e' }}>
-                <span>OPERATOR</span> <span>MAX / TOTAL</span>
-              </div>
-              {postpaidData.map(s => {
-                const max = Math.max(...s.data.map(d => d.entry_count || 0));
-                const total = s.data.reduce((acc, d) => acc + (d.entry_count || 0), 0);
-                return (
-                  <div key={s.tier} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '8px', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: OPERATOR_COLORS[s.tier] }} />
-                      <span style={{ fontWeight: 500 }}>{s.tier}</span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ color: '#5794f2', fontWeight: 'bold' }}>{max}</span>
-                      <span style={{ color: '#555', margin: '0 4px' }}>|</span>
-                      <span>{total}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', padding: '24px', borderLeft: '1px solid var(--border)' }}>
+               <h4 style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Status Tiers payeurs</h4>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {Array.isArray(postpaidData) && postpaidData.map(s => {
+                    const latest = s.data.length > 0 ? s.data[s.data.length-1].entry_count : 0;
+                    return (
+                      <div key={s.tier} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: OPERATOR_COLORS[s.tier] || '#666' }} />
+                           <span style={{ fontSize: '13px', fontWeight: 600 }}>{s.tier}</span>
+                        </div>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: '14px', color: latest === 0 ? 'var(--danger)' : 'var(--text-primary)' }}>{latest}</span>
+                      </div>
+                    );
+                  })}
+               </div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <div style={{ marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '11px', color: connected ? '#22d3a3' : '#f5534b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: connected ? '#22d3a3' : '#f5534b' }} />
-            {connected ? 'SERVEUR CONNECTÉ' : 'CONNEXION PERDUE'}
-          </div>
-          <button 
-            onClick={() => setShowRules(true)}
-            style={{ background: 'none', border: 'none', color: '#545b78', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Settings size={14} /> RÉGLAGES DES ALERTES
-          </button>
-      </div>
-
+      {/* Rules Modal */}
       {showRules && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
-          <div className="glass-panel" style={{ width: '800px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px 30px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}><BellRing size={20} color="var(--warning)" /> SEUILS D'ALERTE PERSONNALISÉS</h2>
-              <X size={24} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={() => setShowRules(false)} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
+          <div className="card glass-panel fade-in" style={{ width: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '1px solid var(--accent)' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <h2 style={{ fontSize: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <BellRing color="var(--warning)" /> ENGINE D'ALERTES TRANSACTIONNELLES
+               </h2>
+               <button onClick={() => setShowRules(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '30px' }}>
-               <div style={{ display: 'grid', gap: '20px' }}>
-                 {rules.map((r, i) => (
-                   <div key={r.id} style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '12px', background: 'rgba(255,255,255,1%)' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                       <div style={{ display: 'flex', gap: '10px' }}>
-                          <select 
-                            value={r.type} 
-                            onChange={(e) => saveRule({...r, type: e.target.value})}
-                            style={{ background: '#181b1f', border: '1px solid #333', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}
-                          >
-                            <option value="PREPAID">PREPAID</option>
-                            <option value="POSTPAID">POSTPAID</option>
-                          </select>
-                          <select 
-                            value={r.operator} 
-                            onChange={(e) => saveRule({...r, operator: e.target.value})}
-                            style={{ background: '#181b1f', border: '1px solid #333', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}
-                          >
-                             <option value="ALL">Tous les opérateurs</option>
+            
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+               <div style={{ display: 'grid', gap: '16px' }}>
+                 {rules.map(rule => (
+                   <div key={rule.id} className="card" style={{ border: '1px solid var(--border)', background: 'var(--bg-elevated)', transition: 'none' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                           <select value={rule.type} onChange={(e) => saveRule({...rule, type: e.target.value})}>
+                             <option value="PREPAID">PREPAID</option>
+                             <option value="POSTPAID">POSTPAID</option>
+                           </select>
+                           <select value={rule.operator} onChange={(e) => saveRule({...rule, operator: e.target.value})}>
+                             <option value="ALL">TOUS</option>
                              {Object.keys(OPERATOR_COLORS).map(op => <option key={op} value={op}>{op}</option>)}
-                          </select>
-                       </div>
-                       <Trash2 size={16} color="var(--danger)" style={{ cursor: 'pointer' }} onClick={() => deleteRule(r.id)} />
+                           </select>
+                        </div>
+                        <button className="btn btn-danger btn-sm" onClick={() => deleteRule(rule.id)}><Trash2 size={14} /></button>
                      </div>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                        Alerter si baisse &gt; 
-                        <input 
-                          type="number" 
-                          value={r.threshold} 
-                          onChange={(e) => saveRule({...r, threshold: parseInt(e.target.value)})}
-                          style={{ width: '60px', background: '#000', border: '1px solid #333', color: 'var(--warning)', textAlign: 'center', padding: '4px', fontWeight: 'bold' }} 
-                        /> % 
-                        sur 
-                        <input 
-                          type="number" 
-                          value={r.intervalMin} 
-                          onChange={(e) => saveRule({...r, intervalMin: parseInt(e.target.value)})}
-                          style={{ width: '60px', background: '#000', border: '1px solid #333', color: '#fff', textAlign: 'center', padding: '4px' }} 
-                        /> minutes.
-                        Grade:
-                        <select 
-                           value={r.severity} 
-                           onChange={(e) => saveRule({...r, severity: e.target.value})}
-                           style={{ background: 'none', border: 'none', color: r.severity === 'critical' ? 'var(--danger)' : 'var(--warning)', fontWeight: 'bold', fontSize: '11px' }}
-                        >
-                          <option value="critical">CRITIQUE</option>
-                          <option value="warning">ATTENTION</option>
-                        </select>
+                     
+                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', alignItems: 'center' }}>
+                        <div>
+                          <label style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SEUIL DE BAISSE (%)</label>
+                          <input type="number" value={rule.threshold} onChange={(e) => saveRule({...rule, threshold: parseInt(e.target.value)})} style={{ width: '100%' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>INTERVALLE (MIN)</label>
+                          <input type="number" value={rule.intervalMin} onChange={(e) => saveRule({...rule, intervalMin: parseInt(e.target.value)})} style={{ width: '100%' }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                           <input 
+                             type="checkbox" 
+                             checked={rule.checkInactivity} 
+                             onChange={(e) => saveRule({...rule, checkInactivity: e.target.checked})}
+                           />
+                           <span style={{ fontSize: '12px' }}>Vérifier l'inactivité</span>
+                        </div>
+                        <div>
+                           <label style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SONNERIE ALERTE</label>
+                           <div style={{ display: 'flex', gap: '4px' }}>
+                              <select value={rule.sound} onChange={(e) => saveRule({...rule, sound: e.target.value})} style={{ flex: 1 }}>
+                                {SOUND_OPTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                              </select>
+                              <button className="btn btn-ghost btn-sm" onClick={() => testSound(rule.sound)}><Play size={12} /></button>
+                           </div>
+                        </div>
                      </div>
                    </div>
                  ))}
-                 <button 
-                   onClick={() => saveRule({ type: 'PREPAID', operator: 'ALL', threshold: 30, intervalMin: 60, severity: 'critical', enabled: true })}
-                   style={{ padding: '15px', border: '1px dashed var(--border)', borderRadius: '12px', background: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '13px', fontWeight: 'bold' }}
-                 >
-                   <Plus size={18} /> AJOUTER UNE CONDITION PERSONNALISÉE
+                 
+                 <button className="btn btn-ghost" style={{ borderStyle: 'dashed', padding: '20px' }} onClick={() => saveRule({ type: 'PREPAID', operator: 'ALL', threshold: 30, intervalMin: 60, severity: 'critical', sound: 'alarm-1', enabled: true })}>
+                   <Plus size={16} /> Créer une nouvelle règle métier
                  </button>
                </div>
             </div>
-            <div style={{ padding: '20px 30px', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
-               <button className="btn-premium" onClick={() => setShowRules(false)} style={{ padding: '10px 40px' }}>FERMER ET APPLIQUER</button>
+            
+            <div style={{ padding: '24px', borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+               <button className="btn btn-primary" onClick={() => setShowRules(false)} style={{ padding: '12px 32px' }}>Sauvegarder la configuration</button>
             </div>
           </div>
         </div>

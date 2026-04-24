@@ -4,6 +4,7 @@ import {
   Thermometer, Droplets, Zap, Server, AlertTriangle, CheckCircle,
   Layers, Eye, EyeOff, ChevronRight, X, Activity, Wind, Cpu,
   HardDrive, Wifi, Battery, RefreshCw, Maximize2, Edit2, Save, Move,
+  WifiOff, Camera, Shield, RotateCcw, Clock, Play, Pause,
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -65,6 +66,50 @@ const SENSORS_DEF = [
   { id: 's8', x: 620, y: 490, label: 'T° CRAC-2', zone: 'crac' },
 ];
 
+// ─── Sécurité physique ───────────────────────────────────────────────────────
+
+const SECURITY_DEF = [
+  { id: 'ext-1', type: 'extincteur', x: 65,  y: 100, label: 'Extincteur CO₂' },
+  { id: 'ext-2', type: 'extincteur', x: 65,  y: 580, label: 'Extincteur CO₂' },
+  { id: 'ext-3', type: 'extincteur', x: 550, y: 100, label: 'Extincteur poudre' },
+  { id: 'cam-1', type: 'camera',     x: 45,  y: 75,  label: 'Caméra NE', angle: 45 },
+  { id: 'cam-2', type: 'camera',     x: 780, y: 75,  label: 'Caméra NO', angle: 135 },
+  { id: 'cam-3', type: 'camera',     x: 45,  y: 610, label: 'Caméra SE', angle: -45 },
+  { id: 'cam-4', type: 'camera',     x: 780, y: 610, label: 'Caméra SO', angle: -135 },
+  { id: 'smoke-1', type: 'fumee',    x: 200, y: 75,  label: 'Détect. fumée VESDA' },
+  { id: 'smoke-2', type: 'fumee',    x: 400, y: 75,  label: 'Détect. fumée VESDA' },
+  { id: 'smoke-3', type: 'fumee',    x: 200, y: 615, label: 'Détect. fumée VESDA' },
+  { id: 'badge-1', type: 'badge',    x: 335, y: 620, label: 'Lecteur badge entrée', angle: 0 },
+  { id: 'bris-1', type: 'bris',      x: 40,  y: 340, label: 'Bris de vitre urgence' },
+];
+
+// ─── Liens réseau entre racks ────────────────────────────────────────────────
+
+const NETWORK_LINKS = [
+  { from: { x: 180, y: 207 }, to: { x: 180, y: 440 }, label: '10G', type: 'fiber' },
+  { from: { x: 130, y: 207 }, to: { x: 310, y: 207 }, label: '10G', type: 'fiber' },
+  { from: { x: 310, y: 207 }, to: { x: 425, y: 207 }, label: '1G',  type: 'copper' },
+  { from: { x: 310, y: 207 }, to: { x: 570, y: 310 }, label: '10G', type: 'fiber' },
+  { from: { x: 245, y: 440 }, to: { x: 310, y: 207 }, label: '10G', type: 'fiber' },
+  { from: { x: 130, y: 207 }, to: { x: 570, y: 310 }, label: '1G',  type: 'copper' },
+];
+
+// ─── Zones redondance (UPS domains, clusters vSphere) ────────────────────────
+
+const REDUNDANCY_ZONES = [
+  { id: 'ups-a', label: 'UPS A — Domaine prod', x: 72, y: 145, w: 265, h: 120, color: '#10B981', type: 'ups' },
+  { id: 'ups-b', label: 'UPS B — Domaine backup', x: 72, y: 430, w: 265, h: 110, color: '#F59E0B', type: 'ups' },
+  { id: 'cl-prod',   label: 'Cluster Production', x: 74, y: 147, w: 160, h: 116, color: '#4F8EF7', type: 'cluster' },
+  { id: 'cl-backup', label: 'Cluster Backup/DMZ',  x: 74, y: 432, w: 106, h: 106, color: '#A855F7', type: 'cluster' },
+];
+
+// ─── Densité énergétique par rack (kW simulé) ─────────────────────────────────
+
+const RACK_POWER_KW = {
+  'rack-a': 8.2, 'rack-a2': 6.5, 'rack-a3': 2.1, 'rack-a4': 0.5,
+  'rack-b': 5.8, 'rack-b2': 3.4, 'rack-b3': 0.3,
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function tempToColor(t) {
@@ -119,7 +164,17 @@ export default function RoomMap() {
   const [layers, setLayers] = useState({
     racks: true, power: true, cooling: true, sensors: true,
     heatmap: false, alerts: true, network: false, airflow: false,
+    security: false, energy: false, incidents: false, redundancy: false,
   });
+
+  // ── Mode offline ────────────────────────────────────────────────────────────
+  const [isOffline,    setIsOffline]    = useState(false);
+
+  // ── Replay historique heatmap (24 snapshots simulés) ───────────────────────
+  const [replayMode,   setReplayMode]   = useState(false);
+  const [replayIndex,  setReplayIndex]  = useState(0);
+  const [replayHistory, setReplayHistory] = useState([]);
+  const replayTimerRef = useRef(null);
   const [zoom, setZoom]   = useState(1);
   const [pan,  setPan]    = useState({ x: 0, y: 0 });
   const [alertSidebar, setAlertSidebar] = useState(false);
@@ -131,6 +186,19 @@ export default function RoomMap() {
   const [editRacks, setEditRacks] = useState(RACKS_DEF.map(r => ({ ...r })));
   const [saveStatus, setSaveStatus] = useState(null); // 'saving'|'saved'|'error'|null
 
+  // Génère 24 snapshots simulés de l'historique thermique (dernières 24h)
+  function buildReplayHistory(baseSensors) {
+    return Array.from({ length: 24 }, (_, i) => {
+      const hoursAgo = 23 - i;
+      const peakFactor = hoursAgo >= 9 && hoursAgo <= 18 ? 1.0 : 0.75;
+      return baseSensors.map(s => ({
+        ...s,
+        tempC: +(((s.tempC || 22) * peakFactor) + (Math.random() - 0.5) * 1.5).toFixed(1),
+        humidity: +((s.humidity || 47) + (Math.random() - 0.5) * 3).toFixed(0),
+      }));
+    });
+  }
+
   const fetchAll = useCallback(async () => {
     try {
       const [envData, snmp, redfish, cls, alts] = await Promise.allSettled([
@@ -140,9 +208,13 @@ export default function RoomMap() {
         api.getClusters(),
         api.getActiveAlerts(),
       ]);
+      const allFailed = [envData, snmp, redfish, cls, alts].every(r => r.status === 'rejected');
+      setIsOffline(allFailed);
       if (envData.status === 'fulfilled') {
-        setSensors(envData.value.sensors || []);
+        const sens = envData.value.sensors || [];
+        setSensors(sens);
         setCrac(envData.value.crac || []);
+        if (!replayHistory.length) setReplayHistory(buildReplayHistory(sens));
       }
       if (snmp.status    === 'fulfilled') setSnmpData(snmp.value);
       if (redfish.status === 'fulfilled') setRedfishData(redfish.value);
@@ -150,8 +222,8 @@ export default function RoomMap() {
       if (alts.status    === 'fulfilled') setActiveAlerts(alts.value);
       setLastUpdate(new Date());
       setLoading(false);
-    } catch {}
-  }, []);
+    } catch { setIsOffline(true); }
+  }, [replayHistory.length]);
 
   // Load saved layout from server
   useEffect(() => {
@@ -165,6 +237,21 @@ export default function RoomMap() {
     const iv = setInterval(fetchAll, 15000);
     return () => clearInterval(iv);
   }, [fetchAll]);
+
+  // Replay auto-advance
+  useEffect(() => {
+    if (replayMode) {
+      replayTimerRef.current = setInterval(() => {
+        setReplayIndex(i => {
+          if (i >= 23) { setReplayMode(false); return 23; }
+          return i + 1;
+        });
+      }, 800);
+    } else {
+      clearInterval(replayTimerRef.current);
+    }
+    return () => clearInterval(replayTimerRef.current);
+  }, [replayMode]);
 
   // ── Zoom level sémantique ──────────────────────────────────────────────────
   // overview (<0.7): blocs colorés simples
@@ -277,6 +364,11 @@ export default function RoomMap() {
     };
   }
 
+  // Capteurs actifs (replay ou live)
+  const activeSensors = (replayMode || replayIndex < 23) && replayHistory[replayIndex]
+    ? replayHistory[replayIndex]
+    : sensors;
+
   // ── KPIs globaux ──────────────────────────────────────────────────────────
   const totalCPU  = clusters.reduce((s, c) => s + (c.cpu?.total || 0), 0);
   const usedCPU   = clusters.reduce((s, c) => s + (c.cpu?.used  || 0), 0);
@@ -284,25 +376,51 @@ export default function RoomMap() {
   const totalRAM  = clusters.reduce((s, c) => s + (c.ram?.totalGB || 0), 0);
   const usedRAM   = clusters.reduce((s, c) => s + (c.ram?.usedGB  || 0), 0);
   const ramPct    = totalRAM > 0 ? Math.round(usedRAM / totalRAM * 100) : 0;
-  const avgTempC  = sensors.length ? +(sensors.reduce((s, x) => s + (x.tempC || 22), 0) / sensors.length).toFixed(1) : 22.0;
-  const avgHum    = sensors.length ? Math.round(sensors.reduce((s, x) => s + (x.humidity || 47), 0) / sensors.length) : 47;
+  const avgTempC  = activeSensors.length ? +(activeSensors.reduce((s, x) => s + (x.tempC || 22), 0) / activeSensors.length).toFixed(1) : 22.0;
+  const avgHum    = activeSensors.length ? Math.round(activeSensors.reduce((s, x) => s + (x.humidity || 47), 0) / activeSensors.length) : 47;
   const upsInfo   = getUPSInfo();
   const critCount = activeAlerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'DISASTER').length;
   const warnCount = activeAlerts.filter(a => a.severity === 'WARNING').length;
 
-  // ── Heatmap grid ──────────────────────────────────────────────────────────
+  // ── Heatmap thermique IDW ──────────────────────────────────────────────────
   const heatmapCells = [];
-  if (layers.heatmap && sensors.length > 0) {
+  if (layers.heatmap && activeSensors.length > 0) {
     const cellW = 50, cellH = 40;
     for (let gy = 0; gy < 16; gy++) {
       for (let gx = 0; gx < 18; gx++) {
         const px = ROOM.x + gx * cellW + cellW / 2;
         const py = ROOM.y + gy * cellH + cellH / 2;
         if (px > ROOM.x + ROOM.w || py > ROOM.y + ROOM.h) continue;
-        const t   = interpolateTemp(px, py, sensors);
+        const t   = interpolateTemp(px, py, activeSensors);
         heatmapCells.push({ x: ROOM.x + gx * cellW, y: ROOM.y + gy * cellH, w: cellW, h: cellH, color: tempToColor(t), temp: t });
       }
     }
+  }
+
+  // ── Heatmap énergétique (densité W/m²) ──────────────────────────────────
+  const energyCells = [];
+  if (layers.energy) {
+    displayRacks.forEach(rack => {
+      const kw = RACK_POWER_KW[rack.id] || 1.0;
+      const maxKw = 10;
+      const intensity = Math.min(1, kw / maxKw);
+      const r = Math.round(255 * intensity);
+      const g = Math.round(255 * (1 - intensity * 0.8));
+      energyCells.push({ x: rack.x, y: rack.y, w: rack.w, h: rack.h, color: `rgb(${r},${g},40)`, kw });
+    });
+  }
+
+  // ── Heatmap incidents (densité alertes par zone) ──────────────────────────
+  const incidentCells = [];
+  if (layers.incidents && activeAlerts.length > 0) {
+    displayRacks.forEach(rack => {
+      const count = activeAlerts.filter(a =>
+        rack.equipment.some(e => a.sourceId?.toLowerCase().includes(e.split('-')[0].toLowerCase()))
+      ).length;
+      if (count === 0) return;
+      const alpha = Math.min(0.7, 0.2 + count * 0.15);
+      incidentCells.push({ x: rack.x, y: rack.y, w: rack.w, h: rack.h, count, alpha });
+    });
   }
 
   // ── Particules flux d'air ─────────────────────────────────────────────────
@@ -398,6 +516,21 @@ export default function RoomMap() {
         </div>
       </div>
 
+      {/* ── BANDEAU MODE OFFLINE ──────────────────────────────────────────── */}
+      {isOffline && (
+        <div style={{
+          background: '#7C3AED', color: 'white', padding: '6px 16px',
+          display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexShrink: 0,
+          borderBottom: '1px solid #6D28D9',
+        }}>
+          <WifiOff size={14} />
+          <strong>MODE HORS LIGNE</strong> — Impossible de joindre le backend. Les données affichées sont le dernier état connu.
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto', color: 'white' }} onClick={fetchAll}>
+            <RefreshCw size={12} /> Réessayer
+          </button>
+        </div>
+      )}
+
       {/* ── CONTENU PRINCIPAL ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
 
@@ -408,14 +541,18 @@ export default function RoomMap() {
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4 }}>COUCHES</div>
           {Object.entries({
-            racks:   'Racks & serveurs',
-            power:   'Alimentation (UPS/PDU)',
-            cooling: 'Refroidissement (CRAC)',
-            sensors: 'Capteurs T°/HR',
-            heatmap: '🌡 Carte thermique',
-            airflow: '💨 Flux d\'air',
-            alerts:  'Indicateurs alertes',
-            network: 'Liens réseau',
+            racks:      'Racks & serveurs',
+            power:      'Alimentation (UPS/PDU)',
+            cooling:    'Refroidissement (CRAC)',
+            sensors:    'Capteurs T°/HR',
+            heatmap:    '🌡 Thermique IDW',
+            energy:     '⚡ Densité énergie',
+            incidents:  '🔴 Heatmap incidents',
+            airflow:    '💨 Flux d\'air',
+            security:   '🔒 Sécurité physique',
+            redundancy: '♻ Zones redondance',
+            alerts:     'Indicateurs alertes',
+            network:    'Topologie réseau',
           }).map(([key, label]) => (
             <label key={key} style={{
               display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
@@ -492,6 +629,26 @@ export default function RoomMap() {
               </div>
             </div>
           )}
+
+          {/* Replay historique */}
+          {replayHistory.length > 0 && (
+            <div style={{ marginTop: 8, padding: '8px', borderRadius: 4,
+              background: 'rgba(79,142,247,0.08)', border: '1px solid rgba(79,142,247,0.2)', fontSize: 10 }}>
+              <div style={{ color: 'var(--accent)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span><Clock size={10} style={{ marginRight: 4 }} />REPLAY 24H</span>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 0 }}
+                  onClick={() => setReplayMode(m => !m)}>
+                  {replayMode ? <Pause size={11} /> : <Play size={11} />}
+                </button>
+              </div>
+              <input type="range" min="0" max="23" value={replayIndex}
+                onChange={e => { setReplayIndex(+e.target.value); setReplayMode(false); }}
+                style={{ width: '100%', accentColor: 'var(--accent)', marginBottom: 4 }} />
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                {replayIndex === 23 ? 'Maintenant' : `Il y a ${23 - replayIndex}h`}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── CANVAS SVG ──────────────────────────────────────────────────── */}
@@ -555,10 +712,51 @@ export default function RoomMap() {
                 </>
               )}
 
-              {/* ── Heatmap thermique ──────────────────────────────────── */}
+              {/* ── Heatmap thermique IDW ──────────────────────────────── */}
               {layers.heatmap && heatmapCells.map((cell, i) => (
                 <rect key={i} x={cell.x} y={cell.y} width={cell.w} height={cell.h}
                   fill={cell.color} opacity="0.25" />
+              ))}
+
+              {/* ── Heatmap énergétique ───────────────────────────────── */}
+              {layers.energy && energyCells.map((cell, i) => (
+                <g key={i}>
+                  <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h}
+                    fill={cell.color} opacity="0.35" rx="3" />
+                  {zoomLevel !== 'overview' && (
+                    <text x={cell.x + cell.w / 2} y={cell.y + cell.h - 6}
+                      textAnchor="middle" fill="white" fontSize="8" fontWeight="700">
+                      {cell.kw} kW
+                    </text>
+                  )}
+                </g>
+              ))}
+
+              {/* ── Heatmap incidents ─────────────────────────────────── */}
+              {layers.incidents && incidentCells.map((cell, i) => (
+                <g key={i}>
+                  <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h}
+                    fill="#DC2626" opacity={cell.alpha} rx="3" />
+                  <text x={cell.x + cell.w / 2} y={cell.y + cell.h / 2 + 4}
+                    textAnchor="middle" fill="white" fontSize="11" fontWeight="700">
+                    {cell.count}
+                  </text>
+                </g>
+              ))}
+
+              {/* ── Zones de redondance ───────────────────────────────── */}
+              {layers.redundancy && REDUNDANCY_ZONES.map(z => (
+                <g key={z.id}>
+                  <rect x={z.x} y={z.y} width={z.w} height={z.h}
+                    fill="none" stroke={z.color} strokeWidth="1.5"
+                    strokeDasharray={z.type === 'cluster' ? '6,3' : '12,4'}
+                    rx="6" opacity="0.7" />
+                  {zoomLevel !== 'overview' && (
+                    <text x={z.x + 6} y={z.y + 13} fill={z.color} fontSize="8" fontWeight="600">
+                      {z.label}
+                    </text>
+                  )}
+                </g>
               ))}
 
               {/* ── Animation flux d'air ───────────────────────────────── */}
@@ -771,13 +969,81 @@ export default function RoomMap() {
                 );
               })}
 
-              {/* ── Liens réseau ───────────────────────────────────────── */}
+              {/* ── Topologie réseau superposée ───────────────────────── */}
               {layers.network && (
-                <g opacity="0.5">
-                  <line x1={130} y1={207} x2={130} y2={535} stroke="#06B6D4" strokeWidth="1.5" strokeDasharray="4,3" />
-                  <line x1={245} y1={207} x2={245} y2={535} stroke="#06B6D4" strokeWidth="1" strokeDasharray="4,3" />
+                <g>
+                  {NETWORK_LINKS.map((link, i) => (
+                    <g key={i}>
+                      <line
+                        x1={link.from.x} y1={link.from.y}
+                        x2={link.to.x}   y2={link.to.y}
+                        stroke={link.type === 'fiber' ? '#06B6D4' : '#F59E0B'}
+                        strokeWidth={link.type === 'fiber' ? 2 : 1.5}
+                        strokeDasharray={link.type === 'copper' ? '4,3' : undefined}
+                        opacity="0.7"
+                      />
+                      {zoomLevel !== 'overview' && (
+                        <text
+                          x={(link.from.x + link.to.x) / 2 + 4}
+                          y={(link.from.y + link.to.y) / 2}
+                          fill={link.type === 'fiber' ? '#06B6D4' : '#F59E0B'}
+                          fontSize="7" fontWeight="600">
+                          {link.label}
+                        </text>
+                      )}
+                    </g>
+                  ))}
                 </g>
               )}
+
+              {/* ── Sécurité physique ─────────────────────────────────── */}
+              {layers.security && SECURITY_DEF.map(s => (
+                <g key={s.id} style={{ cursor: 'help' }}
+                  onMouseEnter={e => {
+                    const r = e.currentTarget.getBoundingClientRect();
+                    setTooltip({ type: 'security', data: s, x: r.left + 10, y: r.top });
+                  }}
+                  onMouseLeave={() => setTooltip(null)}>
+                  {s.type === 'extincteur' && (
+                    <>
+                      <circle cx={s.x} cy={s.y} r={7} fill="#DC2626" opacity="0.85" />
+                      <text x={s.x} y={s.y + 4} textAnchor="middle" fill="white" fontSize="8" fontWeight="700">E</text>
+                    </>
+                  )}
+                  {s.type === 'camera' && (
+                    <>
+                      <polygon
+                        points={`${s.x},${s.y - 6} ${s.x - 5},${s.y + 5} ${s.x + 5},${s.y + 5}`}
+                        fill="#3B82F6" opacity="0.85"
+                        transform={`rotate(${s.angle || 0}, ${s.x}, ${s.y})`}
+                      />
+                      <circle cx={s.x} cy={s.y} r={2} fill="white" opacity="0.9" />
+                    </>
+                  )}
+                  {s.type === 'fumee' && (
+                    <>
+                      <circle cx={s.x} cy={s.y} r={6} fill="#A855F7" opacity="0.85" />
+                      <text x={s.x} y={s.y + 4} textAnchor="middle" fill="white" fontSize="7" fontWeight="700">S</text>
+                    </>
+                  )}
+                  {s.type === 'badge' && (
+                    <>
+                      <rect x={s.x - 6} y={s.y - 6} width={12} height={10}
+                        fill="#10B981" rx="2" opacity="0.85" />
+                      <text x={s.x} y={s.y + 1} textAnchor="middle" fill="white" fontSize="6" fontWeight="700">B</text>
+                    </>
+                  )}
+                  {s.type === 'bris' && (
+                    <>
+                      <polygon
+                        points={`${s.x},${s.y - 8} ${s.x + 8},${s.y + 6} ${s.x - 8},${s.y + 6}`}
+                        fill="#EF4444" stroke="#FCA5A5" strokeWidth="1" opacity="0.9"
+                      />
+                      <text x={s.x} y={s.y + 4} textAnchor="middle" fill="white" fontSize="7" fontWeight="800">!</text>
+                    </>
+                  )}
+                </g>
+              ))}
 
               {/* ── Légende échelle ────────────────────────────────────── */}
               <g>
@@ -789,6 +1055,29 @@ export default function RoomMap() {
 
             </g>
           </svg>
+
+          {/* ── Mini-carte (overview corner) ─────────────────────────── */}
+          <MiniMap
+            zoom={zoom} pan={pan}
+            racks={displayRacks}
+            activeAlerts={activeAlerts}
+            sensors={activeSensors}
+            onNavigate={(nx, ny) => setPan({ x: nx, y: ny })}
+          />
+
+          {/* ── Bandeau replay ───────────────────────────────────────── */}
+          {(replayMode || replayIndex < 23) && (
+            <div style={{
+              position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(79,142,247,0.9)', color: 'white', borderRadius: 20,
+              padding: '4px 14px', fontSize: 11, fontWeight: 600, zIndex: 10,
+              display: 'flex', alignItems: 'center', gap: 6, pointerEvents: 'none',
+            }}>
+              <Clock size={11} />
+              {replayIndex === 23 ? 'Maintenant (live)' : `📽 Replay — Il y a ${23 - replayIndex}h`}
+              {replayMode && <span style={{ animation: 'pulse 1s infinite' }}>▶</span>}
+            </div>
+          )}
 
           {/* ── Tooltip flottant ──────────────────────────────────────── */}
           {tooltip && (
@@ -817,6 +1106,13 @@ export default function RoomMap() {
                   <div style={{ color: STATUS_COLOR[tooltip.data.status] || STATUS_COLOR.ok }}>
                     {tooltip.data.status === 'ok' ? 'Normal' : 'Attention'}
                   </div>
+                </>
+              )}
+              {tooltip.type === 'security' && (
+                <>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{tooltip.data.label}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>Type: {tooltip.data.type}</div>
+                  <div style={{ color: '#10B981', fontSize: 10, marginTop: 2 }}>✓ Opérationnel</div>
                 </>
               )}
               {tooltip.type === 'equip' && (
@@ -891,6 +1187,68 @@ export default function RoomMap() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Mini-carte (overview corner map) ────────────────────────────────────────
+
+function MiniMap({ zoom, pan, racks, activeAlerts, sensors, onNavigate }) {
+  const W = 160, H = 100;
+  const SCALE_X = W / 1100, SCALE_Y = H / 680;
+
+  // Viewport rectangle dans la mini-carte
+  const vpW  = Math.min(W, W / zoom);
+  const vpH  = Math.min(H, H / zoom);
+  const vpX  = Math.max(0, Math.min(W - vpW, -pan.x * SCALE_X));
+  const vpY  = Math.max(0, Math.min(H - vpH, -pan.y * SCALE_Y));
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 12, right: 12, zIndex: 50,
+      background: 'rgba(10,12,16,0.9)', border: '1px solid var(--border)',
+      borderRadius: 6, overflow: 'hidden',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+    }}>
+      <div style={{ padding: '3px 8px', borderBottom: '1px solid var(--border)',
+        fontSize: 9, color: 'var(--text-muted)', fontWeight: 600 }}>
+        VUE D'ENSEMBLE
+      </div>
+      <svg width={W} height={H} style={{ display: 'block' }}>
+        {/* Salle */}
+        <rect x={ROOM.x * SCALE_X} y={ROOM.y * SCALE_Y}
+          width={ROOM.w * SCALE_X} height={ROOM.h * SCALE_Y}
+          fill="rgba(15,20,30,0.8)" stroke="#2a4060" strokeWidth="0.5" />
+
+        {/* Racks */}
+        {racks.map(rack => {
+          const alerts = activeAlerts.filter(a =>
+            rack.equipment.some(e => a.sourceId?.toLowerCase().includes(e.split('-')[0].toLowerCase()))
+          );
+          const color = alerts.length > 0 ? '#EA580C' : rack.equipment.length > 0 ? '#10B981' : '#374151';
+          return (
+            <rect key={rack.id}
+              x={rack.x * SCALE_X} y={rack.y * SCALE_Y}
+              width={rack.w * SCALE_X} height={rack.h * SCALE_Y}
+              fill={color} opacity="0.75" rx="0.5" />
+          );
+        })}
+
+        {/* Capteurs */}
+        {sensors.slice(0, 8).map((s, i) => {
+          const sd = SENSORS_DEF[i];
+          if (!sd) return null;
+          return (
+            <circle key={i}
+              cx={sd.x * SCALE_X} cy={sd.y * SCALE_Y}
+              r={2} fill={s.tempC ? tempToColor(s.tempC) : '#6B7280'} opacity="0.9" />
+          );
+        })}
+
+        {/* Viewport rectangle */}
+        <rect x={vpX} y={vpY} width={vpW} height={vpH}
+          fill="none" stroke="#4F8EF7" strokeWidth="1" opacity="0.7" />
+      </svg>
     </div>
   );
 }

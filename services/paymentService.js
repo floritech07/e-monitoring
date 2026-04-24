@@ -95,8 +95,15 @@ async function evaluateTransactions() {
          : await getPostpaidStats(op, rule.intervalMin || 60);
 
       const { current_count, previous_count } = stats;
+
+      // Rule check: Percentage drop
       if (previous_count >= 10 && current_count < previous_count * (1 - (rule.threshold || 30) / 100)) {
          checkAndAlert(rule.type, op, stats, rule);
+      }
+
+      // Rule check: Inactivity (if current_count is 0 in the period)
+      if (rule.checkInactivity && current_count === 0) {
+        triggerInactivityAlert(rule.type, op, rule);
       }
     }
   }
@@ -111,9 +118,23 @@ function checkAndAlert(type, operator, stats, rule) {
   alertsService.addExternalAlert({
     level: severity, severity: severity, category: 'payment',
     message: `Baisse de ${drop}% des transactions ${type} pour ${operator} (Seuil: ${rule.threshold}%, Actuel: ${current_count}, Précédent: ${previous_count})`,
-    source: `${type}_${operator}`, ruleId: `payment_drop_${type}_${operator}`
+    source: `${type}_${operator}`, 
+    ruleId: `payment_drop_${type}_${operator}`,
+    sound: rule.sound || 'alarm-1'
   });
   activityService.log(severity === 'critical' ? 'error' : 'warning', `Alerte baisse transactions: ${type} ${operator} (-${drop}%)`, 'Payment Monitor');
+}
+
+function triggerInactivityAlert(type, operator, rule) {
+  const severity = rule.severity || 'critical';
+  alertsService.addExternalAlert({
+    level: severity, severity: severity, category: 'payment',
+    message: `Inactivité totale détectée pour ${operator} (${type}) depuis ${rule.intervalMin} minutes`,
+    source: `${type}_${operator}`, 
+    ruleId: `payment_inactive_${type}_${operator}`,
+    sound: rule.sound || 'alarm-critical'
+  });
+  activityService.log(severity === 'critical' ? 'error' : 'warning', `Inactivité détectée: ${type} ${operator}`, 'Payment Monitor');
 }
 
 async function getTrends(intervalMinutes = 60) {

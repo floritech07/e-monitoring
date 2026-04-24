@@ -139,6 +139,46 @@ async function sendWhatsApp({ to, message }) {
           catch (_) { resolve({ ok: false, reason: data }); }
         });
       });
+      req.end();
+    });
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+}
+
+// ── Canal Appel Vocal (TTS) — Africa's Talking ────────────────────────────────
+
+async function sendVoiceCall({ to }) {
+  try {
+    const apiKey  = process.env.AT_API_KEY;
+    const user    = process.env.AT_USERNAME;
+    const from    = process.env.AT_VOICE_PHONE; // Doit être un numéro virtuel AT
+    if (!apiKey || !user || !from) return { ok: false, reason: "Africa's Talking Voice non configuré (AT_VOICE_PHONE manquant)" };
+
+    const https = require('https');
+    const qs    = require('querystring');
+    const body  = qs.stringify({ username: user, to: Array.isArray(to) ? to.join(',') : to, from });
+    const isSandbox = process.env.AT_ENV === 'sandbox';
+    const host  = isSandbox ? 'voice.sandbox.africastalking.com' : 'voice.africastalking.com';
+
+    return new Promise((resolve) => {
+      const req = https.request({
+        hostname: host,
+        path:     '/call',
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json', 'apiKey': apiKey },
+      }, (res) => {
+        let data = '';
+        res.on('data', (c) => data += c);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve({ ok: !json.errorMessage, raw: json });
+          } catch (_) {
+            resolve({ ok: false, reason: data });
+          }
+        });
+      });
       req.on('error', (e) => resolve({ ok: false, reason: e.message }));
       req.write(body);
       req.end();
@@ -196,6 +236,7 @@ class NotificationService extends EventEmitter {
       sms:      !!(process.env.AT_API_KEY && process.env.AT_USERNAME),
       telegram: !!process.env.TELEGRAM_BOT_TOKEN,
       whatsapp: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+      voice:    !!(process.env.AT_API_KEY && process.env.AT_USERNAME && process.env.AT_VOICE_PHONE),
     };
   }
 
@@ -240,6 +281,15 @@ class NotificationService extends EventEmitter {
       results.whatsapp = { sent: phones.length };
     }
 
+    // Voice Call (TTS) — Disaster uniquement
+    if (this._channels.voice && sev === 'DISASTER' && process.env.ALERT_PHONES) {
+      const to = process.env.ALERT_PHONES.split(',');
+      // L'API Voice AT déclenche l'appel. Le contenu est lu via un webhook callback configuré sur la plateforme AT.
+      const res = await sendVoiceCall({ to });
+      _log('voice', alert, res);
+      results.voice = res;
+    }
+
     this.emit('notified', { alert, results });
     return results;
   }
@@ -252,6 +302,7 @@ class NotificationService extends EventEmitter {
       case 'sms':      return sendSMS({ to: target, message: formatAlertMessage(testAlert, 'sms') });
       case 'telegram': return sendTelegram({ chatId: target, message: formatAlertMessage(testAlert, 'html') });
       case 'whatsapp': return sendWhatsApp({ to: target, message: formatAlertMessage(testAlert, 'text') });
+      case 'voice':    return sendVoiceCall({ to: target });
       default:         return { ok: false, reason: 'Canal inconnu' };
     }
   }
@@ -266,6 +317,7 @@ class NotificationService extends EventEmitter {
       sms:      !!(process.env.AT_API_KEY && process.env.AT_USERNAME),
       telegram: !!process.env.TELEGRAM_BOT_TOKEN,
       whatsapp: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+      voice:    !!(process.env.AT_API_KEY && process.env.AT_USERNAME && process.env.AT_VOICE_PHONE),
     };
   }
 }

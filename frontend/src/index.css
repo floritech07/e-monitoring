@@ -86,6 +86,7 @@ html, body, #root {
   grid-template-rows: var(--header-height) 1fr;
   height: 100vh;
   overflow: hidden;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .app-header {
@@ -139,7 +140,22 @@ html, body, #root {
   50% { opacity: 0.4; }
 }
 
-/* ===== Sidebar ===== */
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 12px 16px 4px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .nav-section-title {
+  opacity: 0;
+  padding: 8px 0;
+}
+
 .sidebar {
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
@@ -148,15 +164,38 @@ html, body, #root {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-section-title {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-muted);
-  padding: 12px 16px 4px;
+.sidebar.collapsed {
+  width: var(--sidebar-width);
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+  border-left-width: 0;
+}
+
+.sidebar.collapsed .nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.sidebar.collapsed .nav-item .badge {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  scale: 0.8;
+}
+
+.label-text {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .nav-item {

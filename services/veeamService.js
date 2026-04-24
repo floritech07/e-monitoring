@@ -338,4 +338,38 @@ function getGFSData() {
   };
 }
 
-module.exports = { getVeeamData, pollVeeam, triggerJobAction, getGFSData };
+// ─── Nouvelles Simulations Veeam ─────────────────────────────────────────────
+
+const SIM_SUREBACKUP = [
+  { job: 'SureBackup-AD', lastRun: '2026-04-22 02:00', result: 'Success', duration: '14 min', vms: 2 },
+  { job: 'SureBackup-Exchange', lastRun: '2026-04-21 03:00', result: 'Success', duration: '22 min', vms: 1 },
+  { job: 'SureBackup-Prod', lastRun: '2026-04-20 04:00', result: 'Warning', duration: '35 min', vms: 3 }
+];
+
+const SIM_REPLICATION = [
+  { src: 'VM-AD-01', srcHost: 'esxi-01', rep: 'VM-AD-01_REP', dstHost: 'esxi-03', lagMin: 3, lastSync: '2026-04-24 08:30', ok: true },
+  { src: 'VM-EXCHANGE', srcHost: 'esxi-01', rep: 'VM-EXCHANGE_REP', dstHost: 'esxi-03', lagMin: 7, lastSync: '2026-04-24 08:25', ok: true }
+];
+
+const SIM_UNPROTECTED_VMS = [
+  { name: 'VM-TEST-SGBD',   host: 'esxi-02-sbee', os: 'Ubuntu 22.04', lastBackupDays: 45, diskGB: 120, vcpu: 4, ramGB: 8 },
+  { name: 'VM-DEV-WEBAPP',  host: 'esxi-01-sbee', os: 'Debian 11',    lastBackupDays: 12, diskGB: 60,  vcpu: 2, ramGB: 4 }
+];
+
+const SIM_OBJECT_STORAGE = {
+  configured: true,
+  repositories: [
+    { name: 'AWS S3 Glacier', type: 'S3', capacityGB: 50000, usedGB: 12000, immutability: true },
+    { name: 'Azure Blob Archive', type: 'Azure Blob', capacityGB: 20000, usedGB: 5000, immutability: false }
+  ]
+};
+
+function getSureBackup() { return SIM_SUREBACKUP; }
+function getReplication() { return SIM_REPLICATION; }
+function getUnprotectedVMs() { return SIM_UNPROTECTED_VMS; }
+function getObjectStorage() { return SIM_OBJECT_STORAGE; }
+
+module.exports = { 
+  getVeeamData, pollVeeam, triggerJobAction, getGFSData,
+  getSureBackup, getReplication, getUnprotectedVMs, getObjectStorage
+};

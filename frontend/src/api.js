@@ -97,6 +97,11 @@ export const api = {
   getHostStorage:      (id)             => req(`/esxi/hosts/${id}/storage`),
   getHostNetwork:      (id)             => req(`/esxi/hosts/${id}/network`),
   getHostPerfHistory:  (id)             => req(`/esxi/hosts/${id}/perf`),
+  getEsxiVSan:         (id)             => req(`/esxi/clusters/${id}/vsan`),
+  getEsxiMultipathing: (id)             => req(`/esxi/hosts/${id}/multipathing`),
+  getEsxiNsx:          ()               => req(`/esxi/nsx`),
+  getEsxiVMotion:      ()               => req(`/esxi/vmotion`),
+  getEsxiDrsHa:        ()               => req(`/esxi/drs-ha`),
   esxiVmAction:        (vmId, action)   => req(`/esxi/vms/${vmId}/action`, { method: 'POST', body: JSON.stringify({ action }) }),
 
   // Services Map
@@ -118,6 +123,7 @@ export const api = {
   // Logs Syslog
   getLogs:             (params = {})    => req(`/logs?${new URLSearchParams(params).toString()}`),
   getLogStats:         ()               => req('/logs/stats'),
+  getGeoIp:            (ip)             => req(`/logs/geoip?ip=${encodeURIComponent(ip)}`),
 
   // Alert Engine v2
   getActiveAlerts:     ()               => req('/alerts/active'),
@@ -187,6 +193,10 @@ export const api = {
 
   // Veeam GFS + Immutabilité
   getVeeamGFS:        ()           => req('/veeam/gfs'),
+  getVeeamSureBackup: ()           => req('/veeam/surebackup'),
+  getVeeamReplication:()           => req('/veeam/replication'),
+  getVeeamUnprotected:()           => req('/veeam/unprotected-vms'),
+  getVeeamObjectStorage:()         => req('/veeam/object-storage'),
 
   // Room Map layout (éditeur admin)
   getRoomLayout:      ()           => req('/room/layout'),
@@ -207,4 +217,9 @@ export const api = {
   getEnvBMSBatteries: ()           => req('/environment/bms/batteries'),
   getEnvWUE:          ()           => req('/environment/wue'),
   getEnvCRACDetail:   ()           => req('/environment/crac/detail'),
+
+  // SNMP additionnel
+  getSnmpDiscovery:    ()           => req('/snmp/discovery'),
+  getSnmpVpn:          ()           => req('/snmp/vpn'),
+  getSnmpWan:          ()           => req('/snmp/wan'),
 };

@@ -166,8 +166,8 @@ function saveVeeamConfig(cfg) {
 const PAYMENT_RULES_FILE = 'payment_rules.json';
 
 const DEFAULT_PAYMENT_RULES = [
-  { id: 'prepaid_drop',  type: 'PREPAID',  operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical' },
-  { id: 'postpaid_drop', type: 'POSTPAID', operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical' }
+  { id: 'prepaid_drop',  type: 'PREPAID',  operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical', sound: 'alarm-1' },
+  { id: 'postpaid_drop', type: 'POSTPAID', operator: 'ALL',  threshold: 30,  intervalMin: 60,  enabled: true,  severity: 'critical', sound: 'alarm-2' }
 ];
 
 function getPaymentRules() {

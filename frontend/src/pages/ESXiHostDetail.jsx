@@ -5,7 +5,8 @@ import {
   Camera, ChevronLeft, Cpu, MemoryStick, Database, Wifi,
   AlertTriangle, CheckCircle, Clock, Search, RefreshCw,
   Activity, Layers, ArrowLeft, Shuffle, BarChart2, BookOpen,
-  ShieldCheck, ArrowRightLeft, Wrench, FileText as FileDoc
+  ShieldCheck, ArrowRightLeft, Wrench, FileText as FileDoc,
+  Link, Cloud
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -17,8 +18,11 @@ const TABS = [
   { id: 'perf',    label: 'Performances',         icon: Activity },
   { id: 'storage', label: 'Stockage',             icon: HardDrive },
   { id: 'network', label: 'Réseau',               icon: Network },
+  { id: 'vsan',    label: 'vSAN',                 icon: Database },
   { id: 'vmotion', label: 'vMotion',              icon: Shuffle },
   { id: 'drs',     label: 'DRS / HA',             icon: BarChart2 },
+  { id: 'multipathing', label: 'Multipathing',    icon: Link },
+  { id: 'nsx',     label: 'NSX-T',                icon: Cloud },
   { id: 'docs',    label: 'Documentation',        icon: BookOpen },
 ];
 
@@ -132,7 +136,7 @@ function VMsTab({ hostId }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['VM', 'Système', 'État', 'IP', 'vCPU', 'vRAM', 'Snapshots', 'Actions'].map(h => (
+                {['VM', 'Système', 'État', 'vCPU', 'CPU Ready', 'vRAM', 'Snapshots', 'Actions'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
@@ -162,12 +166,19 @@ function VMsTab({ hostId }) {
                       {vm.state === 'on' ? '● ACTIF' : '○ ARRÊTÉ'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)' }}>{vm.ip}</td>
                   <td style={{ padding: '10px 12px', minWidth: 120 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ minWidth: 36, color: 'var(--text-primary)', fontWeight: 600 }}>{vm.cpu.usage}%</span>
                       <UsageBar value={vm.cpu.usage} />
                     </div>
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <span style={{ 
+                      fontSize: 12, fontWeight: 700, 
+                      color: vm.cpu.readyPct > 5 ? '#ef4444' : vm.cpu.readyPct > 2 ? '#f5a623' : '#10b981' 
+                    }}>
+                      {vm.cpu.readyPct}%
+                    </span>
                   </td>
                   <td style={{ padding: '10px 12px', minWidth: 120 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -467,20 +478,22 @@ function NetworkTab({ hostId }) {
 
 // ─── Tab: vMotion ─────────────────────────────────────────────────────────────
 
-const VMOTION_SIM = [
-  { id:1, vm:'VM-AD-01',       src:'esxi-01-sbee', dst:'esxi-02-sbee', durationSec:12, reason:'DRS balance',     status:'success', ts:'2026-04-24 08:14' },
-  { id:2, vm:'VM-SGBD-PROD',   src:'esxi-02-sbee', dst:'esxi-01-sbee', durationSec:45, reason:'Maintenance hôte',status:'success', ts:'2026-04-23 22:30' },
-  { id:3, vm:'VM-EXCHANGE',    src:'esxi-01-sbee', dst:'esxi-02-sbee', durationSec:38, reason:'DRS balance',     status:'success', ts:'2026-04-23 18:05' },
-  { id:4, vm:'VM-VEEAM',       src:'esxi-02-sbee', dst:'esxi-01-sbee', durationSec:9,  reason:'DRS balance',     status:'success', ts:'2026-04-22 14:22' },
-  { id:5, vm:'VM-MONITORING',  src:'esxi-03-sbee', dst:'esxi-01-sbee', durationSec:22, reason:'Décharge hôte',  status:'failed',  ts:'2026-04-21 09:40' },
-  { id:6, vm:'VM-PROXY-VEEAM', src:'esxi-01-sbee', dst:'esxi-03-sbee', durationSec:14, reason:'DRS balance',    status:'success', ts:'2026-04-20 03:10' },
-];
-
 function VMotionTab({ hostId }) {
-  const hostMigrations = VMOTION_SIM.filter(m => m.src === hostId || m.dst === hostId);
-  const data = hostMigrations.length > 0 ? hostMigrations : VMOTION_SIM;
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getEsxiVMotion().then(res => {
+      const hostMigrations = res.filter(m => m.src === hostId || m.dst === hostId);
+      setData(hostMigrations.length > 0 ? hostMigrations : res);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [hostId]);
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Chargement vMotion...</div>;
+
   const totalSucc = data.filter(m => m.status === 'success').length;
-  const avgDur    = Math.round(data.reduce((s, m) => s + m.durationSec, 0) / data.length);
+  const avgDur    = data.length > 0 ? Math.round(data.reduce((s, m) => s + m.durationSec, 0) / data.length) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -536,44 +549,35 @@ function VMotionTab({ hostId }) {
 
 // ─── Tab: DRS / HA ────────────────────────────────────────────────────────────
 
-const DRS_CFG = {
-  enabled: true, mode: 'Automatique', target: 'Conservateur (niveau 2)',
-  lastRun: '2026-04-24 08:00', score: 32,
-  recommendations: [
-    { vm: 'VM-EXCHANGE',   from: 'esxi-01-sbee', to: 'esxi-02-sbee', priority: 3, reason: 'Équilibrage CPU (esxi-01: 78%)' },
-    { vm: 'VM-PROXY-VEEAM',from: 'esxi-03-sbee', to: 'esxi-01-sbee', priority: 4, reason: 'Équilibrage RAM (esxi-03: 82%)' },
-  ],
-};
-const HA_CFG = {
-  enabled: true, admissionControl: 'Politique : pourcentage de cluster',
-  failoverCapacityCPU: 25, failoverCapacityRAM: 25,
-  vmsProtected: 12, vmsUnprotected: 0,
-  heartbeatDatastores: ['SAN-HPE-MSA-Datastore01', 'NAS-Synology-NFS01'],
-  isolation: 'Laisser les VMs actives', restartPriority: 'Moyen',
-  hostMonitoring: true, vmMonitoring: 'VM uniquement',
-};
-
 function DRSTab() {
-  const balColor = DRS_CFG.score < 40 ? '#22d3a3' : DRS_CFG.score < 70 ? '#f5a623' : '#f5534b';
+  const [drsData, setDrsData] = useState(null);
+
+  useEffect(() => {
+    api.getEsxiDrsHa().then(setDrsData).catch(() => {});
+  }, []);
+
+  if (!drsData) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Chargement DRS/HA...</div>;
+
+  const { drs: DRS_CFG, ha: HA_CFG } = drsData;
+  const balColor = DRS_CFG.score < 40 ? '#10b981' : DRS_CFG.score < 70 ? '#f5a623' : '#ef4444';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* DRS Card */}
         <div className="card" style={{ padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <BarChart2 size={16} color="var(--accent)" />
             <span style={{ fontWeight: 700, fontSize: 14 }}>DRS — Distributed Resource Scheduler</span>
             <span style={{ marginLeft: 'auto', padding: '2px 10px', borderRadius: 10, fontSize: 10, fontWeight: 700,
               background: DRS_CFG.enabled ? 'rgba(34,211,163,0.12)' : 'rgba(245,83,75,0.12)',
-              color: DRS_CFG.enabled ? '#22d3a3' : '#f5534b' }}>
+              color: DRS_CFG.enabled ? '#10b981' : '#ef4444' }}>
               {DRS_CFG.enabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'}
             </span>
           </div>
           {[
             { label: 'Mode',         value: DRS_CFG.mode },
             { label: 'Niveau cible', value: DRS_CFG.target },
-            { label: 'Dernier passage', value: DRS_CFG.lastRun },
+            { label: 'Dernier passage', value: new Date(DRS_CFG.lastRun).toLocaleTimeString() },
           ].map(r => (
             <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
               <span style={{ color: 'var(--text-muted)' }}>{r.label}</span>
@@ -588,84 +592,199 @@ function DRSTab() {
             <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 8 }}>
               <div style={{ width: `${DRS_CFG.score}%`, height: '100%', background: balColor, borderRadius: 4 }} />
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>0 = cluster parfaitement équilibré</div>
           </div>
         </div>
 
-        {/* HA Card */}
         <div className="card" style={{ padding: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <ShieldCheck size={16} color="#22d3a3" />
+            <ShieldCheck size={16} color="#10b981" />
             <span style={{ fontWeight: 700, fontSize: 14 }}>HA — High Availability</span>
             <span style={{ marginLeft: 'auto', padding: '2px 10px', borderRadius: 10, fontSize: 10, fontWeight: 700,
               background: HA_CFG.enabled ? 'rgba(34,211,163,0.12)' : 'rgba(245,83,75,0.12)',
-              color: HA_CFG.enabled ? '#22d3a3' : '#f5534b' }}>
+              color: HA_CFG.enabled ? '#10b981' : '#ef4444' }}>
               {HA_CFG.enabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'}
             </span>
           </div>
           {[
-            { label: 'Contrôle admission',  value: HA_CFG.admissionControl },
-            { label: 'Réserve CPU failover', value: `${HA_CFG.failoverCapacityCPU}%` },
-            { label: 'Réserve RAM failover', value: `${HA_CFG.failoverCapacityRAM}%` },
-            { label: 'VMs protégées',        value: `${HA_CFG.vmsProtected} / ${HA_CFG.vmsProtected + HA_CFG.vmsUnprotected}` },
-            { label: 'Surveillance hôtes',   value: HA_CFG.hostMonitoring ? 'Activée' : 'Désactivée' },
-            { label: 'Surveillance VMs',     value: HA_CFG.vmMonitoring },
-            { label: 'Réponse isolation',    value: HA_CFG.isolation },
+            { label: 'Admission Control',  value: HA_CFG.admissionControl },
+            { label: 'Failover CPU', value: `${HA_CFG.failoverCapacityCPU}%` },
+            { label: 'Failover RAM', value: `${HA_CFG.failoverCapacityRAM}%` },
+            { label: 'VMs protégées', value: `${HA_CFG.vmsProtected}` },
           ].map(r => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
               <span style={{ color: 'var(--text-muted)' }}>{r.label}</span>
               <span style={{ fontWeight: 600 }}>{r.value}</span>
             </div>
           ))}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* DRS Recommendations */}
-      {DRS_CFG.recommendations.length > 0 && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={13} color="#f5a623" />
-            <span style={{ fontSize: 12, fontWeight: 700 }}>Recommandations DRS en attente ({DRS_CFG.recommendations.length})</span>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
-                {['VM', 'Source → Destination', 'Priorité', 'Raison'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: 'left', color: 'var(--text-muted)', fontSize: 10 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {DRS_CFG.recommendations.map((r, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '9px 14px', fontWeight: 600 }}>{r.vm}</td>
-                  <td style={{ padding: '9px 14px', fontFamily: 'monospace', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{r.from}</span>
-                    <span style={{ color: 'var(--accent)', margin: '0 8px' }}>→</span>
-                    <span style={{ color: 'var(--accent)' }}>{r.to}</span>
-                  </td>
-                  <td style={{ padding: '9px 14px' }}>
-                    {Array.from({length: 5}, (_, j) => (
-                      <span key={j} style={{ color: j < r.priority ? '#f5a623' : 'var(--border)', fontSize: 14 }}>★</span>
-                    ))}
-                  </td>
-                  <td style={{ padding: '9px 14px', color: 'var(--text-muted)', fontSize: 11 }}>{r.reason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+// ─── Tab: vSAN ────────────────────────────────────────────────────────────────
 
-      {/* HA Heartbeat datastores */}
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10, color: 'var(--text-secondary)' }}>Datastores de pulsation HA</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {HA_CFG.heartbeatDatastores.map(ds => (
-            <span key={ds} style={{ padding: '3px 10px', background: 'rgba(34,211,163,0.1)', color: '#22d3a3', borderRadius: 10, fontSize: 11, border: '1px solid rgba(34,211,163,0.3)' }}>
-              <CheckCircle size={10} style={{ marginRight: 5, verticalAlign: 'middle' }} />{ds}
+function VSanTab({ hostId }) {
+  const [vsanData, setVsanData] = useState(null);
+
+  useEffect(() => {
+    api.getEsxiVSan('cl-prod').then(setVsanData).catch(() => {});
+  }, [hostId]);
+
+  if (!vsanData) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Chargement vSAN...</div>;
+
+  const usedPct = Math.round((vsanData.usedGB / vsanData.capacityGB) * 100);
+  const col = usedPct > 85 ? '#ef4444' : usedPct > 70 ? '#f5a623' : '#4f8ef7';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <Database size={16} color="var(--accent)" />
+            <span style={{ fontWeight: 700, fontSize: 14 }}>vSAN Cluster Status</span>
+            <span style={{ marginLeft: 'auto', padding: '2px 10px', borderRadius: 10, fontSize: 10, fontWeight: 700,
+              background: vsanData.health === 'OK' ? 'rgba(34,211,163,0.12)' : 'rgba(245,166,35,0.12)',
+              color: vsanData.health === 'OK' ? '#10b981' : '#f5a623' }}>
+              {vsanData.health}
             </span>
-          ))}
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Utilisation capacité globale</span>
+              <span style={{ fontWeight: 700, color: col }}>{usedPct}%</span>
+            </div>
+            <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 8 }}>
+              <div style={{ width: `${usedPct}%`, height: '100%', background: col, borderRadius: 4 }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+              <span>{fmtBytes(vsanData.usedGB)} utilisé</span>
+              <span>{fmtBytes(vsanData.capacityGB)} total</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, padding: '10px 14px', background: 'var(--bg-hover)', borderRadius: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <span>Ratio Dédoublonnage / Compression</span>
+            <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{vsanData.dedupRatio}</span>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Santé par hôte</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {vsanData.hosts.map(h => (
+              <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-hover)', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Server size={14} color="var(--text-muted)" />
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{h.id}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16, fontSize: 11 }}>
+                  <span>{h.latency}ms lat.</span>
+                  <span>{h.iops} IOPS</span>
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>{h.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab: Multipathing ────────────────────────────────────────────────────────
+
+function MultipathingTab({ hostId }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getEsxiMultipathing(hostId).then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
+  }, [hostId]);
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Chargement Multipathing...</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {data.length === 0 ? (
+        <div className="card" style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)' }}>Aucun stockage externe détecté.</div>
+      ) : (
+        data.map((m, i) => (
+          <div key={i} className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Link size={16} color="var(--accent)" />
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>{m.target}</div>
+              </div>
+              <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: 'rgba(34,211,163,0.1)', color: '#10b981' }}>{m.status}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              <div style={{ background: 'var(--bg-hover)', padding: 12, borderRadius: 8 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Chemins totaux</div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{m.paths}</div>
+              </div>
+              <div style={{ background: 'var(--bg-hover)', padding: 12, borderRadius: 8 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Chemins actifs</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>{m.activePaths}</div>
+              </div>
+              <div style={{ background: 'var(--bg-hover)', padding: 12, borderRadius: 8 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Politique PSP</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{m.policy}</div>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ─── Tab: NSX-T ───────────────────────────────────────────────────────────────
+
+function NSXTab() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    api.getEsxiNsx().then(setData).catch(() => {});
+  }, []);
+
+  if (!data) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Chargement NSX...</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <Cloud size={18} color="var(--accent)" />
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Réseau Logique NSX-T</h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ background: 'var(--bg-hover)', padding: 15, borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent)' }}>{data.logicalSwitches}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Segments logiques</div>
+            </div>
+            <div style={{ background: 'var(--bg-hover)', padding: 15, borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#10b981' }}>{data.distributedRouters}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Routeurs distribués</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16 }}>NSX Edges (Gateways)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {data.edges.map(e => (
+              <div key={e.id} style={{ padding: 12, background: 'var(--bg-hover)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 700, fontSize: 12 }}>{e.id}</span>
+                  <span style={{ fontSize: 10, color: '#10b981' }}>{e.status}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
+                  <span>{e.tunnels} Tunnels Geneve</span>
+                  <span>{e.throughputMbps} Mbps</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -678,79 +797,34 @@ function DocsTab({ host }) {
   const specs = [
     { label: 'Fabricant',         value: 'Hewlett Packard Enterprise' },
     { label: 'Modèle',            value: host?.model || 'HPE ProLiant DL380 Gen10' },
-    { label: 'N° de série',       value: 'CZJ2340Q8B' },
-    { label: 'Hyperviseur',       value: host?.version || 'VMware ESXi 8.0.2 Build 22380479' },
+    { label: 'Hyperviseur',       value: host?.version || 'VMware ESXi 7.0 U3' },
     { label: 'BIOS',              value: 'U30 v2.62 (04/15/2024)' },
     { label: 'iLO Firmware',      value: 'iLO 5 v3.00' },
-    { label: 'Processeur',        value: '2× Intel Xeon Gold 5218R @ 2.10 GHz (20c/40t)' },
-    { label: 'RAM',               value: `${host?.ram?.totalGB || 192} GB DDR4-2933 ECC (24× 8 GB)` },
-    { label: 'Stockage local',    value: '2× 480 GB SAS SSD (RAID 1)' },
-    { label: 'Réseau',            value: '2× HP 10GbE FlexFabric 556FLR + 2× 1GbE Embedded' },
-    { label: 'Alimentation',      value: '2× 800W (redondantes)' },
-  ];
-
-  const contract = [
-    { label: 'Contrat support',   value: 'HPE Foundation Care 3Y — NBD' },
-    { label: 'Expiration',        value: '2027-09-30' },
-    { label: 'Numéro contrat',    value: 'HC3S3E-SBEE-2024' },
-    { label: 'Contact support',   value: '+33 800 101 047' },
-    { label: 'Accès iLO',         value: `https://192.168.10.${host?.ip?.split('.')[3] || '11'}1` },
-  ];
-
-  const compliance = [
-    { label: 'VMware HCL',                   ok: true },
-    { label: 'Firmware récent (< 6 mois)',    ok: true },
-    { label: 'iLO sécurisé (HTTPS)',          ok: true },
-    { label: 'Secure Boot activé',            ok: false },
-    { label: 'TPM 2.0 présent',              ok: true },
-    { label: 'Chiffrement VMFS actif',        ok: false },
-    { label: 'NTP synchronisé',              ok: true },
-    { label: 'Syslog exporté vers SIEM',     ok: true },
-    { label: 'Mot de passe iLO non défaut',  ok: true },
+    { label: 'Processeur',        value: '2× Intel Xeon Gold 5218R @ 2.10 GHz' },
+    { label: 'RAM',               value: `${host?.ram?.totalGB || 192} GB DDR4-2933` },
+    { label: 'Réseau',            value: '4× 10GbE SFP+' },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Specs */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Wrench size={14} color="var(--accent)" /> Fiche technique matériel
-          </div>
-          {specs.map(r => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12, gap: 12 }}>
-              <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{r.label}</span>
-              <span style={{ fontWeight: 600, textAlign: 'right', color: 'var(--text-primary)', fontFamily: r.label.includes('série') || r.label.includes('Build') ? 'monospace' : 'inherit', fontSize: r.label.includes('Build') ? 11 : 12 }}>{r.value}</span>
-            </div>
-          ))}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 20 }}>
+      <div className="card" style={{ padding: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Wrench size={16} color="var(--accent)" /> Spécifications Techniques
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Support */}
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileDoc size={14} color="#22d3a3" /> Contrat support
-            </div>
-            {contract.map(r => (
-              <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
-                <span style={{ color: 'var(--text-muted)' }}>{r.label}</span>
-                <span style={{ fontWeight: 600, fontFamily: r.label.includes('Accès') ? 'monospace' : 'inherit', fontSize: r.label.includes('Accès') ? 11 : 12, color: r.label.includes('Expiration') ? '#f5a623' : 'var(--text-primary)' }}>{r.value}</span>
-              </div>
-            ))}
+        {specs.map(s => (
+          <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+            <span style={{ color: 'var(--text-muted)' }}>{s.label}</span>
+            <span style={{ fontWeight: 600 }}>{s.value}</span>
           </div>
-
-          {/* Compliance */}
-          <div className="card" style={{ padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={14} color="var(--accent)" /> Conformité & Sécurité
-            </div>
-            {compliance.map(c => (
-              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
-                <span style={{ color: c.ok ? '#22d3a3' : '#f5534b', flexShrink: 0 }}>{c.ok ? '✓' : '✗'}</span>
-                <span style={{ color: c.ok ? 'var(--text-primary)' : 'var(--text-muted)' }}>{c.label}</span>
-              </div>
-            ))}
-          </div>
+        ))}
+      </div>
+      <div className="card" style={{ padding: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <BookOpen size={16} color="#10b981" /> Architecture Logique
+        </div>
+        <div style={{ padding: 40, border: '2px dashed var(--border)', borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Schéma d'architecture généré dynamiquement</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>(Indisponible en mode simulation)</div>
         </div>
       </div>
     </div>
@@ -788,15 +862,13 @@ export default function ESXiHostDetail() {
 
   return (
     <div style={{ padding: 24 }}>
-      {/* Breadcrumb */}
       <button onClick={() => navigate('/infrastructure')}
         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 13, padding: 0 }}>
         <ArrowLeft size={14} /> Infrastructure
       </button>
 
-      {/* Host header */}
       <div className="card" style={{ padding: 24, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ background: 'rgba(79,142,247,0.12)', borderRadius: 12, padding: 16 }}>
               <Server size={32} color="var(--accent)" />
@@ -805,74 +877,62 @@ export default function ESXiHostDetail() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                 <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{host.name}</h1>
                 <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                  background: 'rgba(34,211,163,0.12)', color: 'var(--success)', border: '1px solid rgba(34,211,163,0.3)' }}>
+                  background: 'rgba(34,211,163,0.12)', color: '#10b981', border: '1px solid rgba(34,211,163,0.3)' }}>
                   ● EN LIGNE
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {host.model} · {host.version}
-              </div>
-              <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
-                {host.ip} · Cluster : <span style={{ color: 'var(--accent)' }}>{host.cluster}</span>
-              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{host.model} · {host.version}</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{host.ip} · Cluster : {host.cluster}</div>
             </div>
           </div>
-
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <StatPill label="Uptime" value={fmtUptime(host.uptime)} color="var(--success)" />
-            <StatPill label="VMs actives" value={host.vmCount} color="var(--accent)" />
-            <StatPill label="Sockets" value={`${host.cpu.sockets}×${host.cpu.coresPerSocket}c`} color="var(--text-secondary)" />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <StatPill label="Uptime" value={fmtUptime(host.uptime)} color="#10b981" />
+            <StatPill label="VMs" value={host.vmCount} color="var(--accent)" />
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 24 }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
               <span style={{ color: 'var(--text-muted)' }}>CPU</span>
-              <span style={{ fontWeight: 700, color: cpuPct > 85 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                {host.cpu.usedCores} / {host.cpu.totalCores} vCores ({cpuPct}%)
-              </span>
+              <span style={{ fontWeight: 700 }}>{host.cpu.usedCores} / {host.cpu.totalCores} vCores ({cpuPct}%)</span>
             </div>
             <UsageBar value={cpuPct} color="var(--accent)" />
           </div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
               <span style={{ color: 'var(--text-muted)' }}>RAM</span>
-              <span style={{ fontWeight: 700, color: ramPct > 85 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                {host.ram.usedGB} / {host.ram.totalGB} GB ({ramPct}%)
-              </span>
+              <span style={{ fontWeight: 700 }}>{host.ram.usedGB} / {host.ram.totalGB} GB ({ramPct}%)</span>
             </div>
             <UsageBar value={ramPct} color="#c45ef7" />
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20, gap: 4 }}>
-        {TABS.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{
-                background: 'none', border: 'none', borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-                color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
-                padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
-                display: 'flex', alignItems: 'center', gap: 7, transition: 'color 0.2s',
-              }}>
-              <Icon size={14} />{t.label}
-            </button>
-          );
-        })}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20, gap: 4, overflowX: 'auto' }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            style={{
+              background: 'none', border: 'none', borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
+              color: tab === t.id ? 'var(--accent)' : 'var(--text-secondary)',
+              padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: tab === t.id ? 700 : 400,
+              display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap'
+            }}>
+            <t.icon size={14} />{t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Tab content */}
       <div>
         {tab === 'vms'     && <VMsTab     hostId={hostId} />}
         {tab === 'perf'    && <PerfTab    hostId={hostId} host={host} />}
         {tab === 'storage' && <StorageTab hostId={hostId} />}
         {tab === 'network' && <NetworkTab hostId={hostId} />}
+        {tab === 'vsan'    && <VSanTab    hostId={hostId} />}
         {tab === 'vmotion' && <VMotionTab hostId={hostId} />}
         {tab === 'drs'     && <DRSTab />}
+        {tab === 'multipathing' && <MultipathingTab hostId={hostId} />}
+        {tab === 'nsx'     && <NSXTab />}
         {tab === 'docs'    && <DocsTab    host={host} />}
       </div>
     </div>

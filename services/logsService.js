@@ -89,4 +89,33 @@ function getLogStats() {
   return { total: logs.length, bySeverity: bySev, bySource: bySrc };
 }
 
-module.exports = { getLogs, getLogStats };
+// ─── GeoIP Simulation ────────────────────────────────────────────────────────
+
+function getGeoIP(ip) {
+  if (!ip || ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '127.0.0.1') {
+    return { ip, country: 'Local', city: 'Datacenter SBEE', lat: 6.36, lon: 2.41 };
+  }
+  // Fake external IP mapping
+  if (ip === '185.220.101.5') return { ip, country: 'Germany', city: 'Frankfurt', lat: 50.11, lon: 8.68, asn: 'AS208269' };
+  return { ip, country: 'Unknown', city: 'Unknown', lat: 0, lon: 0 };
+}
+
+// ─── CEF / LEEF Export ────────────────────────────────────────────────────────
+
+function exportLogs(format = 'CEF', limit = 100) {
+  const logs = getLogs({ limit });
+  if (format === 'CEF') {
+    return logs.map(l => {
+      const severityMap = { 'info': 1, 'notice': 2, 'warning': 4, 'error': 7, 'critical': 8, 'alert': 9, 'emergency': 10 };
+      const s = severityMap[l.severity] || 1;
+      return `CEF:0|NexusMonitor|SBEE-LogSvc|1.0|100|${l.message.replace(/\|/g, '\\|')}|${s}|src=${l.ip||'0.0.0.0'} dhost=${l.source} start=${new Date(l.timestamp).getTime()}`;
+    }).join('\n');
+  } else if (format === 'LEEF') {
+    return logs.map(l => {
+      return `LEEF:1.0|NexusMonitor|SBEE-LogSvc|1.0|100|devTime=${new Date(l.timestamp).getTime()}\tsev=${l.severity}\tsrc=${l.ip||'0.0.0.0'}\tidentHost=${l.source}\tmsg=${l.message}`;
+    }).join('\n');
+  }
+  return '';
+}
+
+module.exports = { getLogs, getLogStats, getGeoIP, exportLogs };

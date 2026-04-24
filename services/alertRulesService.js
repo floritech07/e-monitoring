@@ -67,6 +67,7 @@ function addAlert({ id, level, category, message, source, severity, ruleId }) {
       message,
       source,
       ruleId,
+      sound:       arguments[0].sound || null,
       timestamp:   Date.now(),
       resolved:    false,
       acknowledged: false,

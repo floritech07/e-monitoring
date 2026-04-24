@@ -691,6 +691,26 @@ app.get('/api/esxi/hosts/:id/perf', async (req, res) => {
   try { res.json(await esxiService.getHostPerfHistory(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/esxi/hosts/:id/multipathing', async (req, res) => {
+  try { res.json(await esxiService.getMultipathing(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/clusters/:id/vsan', async (req, res) => {
+  try { res.json(await esxiService.getVSanInfo(req.params.id)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/nsx', async (req, res) => {
+  try { res.json(await esxiService.getNSXInfo()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/vmotion', async (req, res) => {
+  try { res.json(await esxiService.getVMotionHistory()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/esxi/drs-ha', async (req, res) => {
+  try { res.json(await esxiService.getDrsHaInfo()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/esxi/vms/:id/action', async (req, res) => {
   try {
     const result = await esxiService.esxiVmAction(req.params.id, req.body.action);
@@ -747,6 +767,21 @@ app.get('/api/snmp/ups/:id', async (req, res) => {
 
 app.get('/api/snmp/switch/:id', async (req, res) => {
   try { res.json(await snmpService.pollSwitch(req.params.id)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/snmp/discovery', async (_req, res) => {
+  try { res.json(snmpService.getNetworkDiscovery()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/snmp/vpn', async (_req, res) => {
+  try { res.json(snmpService.getVPNTunnels()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/snmp/wan', async (_req, res) => {
+  try { res.json(snmpService.getWANSLA()); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1040,6 +1075,23 @@ app.get('/api/logs/stats', (_req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/logs/geoip', (req, res) => {
+  try { res.json(logsService.getGeoIP(req.query.ip)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/logs/export', (req, res) => {
+  try { 
+    const format = req.query.format || 'CEF';
+    const limit = parseInt(req.query.limit) || 100;
+    const content = logsService.exportLogs(format, limit);
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="logs_export.${format.toLowerCase()}"`);
+    res.send(content);
+  }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ASTREINTE (On-Call) + INCIDENTS ITIL
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1231,6 +1283,22 @@ cron.schedule('0 */5 * * * *', async () => {
 
 app.get('/api/veeam/gfs', (_req, res) => {
   res.json(veeamService.getGFSData());
+});
+
+app.get('/api/veeam/surebackup', (_req, res) => {
+  res.json(veeamService.getSureBackup());
+});
+
+app.get('/api/veeam/replication', (_req, res) => {
+  res.json(veeamService.getReplication());
+});
+
+app.get('/api/veeam/unprotected-vms', (_req, res) => {
+  res.json(veeamService.getUnprotectedVMs());
+});
+
+app.get('/api/veeam/object-storage', (_req, res) => {
+  res.json(veeamService.getObjectStorage());
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -126,8 +126,14 @@ async function detectHypervisors() {
     try {
       const hvCheck = await execPromise('powershell -Command "Get-Command Get-VM -ErrorAction Stop | Select-Object -ExpandProperty Source"');
       if (hvCheck && hvCheck.length > 0) {
-        results.hyperv.available = true;
-        console.log('[Virtualization] ✅ Hyper-V détecté (Autorisation requise pour l\'accès aux VMs)');
+        try {
+          // Check if we can actually run Get-VM (requires Admin)
+          await execPromise('powershell -Command "Get-VM -ErrorAction Stop | Select-Object Name -First 1"');
+          results.hyperv.available = true;
+          console.log('[Virtualization] ✅ Hyper-V détecté et fonctionnel (Accès Admin OK)');
+        } catch (e) {
+          console.log('[Virtualization] ⚠️ Hyper-V détecté mais l\'accès est refusé (Droits Admin requis). Hyper-V désactivé pour éviter les erreurs.');
+        }
       }
     } catch {
       // Ignore silently, could be missing features or strict execution policy
