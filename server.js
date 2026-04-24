@@ -1451,17 +1451,30 @@ app.get('/api/capacity/report', requireRole('viewer'), (req, res) => {
 
 app.get('/api/vms/:id/console-ticket', requireRole('operator'), async (req, res) => {
   try {
-    // Dans une vraie infra, on appellerait AcquireTicket via le SDK VMware
-    // Ici on simule un ticket pour la démo UI
     const ticket = {
-      host: 'esxi-01-sbee.local',
-      port: 443,
-      ticket: `vmrc-session-${Math.random().toString(36).substring(7)}`,
+      host: 'localhost',
+      port: 3001,
+      ticket: `nexus-stream-${Math.random().toString(36).substring(7)}`,
       vmId: req.params.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      streamUrl: `/api/vms/${req.params.id}/console-stream`
     };
     res.json(ticket);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/vms/:id/console-stream', requireRole('operator'), async (req, res) => {
+  try {
+    const frame = await vmwareService.getVMScreen(req.params.id);
+    if (!frame) {
+      return res.status(404).send('VM Offline or Console Unavailable');
+    }
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.send(frame);
+  } catch (e) {
+    res.status(500).send(e.message);
   }
 });

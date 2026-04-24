@@ -207,7 +207,7 @@ export const api = {
   getCapacityReport:  ()           => req('/capacity/report'),
 
   // Console VM
-  getConsoleTicket:   (vmId)       => req(`/vms/${vmId}/console-ticket`),
+  getVMConsoleTicket: (vmId)       => req(`/vms/${vmId}/console-ticket`),
 
   // Syslog rétention configurable
   getSyslogRetention: ()           => req('/syslog/retention'),

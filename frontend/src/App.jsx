@@ -28,6 +28,7 @@ import PaymentMonitor from './pages/PaymentMonitor';
 import PaymentRecap from './pages/PaymentRecap';
 import Datacenter3D from './pages/Datacenter3D';
 import DeviceDetail from './pages/DeviceDetail';
+import VMConsole from './pages/VMConsole';
 import ESXiHostDetail from './pages/ESXiHostDetail';
 import ClusterView from './pages/ClusterView';
 import ServiceMap from './pages/ServiceMap';
@@ -548,6 +549,7 @@ function App() {
               <Route path="/infrastructure/new" element={<AddSystem />} />
               <Route path="/infrastructure/host-details" element={<HostDetail metrics={metrics} />} />
               <Route path="/infrastructure/:vmId" element={<ServerDetail vms={vms} metrics={metrics} />} />
+              <Route path="/console/:vmId" element={<VMConsole />} />
               <Route path="/datacenter-3d" element={<Datacenter3D />} />
               <Route path="/datacenter-3d/device/:deviceId" element={<DeviceDetail />} />
               <Route path="/infrastructure/esxi/:hostId" element={<ESXiHostDetail />} />

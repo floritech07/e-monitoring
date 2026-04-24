@@ -259,4 +259,24 @@ async function getInfrastructureTree() {
   };
 }
 
-module.exports = { listVMs, performAction, getInfrastructureTree };
+async function getVMScreen(vmId) {
+  const vmsData = await listVMs();
+  const vm = vmsData.find(v => v.id === vmId);
+  if (!vm || vm.state !== 'on') return null;
+
+  const tempPath = path.join(__dirname, '..', 'data', `screen_${vmId}.png`);
+  const target = `"${vm.path.replace(/\//g, '\\')}"`;
+  
+  try {
+    await runVmrun(`captureScreen ${target} "${tempPath}"`);
+    const buffer = fs.readFileSync(tempPath);
+    // Supprimer le fichier temporaire après lecture pour la sécurité
+    try { fs.unlinkSync(tempPath); } catch (e) {}
+    return buffer;
+  } catch (e) {
+    console.error(`Erreur capture écran VM ${vmId}:`, e.message);
+    return null;
+  }
+}
+
+module.exports = { listVMs, performAction, getInfrastructureTree, getVMScreen };

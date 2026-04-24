@@ -198,15 +198,27 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* Capacity projection mini */}
             <div className="card glass-panel" style={{ padding: '20px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf0', marginBottom: 12 }}>Projection de Capacité</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf0', marginBottom: 12 }}>Virtual Machines Status</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: 11, color: '#8e8e8e' }}>Saturation estimée du stockage :</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#fb923c' }}>Dans 74 jours</div>
-                <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
-                  <div style={{ width: '70%', height: '100%', background: '#fb923c', borderRadius: 3 }} />
-                </div>
-                <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: 11 }} onClick={() => navigate('/capacity')}>
-                  Détail du Planning <ArrowRight size={12} />
+                {vms.slice(0, 3).map(vm => (
+                  <div key={vm.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Monitor size={14} color={vm.state === 'on' ? '#10b981' : '#545b78'} />
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{vm.name}</span>
+                    </div>
+                    {vm.state === 'on' && (
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ fontSize: 10, padding: '2px 8px' }}
+                        onClick={() => navigate(`/console/${vm.id}`)}
+                      >
+                        Console
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: 11 }} onClick={() => navigate('/infrastructure')}>
+                  Voir toutes les VMs <ArrowRight size={12} />
                 </button>
               </div>
             </div>
