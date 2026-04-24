@@ -99,6 +99,55 @@ const DEFAULT_RULES = [
   { id: 'r103', name: 'Erreur mémoire ECC',            severity: 'CRITICAL', source: 'syslog', metric: 'corr.esxi-memory-ecc',   condition: 'eq', threshold: true, durationS: 0 },
 ];
 
+// ─── Seuils dynamiques — Moving Average Baseline ─────────────────────────────
+// Maintient un rolling window de N échantillons par clé métrique.
+// Calcule moyenne + écart-type et expose isAnomaly(key, value, sigmas=2).
+
+class DynamicBaseline {
+  constructor(windowSize = 60) {
+    this._window = windowSize;
+    this._data   = {};   // key → number[]
+  }
+
+  ingest(metricsFlat) {
+    for (const [key, value] of Object.entries(metricsFlat)) {
+      if (typeof value !== 'number') continue;
+      if (!this._data[key]) this._data[key] = [];
+      this._data[key].push(value);
+      if (this._data[key].length > this._window) this._data[key].shift();
+    }
+  }
+
+  _stats(key) {
+    const arr = this._data[key];
+    if (!arr || arr.length < 10) return null;
+    const n    = arr.length;
+    const mean = arr.reduce((s, v) => s + v, 0) / n;
+    const std  = Math.sqrt(arr.reduce((s, v) => s + (v - mean) ** 2, 0) / n);
+    return { mean: +mean.toFixed(3), std: +std.toFixed(3), n };
+  }
+
+  isAnomaly(key, value, sigmas = 2.5) {
+    const s = this._stats(key);
+    if (!s || s.std < 0.001) return false;
+    return Math.abs(value - s.mean) > sigmas * s.std;
+  }
+
+  getAll() {
+    const result = {};
+    for (const key of Object.keys(this._data)) {
+      const s = this._stats(key);
+      if (s) result[key] = {
+        ...s,
+        adaptiveWarnThreshold:  +(s.mean + 2.0 * s.std).toFixed(3),
+        adaptiveCritThreshold:  +(s.mean + 3.0 * s.std).toFixed(3),
+        samples: this._data[key].length,
+      };
+    }
+    return result;
+  }
+}
+
 // ─── Stockage état ─────────────────────────────────────────────────────────
 
 class AlertStore {
@@ -179,8 +228,9 @@ function evaluate(value, condition, threshold) {
 class AlertEngine extends EventEmitter {
   constructor() {
     super();
-    this.store  = new AlertStore();
-    this.rules  = [...DEFAULT_RULES];
+    this.store     = new AlertStore();
+    this.rules     = [...DEFAULT_RULES];
+    this._baseline = new DynamicBaseline(60);
     this._io    = null;   // Socket.IO instance injectée depuis server.js
     this._mailer = null;  // nodemailer transport
     this._initMailer();
@@ -215,6 +265,9 @@ class AlertEngine extends EventEmitter {
   evaluate(metrics, sourceId) {
     const now = Date.now();
     const triggered = new Set();
+
+    // Alimenter la baseline avec les métriques numériques de cet appel
+    this._baseline.ingest(metrics);
 
     for (const rule of this.rules) {
       const rawValue = metrics[rule.metric];
@@ -418,6 +471,12 @@ SLA Résolution : ${levelInfo.slaResolutionMin} min
   }
 
   LEVELS() { return LEVELS; }
+
+  // ─── Seuils dynamiques ───────────────────────────────────────────────────────
+  // Retourne la baseline courante (moyenne + écart-type + seuils adaptatifs)
+  getDynamicBaseline() { return this._baseline.getAll(); }
+
+  updateBaseline(metrics) { this._baseline.ingest(metrics); }
 }
 
 // Singleton

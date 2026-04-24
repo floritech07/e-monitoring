@@ -853,6 +853,10 @@ app.get('/api/alerts/engine/history', (_req, res) => {
   res.json(alertEngine.getAlertHistory());
 });
 
+app.get('/api/alerts/engine/baseline', (_req, res) => {
+  res.json(alertEngine.getDynamicBaseline());
+});
+
 app.post('/api/alerts/engine/:key/ack', (req, res) => {
   const alert = alertEngine.acknowledgeAlert(req.params.key, req.body.user || 'Opérateur');
   if (!alert) return res.status(404).json({ error: 'Alerte non trouvée' });
