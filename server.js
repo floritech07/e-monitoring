@@ -18,6 +18,10 @@ const datacenterService = require('./services/datacenterService');
 const esxiService       = require('./services/esxiService');
 const servicesMapService= require('./services/servicesMapService');
 const storageTopoService= require('./services/storageTopoService');
+const snmpService       = require('./services/snmpService');
+const redfishService    = require('./services/redfishService');
+const cmdbService       = require('./services/cmdbService');
+const alertEngine       = require('./services/alertEngineService');
 
 const app    = express();
 const server = http.createServer(app);
@@ -144,28 +148,12 @@ app.post('/api/vms/:id/action', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOST ACTIONS
+// HOST ACTIONS — v2 : actions sur infrastructure DC (hors scope : actions PC local)
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.post('/api/host/action', (req, res) => {
-  const { action } = req.body;
-  let cmd = '';
-  switch (action) {
-    case 'Redémarrage':     cmd = 'shutdown /r /t 5'; break;
-    case 'Arrêt':           cmd = 'shutdown /s /t 5'; break;
-    case 'Vidage du cache': cmd = 'echo "Nettoyage simulé"'; break;
-    case 'Démarrage':       cmd = 'echo "Déjà allumé"'; break;
-    default: return res.status(400).json({ error: 'Action inconnue' });
-  }
-  exec(cmd, (error) => {
-    if (error) {
-      activityService.log('error', `Échec de l'action [${action}]: ${error.message}`, 'System Host');
-    } else {
-      activityService.log('success', `Action [${action}] validée par l'OS`, 'System Host');
-    }
-  });
-  activityService.log('warning', `Transmission de l'ordre [${action}] au noyau matériel...`, 'System Host');
-  res.json({ success: true, message: `Commande OS exécutée: ${cmd}` });
+app.post('/api/host/action', (_req, res) => {
+  // Actions PC administrateur supprimées (ADR-004 — hors périmètre NexusMonitor v2)
+  res.status(410).json({ error: 'Actions PC local supprimées en v2. Utilisez /api/esxi/vms/:id/action pour les VMs.' });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -680,14 +668,156 @@ app.get('/api/storage/stats', (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SNMP — UPS & Switches
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/snmp/collect', async (_req, res) => {
+  try { res.json(await snmpService.collectAll()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/snmp/ups/:id', async (req, res) => {
+  try { res.json(await snmpService.pollUPS(req.params.id)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/snmp/switch/:id', async (req, res) => {
+  try { res.json(await snmpService.pollSwitch(req.params.id)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REDFISH — Serveurs HPE ProLiant (iLO)
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/redfish/servers', async (_req, res) => {
+  try { res.json(await redfishService.collectAllServers()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/redfish/servers/:id', async (req, res) => {
+  try {
+    const srv = await redfishService.getServer(req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(srv);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/redfish/servers/:id/thermal', async (req, res) => {
+  try {
+    const t = await redfishService.getServerThermal(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(t);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/redfish/servers/:id/power', async (req, res) => {
+  try {
+    const p = await redfishService.getServerPower(req.params.id);
+    if (!p) return res.status(404).json({ error: 'Serveur non trouvé' });
+    res.json(p);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CMDB — Inventaire Configuration Items
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/cmdb', (req, res) => {
+  try { res.json(cmdbService.getAllItems(req.query)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/cmdb/stats', (_req, res) => {
+  try { res.json(cmdbService.getStats()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/cmdb/:id', (req, res) => {
+  const item = cmdbService.getItem(req.params.id);
+  if (!item) return res.status(404).json({ error: 'CI non trouvé' });
+  res.json(item);
+});
+
+app.get('/api/cmdb/:id/tree', (req, res) => {
+  const tree = cmdbService.getRelationTree(req.params.id);
+  if (!tree) return res.status(404).json({ error: 'CI non trouvé' });
+  res.json(tree);
+});
+
+app.get('/api/cmdb/:id/children', (req, res) => {
+  res.json(cmdbService.getItemChildren(req.params.id));
+});
+
+app.post('/api/cmdb', (req, res) => {
+  try {
+    const item = cmdbService.createItem(req.body);
+    activityService.log('info', `CMDB : CI créé "${item.name}" (${item.type})`, 'CMDB');
+    res.status(201).json(item);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/cmdb/:id', (req, res) => {
+  try {
+    const item = cmdbService.updateItem(req.params.id, req.body);
+    if (!item) return res.status(404).json({ error: 'CI non trouvé' });
+    activityService.log('info', `CMDB : CI modifié "${item.name}"`, 'CMDB');
+    res.json(item);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/cmdb/:id', (req, res) => {
+  const ok = cmdbService.deleteItem(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'CI non trouvé' });
+  activityService.log('warning', `CMDB : CI supprimé ${req.params.id}`, 'CMDB');
+  res.json({ success: true });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALERT ENGINE v2 — 4 niveaux ITIL, escalade, acquittement
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.get('/api/alerts/active', (_req, res) => {
+  res.json(alertEngine.getActiveAlerts());
+});
+
+app.get('/api/alerts/engine/stats', (_req, res) => {
+  res.json(alertEngine.getStats());
+});
+
+app.get('/api/alerts/engine/history', (_req, res) => {
+  res.json(alertEngine.getAlertHistory());
+});
+
+app.post('/api/alerts/engine/:key/ack', (req, res) => {
+  const alert = alertEngine.acknowledgeAlert(req.params.key, req.body.user || 'Opérateur');
+  if (!alert) return res.status(404).json({ error: 'Alerte non trouvée' });
+  activityService.log('info', `Alerte acquittée par ${req.body.user || 'Opérateur'}`, 'Alert Engine');
+  res.json(alert);
+});
+
+// Health check endpoint (utilisé par docker-compose healthcheck)
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', version: '2.0.0', timestamp: new Date().toISOString() });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Injecter Socket.IO dans le moteur d'alertes v2
+alertEngine.setIO(io);
+
 io.on('connection', (socket) => {
   console.log(`[WS] Client connected: ${socket.id}`);
-  // Pousser la topologie courante à chaque nouveau client
   socket.emit('topology_update', {
     datacenter: datacenterService.getDatacenter(),
+    timestamp: Date.now()
+  });
+  // Envoyer l'état des alertes actives au nouveau client
+  socket.emit('alerts_state', {
+    active:  alertEngine.getActiveAlerts(),
+    stats:   alertEngine.getStats(),
     timestamp: Date.now()
   });
   socket.on('disconnect', () => console.log(`[WS] Client disconnected: ${socket.id}`));
@@ -725,10 +855,22 @@ cron.schedule('*/2 * * * * *', async () => {
     const alerts   = alertsService.evaluate(metrics, vmsWithHistory);
     const activity = activityService.getActivities();
 
+    // Alimenter le moteur d'alertes v2 avec les métriques datacenter aplaties
+    if (metrics.ups?.primary) {
+      const u = metrics.ups.primary;
+      alertEngine.evaluate({
+        'ups.battery.chargePct':    u.battery?.chargePct,
+        'ups.battery.temperatureC': u.battery?.temperatureC,
+        'ups.output.loadPct':       u.output?.loadPct,
+        'ups.status.input':         u.status?.input,
+      }, u.id || 'ups-sukam-01');
+    }
+
     io.emit('metrics_update', {
       metrics,
       vms: vmsWithHistory,
       alerts,
+      alertsV2: alertEngine.getStats(),
       activity,
       timestamp: Date.now()
     });
