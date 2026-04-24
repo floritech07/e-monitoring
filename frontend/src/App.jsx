@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Server, GitBranch, Bell, Zap, Settings, Users,
   Activity, AlertTriangle, Sun, Moon, Clock, RefreshCw, ChevronDown,
   Search, Calendar, ArrowRight, Shield, Globe, BellRing, Map, CreditCard, List,
-  Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network
+  Menu, ChevronLeft, Box, Layers, AppWindow, HardDrive, Network,
+  Building2, Thermometer, FileText, TrendingUp
 } from 'lucide-react';
 import { useSocket } from './hooks/useSocket';
 import { useMetricSounds } from './hooks/useMetricSounds';
@@ -30,16 +31,25 @@ import ClusterView from './pages/ClusterView';
 import ServiceMap from './pages/ServiceMap';
 import StorageTopology from './pages/StorageTopology';
 import NetworkFabric from './pages/NetworkFabric';
+import RoomMap from './pages/RoomMap';
+import PhysicalDashboard from './pages/PhysicalDashboard';
+import LogsExplorer from './pages/LogsExplorer';
+import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import './index.css';
 
 function Sidebar({ alertCount, collapsed }) {
   const navItems = [
-    { to: '/',        icon: LayoutDashboard, label: 'Dashboard'       },
-    { to: '/problems',icon: BellRing,        label: 'Problèmes',    badge: alertCount },
-    { to: '/infrastructure', icon: GitBranch, label: 'Infrastructure' },
-    { to: '/datacenter-3d', icon: Box,       label: 'Salle serveur 3D' },
-    { to: '/topology',icon: Map,             label: 'Topologie Réseau' },
-    { to: '/alerts',  icon: Bell,            label: 'Alertes',      badge: alertCount },
+    { to: '/',             icon: LayoutDashboard, label: 'Dashboard'           },
+    { to: '/executive',    icon: TrendingUp,      label: 'Tableau de bord DG'  },
+    { to: '/problems',     icon: BellRing,        label: 'Problèmes', badge: alertCount },
+    { to: '/infrastructure',icon: GitBranch,      label: 'Infrastructure'      },
+    { to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
+    { to: '/room-map',     icon: Building2,       label: 'Vue Salle 2D'        },
+    { to: '/topology',     icon: Map,             label: 'Topologie Réseau'    },
+    { to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
+    { section: 'Environnement & Logs' },
+    { to: '/physical',     icon: Thermometer,     label: 'Environnement DC'    },
+    { to: '/logs',         icon: FileText,        label: 'Explorateur Logs'    },
     { section: 'Virtualisation' },
     { to: '/clusters',       icon: Layers,     label: 'Clusters & Pools'   },
     { to: '/services',       icon: AppWindow,  label: 'Carte des services' },
@@ -421,6 +431,10 @@ function App() {
               <Route path="/services" element={<ServiceMap />} />
               <Route path="/storage" element={<StorageTopology />} />
               <Route path="/network-fabric" element={<NetworkFabric />} />
+              <Route path="/room-map" element={<RoomMap />} />
+              <Route path="/physical" element={<PhysicalDashboard />} />
+              <Route path="/logs" element={<LogsExplorer />} />
+              <Route path="/executive" element={<ExecutiveDashboard />} />
               <Route path="/topology" element={<NetworkTopology metrics={metrics} vms={vms} />} />
               <Route path="/alerts" element={<AlertsPage alerts={alerts} />} />
               <Route path="/actions" element={<RemoteActions vms={vms} />} />

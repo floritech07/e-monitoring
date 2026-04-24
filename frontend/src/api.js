@@ -109,6 +109,20 @@ export const api = {
   getStorageTopology:  ()               => req('/storage/topology'),
   getStorageStats:     ()               => req('/storage/stats'),
 
+  // Environnement physique (capteurs, CRAC, heatmap)
+  getRoomSensors:      ()               => req('/environment/sensors'),
+  getEnvSummary:       ()               => req('/environment/summary'),
+  getEnvHeatmap:       ()               => req('/environment/heatmap'),
+  getCracStatus:       ()               => req('/environment/crac'),
+
+  // Logs Syslog
+  getLogs:             (params = {})    => req(`/logs?${new URLSearchParams(params).toString()}`),
+  getLogStats:         ()               => req('/logs/stats'),
+
+  // Alert Engine v2
+  getActiveAlerts:     ()               => req('/alerts/active'),
+  getAlertEngineStats: ()               => req('/alerts/engine/stats'),
+
   // Payment Trends
   getPrepaidTrend:  (range)         => req(`/payments/trends/prepaid?range=${range || '24h'}`),
   getPostpaidTrend: (range)         => req(`/payments/trends/postpaid?range=${range || '24h'}`),

@@ -802,6 +802,55 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ENVIRONNEMENT PHYSIQUE — capteurs, CRAC, heatmap (Phase 1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const environmentService = require('./services/environmentService');
+
+app.get('/api/environment/sensors', (_req, res) => {
+  try { res.json(environmentService.getSensors()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/summary', (_req, res) => {
+  try { res.json(environmentService.getRoomSummary()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/heatmap', (_req, res) => {
+  try { res.json(environmentService.getHeatmapGrid()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/environment/crac', (_req, res) => {
+  try { res.json(environmentService.getCRACStatus()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGS SYSLOG — explorateur (Phase 5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const logsService = require('./services/logsService');
+
+app.get('/api/logs', (req, res) => {
+  try {
+    const { limit, severity, source, search } = req.query;
+    res.json(logsService.getLogs({
+      limit:    limit    ? parseInt(limit)    : 200,
+      severity: severity || null,
+      source:   source   || null,
+      search:   search   || null,
+    }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/logs/stats', (_req, res) => {
+  try { res.json(logsService.getLogStats()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET
 // ─────────────────────────────────────────────────────────────────────────────
 
