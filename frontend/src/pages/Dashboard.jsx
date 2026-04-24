@@ -268,7 +268,7 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
 
           {/* Quick Access Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="card glass-panel" style={{ padding: '12px', textAlign: 'center', cursor: 'pointer' }} onClick={() => navigate('/room-map')}>
+            <div className="card glass-panel" style={{ padding: '12px', textAlign: 'center', cursor: 'pointer' }} onClick={() => navigate('/datacenter-3d')}>
               <LayoutGrid size={18} color="#38bdf8" style={{ marginBottom: 6 }} />
               <div style={{ fontSize: 11, fontWeight: 600 }}>Plan de Salle</div>
             </div>
