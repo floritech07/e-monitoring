@@ -24,6 +24,7 @@ frontend/dist/
 
 # Local databases and logs
 data/*.json
+!data/datacenter.json
 data/logs/
 *.json
 # But keep package.json
