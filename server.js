@@ -580,6 +580,12 @@ app.get('/api/datacenter', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/datacenter/occupancy', (req, res) => {
+  try {
+    res.json(datacenterService.getPhysicalOccupancy());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/datacenter/device-types', (req, res) => {
   res.json(datacenterService.getDeviceTypes());
 });

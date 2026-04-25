@@ -266,10 +266,10 @@ function getStorageStats() {
   const usedGB  = STORAGE_CONTROLLERS.reduce((s, c) => s + c.usedCapacityGB, 0);
 
   return {
-    totalTB:   158.06, // Precisely as requested by user
-    usedTB:    71.39,  // Precisely as requested by user
-    freeTB:    86.67,  // Precisely as requested by user
-    usedPct:   45.2,   // Math.round(71.39/158.06 * 100)
+    totalTB:   158.00, // Matching screenshot
+    usedTB:    71.33,  // Matching screenshot
+    freeTB:    86.67,  // 158.00 - 71.33 = 86.67
+    usedPct:   45.1,   // (71.33/158.00) * 100
     totalIops: STORAGE_CONTROLLERS.reduce((s, c) => s + c.iopsTotal, 0),
     totalThroughputMBs: STORAGE_CONTROLLERS.reduce((s, c) => s + c.throughputMBs, 0),
     volumesByType: VOLUMES.reduce((acc, v) => {

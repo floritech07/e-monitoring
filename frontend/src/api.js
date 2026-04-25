@@ -119,6 +119,8 @@ export const api = {
   getEnvSummary:       ()               => req('/environment/summary'),
   getEnvHeatmap:       ()               => req('/environment/heatmap'),
   getCracStatus:       ()               => req('/environment/crac'),
+  getDatacenter:       ()               => req('/datacenter'),
+  getDatacenterOccupancy: ()            => req('/datacenter/occupancy'),
 
   // Logs Syslog
   getLogs:             (params = {})    => req(`/logs?${new URLSearchParams(params).toString()}`),

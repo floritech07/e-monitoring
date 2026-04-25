@@ -4,7 +4,10 @@ import {
   Server, Layers, HardDrive, AlertTriangle, Thermometer,
   ChevronRight, CheckCircle, Zap, Grid, RefreshCw, Box,
   Bell, Database, Network,
-  Plug, BatteryCharging, Wind
+  Plug, BatteryCharging, Wind, ShieldCheck,
+  Battery, Activity, CheckCircle2, BarChart3, ArrowDown,
+  Cpu, MousePointer2, ClipboardList, Download,
+  Sun, Moon
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -127,19 +130,99 @@ function AlarmBadge({ count, label, color }) {
   );
 }
 
-function PowerCard({ icon: Icon, label, kw, status, color, sub }) {
+function HeatmapRackComponent({ name, temp }) {
+  const color = temp > 35 ? '#ef4444' : temp > 28 ? '#f59e0b' : '#22d3a3';
+  const bgColor = temp > 35 ? 'rgba(239,68,68,0.1)' : temp > 28 ? 'rgba(245,158,11,0.1)' : 'rgba(34,211,163,0.05)';
   return (
-    <div style={{ background: 'var(--bg-elevated)', border: `1px solid ${color}30`, borderRadius: 10, padding: '12px 14px', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-        <Icon size={13} color={color} />
-        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', flex: 1 }}>{label}</span>
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: status === 'ok' || status === 'running' ? '#22d3a3' : status === 'stopped' ? '#f59e0b' : '#ef4444' }} />
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+      <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{name}</div>
+      <div style={{ 
+        width: '100%', padding: '6px 4px', background: bgColor, border: `1px solid ${color}30`, borderRadius: 4,
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2
+      }}>
+        {Array.from({ length: 15 }).map((_, i) => (
+          <div key={i} style={{ height: 4, borderRadius: 1, background: i < 12 ? color : 'rgba(255,255,255,0.05)' }} />
+        ))}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color }}>
-        {kw != null ? kw.toFixed(1) : '—'}
-        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 3 }}>kW</span>
+      <div style={{ fontSize: 10, fontWeight: 800, color }}>{temp}°C</div>
+    </div>
+  );
+}
+
+function OccupancyRackComponent({ name, free, total, pct }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+      <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{name}</div>
+      <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)' }}>{free}U / {total}U</div>
+      <div style={{ width: 14, height: 60, background: 'rgba(255,255,255,0.05)', borderRadius: 2, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', bottom: 0, width: '100%', height: `${pct}%`, background: pct > 85 ? '#ef4444' : pct > 60 ? '#f59e0b' : '#22d3a3', borderRadius: 2 }} />
       </div>
-      {sub && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{sub}</div>}
+      <div style={{ fontSize: 10, fontWeight: 800, color: pct > 85 ? '#ef4444' : 'var(--text-primary)' }}>{pct}%</div>
+    </div>
+  );
+}
+
+function PowerFlowComponent() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(34,211,163,0.1)', border: '1px solid #22d3a3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Zap size={12} color="#22d3a3" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Source Principale</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-primary)' }}>Réseau secteur</div>
+          <div style={{ fontSize: 8, color: '#22d3a3' }}>230V | 50 Hz</div>
+        </div>
+      </div>
+      <div style={{ marginLeft: 11, width: 1, height: 10, background: '#22d3a3' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(56,189,248,0.1)', border: '1px solid #38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Battery size={12} color="#38bdf8" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>UPS</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#22d3a3' }}>OK</div>
+          <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>100% Charge</div>
+        </div>
+      </div>
+      <div style={{ marginLeft: 11, width: 1, height: 10, background: 'var(--border)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Database size={12} color="var(--text-muted)" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-primary)' }}>PDU</div>
+          <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>Normal</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EsxiMiniCard({ name, cpu, ram, vms, status = 'online' }) {
+  return (
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: status === 'online' ? '#22d3a3' : '#ef4444' }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{name}</span>
+        <Activity size={10} color="var(--text-muted)" />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+          <span style={{ color: 'var(--text-muted)' }}>CPU {cpu}%</span>
+          <span style={{ color: 'var(--text-muted)' }}>{vms} VMs</span>
+        </div>
+        <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ width: `${cpu}%`, height: '100%', background: cpu > 80 ? '#ef4444' : '#22d3a3' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginTop: 2 }}>
+          <span style={{ color: 'var(--text-muted)' }}>RAM {ram}%</span>
+        </div>
+        <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ width: `${ram}%`, height: '100%', background: ram > 80 ? '#ef4444' : '#38bdf8' }} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -224,13 +307,25 @@ export default function Dashboard() {
   const [hosts, setHosts]               = useState(null);
   const [alertsData, setAlertsData]     = useState(null);
   const [storageStats, setStorageStats] = useState(null);
+  const [occupancy, setOccupancy] = useState([]);
   const [envSummary, setEnvSummary]     = useState(null);
   const [engineStats, setEngineStats]   = useState(null);
   const [activity, setActivity]         = useState(null);
   const [datacenter, setDatacenter]     = useState(null);
   const [pduData, setPduData]           = useState(null);
   const [genset, setGenset]             = useState(null);
+  const [isLight, setIsLight]           = useState(document.body.classList.contains('light-mode'));
   const [loading, setLoading]           = useState(true);
+
+  const toggleTheme = () => {
+    const next = !isLight;
+    setIsLight(next);
+    if (next) {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -250,6 +345,7 @@ export default function Dashboard() {
       api.getDatacenter().then(setDatacenter).catch(() => {}),
       api.getEnvPDU().then(setPduData).catch(() => {}),
       api.getEnvGenset().then(setGenset).catch(() => {}),
+      api.getDatacenterOccupancy().then(setOccupancy).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -345,404 +441,295 @@ export default function Dashboard() {
   const fmtDate  = (d) => d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="fade-in" style={{ padding: '20px 24px', background: 'var(--bg-base)', minHeight: 'calc(100vh - 60px)', fontFamily: "'Inter', sans-serif" }}>
-
+    <div className="fade-in" style={{ padding: '12px 16px', background: 'var(--bg-base)', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>
+      
       {/* ── ZONE A : Header ──────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>
-            Centre de Commande — <span style={{ color: '#E30613' }}>SBEE</span>
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: sysOpOk ? '#22d3a3' : '#ef4444', boxShadow: `0 0 5px ${sysOpOk ? '#22d3a3' : '#ef4444'}` }} />
-              <span style={{ color: sysOpOk ? '#22d3a3' : '#ef4444', fontWeight: 700 }}>
-                {sysOpOk ? 'SYSTÈME OPÉRATIONNEL' : `${critCount} ALERTE(S) CRITIQUE(S)`}
-              </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, background: 'var(--bg-elevated)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Grid size={18} color="#3b82f6" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
+              Centre de Commande — <span style={{ color: '#E30613' }}>SBEE</span>
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, marginTop: 2 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+              <span style={{ color: '#ef4444', fontWeight: 700 }}>{critCount} ALERTES CRITIQUES</span>
+              <span style={{ color: 'var(--text-muted)' }}>| {fmtDate(now)}</span>
             </div>
-            <span>{fmtDate(now)}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#E30613', fontVariantNumeric: 'tabular-nums', letterSpacing: '2px' }}>
-            {fmtClock(now)}
-          </span>
-          <button onClick={() => setShowMap(true)} style={{ background: '#E30613', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Grid size={12} /> Carte des fonctions
-          </button>
-          <button onClick={fetchAll} title="Rafraîchir" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-            <RefreshCw size={12} />
-          </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--success-bg)', border: '1px solid var(--success)30', padding: '6px 12px', borderRadius: 20 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3a3', animation: 'pulse-green 2s infinite' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#22d3a3' }}>STS HSM: OK</span>
+            <div style={{ width: 1, height: 12, background: 'var(--border)' }} />
+            <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>
+              <span style={{ color: '#22d3a3', fontWeight: 700 }}>• Revenue Indicator (HSM STS)</span>
+              <br/>2x PRISM HSMs pour STS
+            </div>
+          </div>
+
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '1px' }}>{fmtClock(now)}</div>
+          
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={toggleTheme} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
+               {isLight ? <Moon size={14} /> : <Sun size={14} />}
+            </button>
+            <button onClick={() => setShowMap(true)} style={{ background: '#E30613', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Grid size={12} /> Carte des fonctions
+            </button>
+          </div>
+          <Bell size={16} color="var(--text-muted)" style={{ cursor: 'pointer' }} />
+          <div style={{ width: 28, height: 28, background: 'var(--bg-elevated)', borderRadius: '50%', border: '1px solid var(--border)' }} />
         </div>
       </div>
 
-      {/* ── ZONE B : KPI Row 1 ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-        <KpiCard label="Hôtes physiques"      value={totalHosts}    icon={Server}        color="#E30613"  onClick={() => navigate('/clusters')}       loading={loading} sub={clusters?.[0]?.datacenter} />
-        <KpiCard label="Machines virtuelles"  value={totalVMs}      icon={Box}           color="#a855f7"  onClick={() => navigate('/infrastructure')}  loading={loading} />
-        <KpiCard label="Clusters actifs"      value={totalClusters} icon={Layers}        color="#38bdf8"  onClick={() => navigate('/clusters')}       loading={loading} />
-        <KpiCard label="Alertes critiques"    value={critCount}     icon={AlertTriangle} color="#ef4444"  onClick={() => navigate('/alerts')}         loading={loading} />
+      <style>{`
+        @keyframes pulse-green {
+          0% { box-shadow: 0 0 0 0 rgba(34,211,163,0.4); }
+          70% { box-shadow: 0 0 0 8px rgba(34,211,163,0); }
+          100% { box-shadow: 0 0 0 0 rgba(34,211,163,0); }
+        }
+      `}</style>
+
+      {/* ── ZONE B1 : KPIs & Gauges ─────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
+        <KpiCard label="Hôtes physiques" value={totalHosts} sub="DC-SBEE-Cotonou" icon={Server} color="#3b82f6" loading={loading} />
+        <KpiCard label="Machines virtuelles" value={totalVMs} icon={Box} color="#a855f7" loading={loading} />
+        <KpiCard label="Clusters actifs" value={totalClusters} icon={Layers} color="#38bdf8" loading={loading} />
+        <KpiCard label="Alertes critiques" value={critCount} icon={AlertTriangle} color="#ef4444" loading={loading} />
       </div>
 
-      {/* ── ZONE B2 : Resource Gauges ────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 0.8fr', gap: 10, marginBottom: 10 }}>
         <ResourceGaugeCard 
           label="Stockage" 
           mainValue={`${storageStats?.freeTB || 0} To de libres`} 
-          subValue={storageStats?.totalTB ? `${storageStats.usedTB} To utilisés | Espace total : ${storageStats.totalTB} To` : '—'} 
-          pct={storPct} 
-          icon={HardDrive} 
-          color="#f59e0b" 
-          onClick={() => navigate('/storage')} 
-          loading={loading} 
+          subValue={`${storageStats?.usedTB || 0} To utilisés | Espace total : ${storageStats?.totalTB || 0} To`} 
+          pct={storPct} icon={HardDrive} color="#f59e0b" loading={loading} 
         />
         <ResourceGaugeCard 
           label="Mémoire RAM" 
           mainValue={`${(ramTotalGB - ramUsedGB).toFixed(2)} Go de libres`} 
-          subValue={ramTotalStr ? `${ramUsedStr} utilisés | Espace total : ${ramTotalStr}` : '—'} 
-          pct={ramPct} 
-          icon={Zap} 
-          color="#3b82f6" 
-          loading={loading} 
+          subValue={`${ramUsedStr} utilisés | Espace total : ${ramTotalStr}`} 
+          pct={ramPct} icon={Zap} color="#3b82f6" loading={loading} 
         />
-        <div
-          onClick={() => navigate('/physical')}
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 12, padding: '24px 20px', cursor: 'pointer',
-            transition: 'all 0.2s', flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}
-        >
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Thermometer size={14} color="#22d3a3" />
-            Température salle
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border)', padding: '16px 20px', position: 'relative' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#22d3a3', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Thermometer size={12} /> Température salle
           </div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#22d3a3' }}>
-            18<span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>dégré</span>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>18 <span style={{ fontSize: 16, color: 'var(--text-muted)', fontWeight: 400 }}>°C</span></div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Statut : <span style={{ color: '#22d3a3', fontWeight: 700 }}>Optimal</span></div>
+          <div style={{ position: 'absolute', right: 10, top: 40, opacity: 0.1 }}><Thermometer size={48} color="#22d3a3" /></div>
+        </div>
+      </div>
+
+      {/* ── ZONE B2 : Infrastructure Physique ───── */}
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#a855f7', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Activity size={12} /> Infrastructure Physique <span style={{ background: '#a855f7', color: '#fff', fontSize: 8, padding: '1px 4px', borderRadius: 4 }}>NEW</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.6fr', gap: 20 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Heatmap Température des Racks</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(envSummary?.rackTemps || []).map(r => <HeatmapRackComponent key={r.id} {...r} />)}
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              {[['< 30°C', '#22d3a3'], ['30°C - 40°C', '#f59e0b'], ['> 40°C', '#ef4444']].map(([l, c]) => (
+                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 8, color: 'var(--text-muted)' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: 1, background: c }} /> {l}
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Statut : Optimal</div>
-          <div style={{ position: 'absolute', top: 10, right: 10, opacity: 0.1 }}>
-            <Thermometer size={24} color="#22d3a3" />
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Occupation des Racks (U)</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {occupancy.map(r => <OccupancyRackComponent key={r.id} {...r} />)}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Puissance & Redondance</div>
+            <PowerFlowComponent />
           </div>
         </div>
       </div>
 
-      {/* ── ZONE C : 3 colonnes ───────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 240px', gap: 14, marginBottom: 14 }}>
-
-        {/* Col gauche — Resource Allocation + Virtualisation + Inventaire physique */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 14 }}>Allocation ressources</div>
-            <CapBar label={`CPU (${cpuUsed}/${cpuTotal} GHz)`} pct={cpuPct} />
-            <CapBar label={`RAM (${ramUsedStr}/${ramTotalStr})`} pct={ramPct} />
-            <CapBar label={`Stockage (${storageStats?.usedTB || 0}/${storageStats?.totalTB || 0} To)`} pct={storPct} />
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Machines Virtuelles ({totalVMs})</div>
-            {[
-              { icon: Box,    label: 'Sous tension',  value: totalVmsOn,      color: '#22d3a3' },
-              { icon: Box,    label: 'Hors tension',  value: totalVmsOff,     color: 'var(--text-muted)' },
-              { icon: Box,    label: 'Interrompu',    value: totalVmsSusp,    color: '#f59e0b' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div
-                key={label}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', borderBottom: '1px solid var(--border)' }}
-              >
-                <Icon size={11} color={color} />
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{loading ? '—' : value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Hôtes ESXi ({totalHosts})</div>
-            {[
-              { label: 'Connecté',    value: (hosts || []).filter(h => h.status === 'online').length, color: '#22d3a3' },
-              { label: 'Déconnecté',  value: (hosts || []).filter(h => h.status === 'disconnected').length, color: '#ef4444' },
-              { label: 'Maintenance', value: (hosts || []).filter(h => h.status === 'maintenance').length, color: '#38bdf8' },
-            ].map(({ label, value, color }) => (
-              <div
-                key={label}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', borderBottom: '1px solid var(--border)' }}
-              >
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{loading ? '—' : value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Inventaire physique depuis les vraies données datacenter-3d */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Salle serveur</span>
-              <button onClick={() => navigate('/datacenter-3d')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E30613', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>3D <ChevronRight size={9} /></button>
+      {/* ── ZONE C : Monitoring Détaillé ────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3.5fr 1fr', gap: 10, marginBottom: 10 }}>
+        
+        {/* Col Gauche : Resources & VMs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', marginBottom: 10 }}>Allocation Ressources</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <CapBar label={`CPU ${cpuUsed}/${cpuTotal} GHz`} pct={cpuPct} />
+              <CapBar label={`RAM ${ramUsedStr}/${ramTotalStr}`} pct={ramPct} />
+              <CapBar label={`Stockage ${storageStats?.usedTB}/${storageStats?.totalTB} To`} pct={storPct} />
             </div>
-            {[
-              { icon: Server,   label: 'Serveurs physiques', key: 'server',  path: '/datacenter-3d' },
-              { icon: Network,  label: 'Équip. réseau',       key: 'network', path: '/datacenter-3d' },
-              { icon: Database, label: 'Stockage (baies)',     key: 'storage', path: '/datacenter-3d' },
-              { icon: Plug,     label: 'Onduleurs',            key: 'power',   path: '/ups-diagram' },
-            ].map(({ icon: Icon, label, key, path }) => (
-              <div
-                key={key}
-                onClick={() => navigate(path)}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-              >
-                <Icon size={11} color="var(--text-muted)" />
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: totalPhys > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {loading ? '—' : (physInv[key] ?? 0)}
-                </span>
+          </div>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginBottom: 10 }}>Machines Virtuelles ({totalVMs})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                <CheckCircle size={10} color="#22d3a3" /> <span style={{ flex: 1 }}>Sous tension</span> <span style={{ fontWeight: 700 }}>{totalVmsOn}</span>
               </div>
-            ))}
-            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
-              <span>{rackCount} racks · {totalPhys} équipements</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                <Box size={10} color="var(--text-muted)" /> <span style={{ flex: 1 }}>Hors tension</span> <span style={{ fontWeight: 700 }}>{totalVmsOff}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                <RefreshCw size={10} color="#f59e0b" /> <span style={{ flex: 1 }}>Interrompu</span> <span style={{ fontWeight: 700 }}>{totalVmsSusp}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Col centre — Hôtes ESXi + section alimentation */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-          {/* Hôtes ESXi */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Hôtes ESXi — Statut temps réel</span>
-              <button onClick={() => navigate('/clusters')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E30613', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                Voir tout <ChevronRight size={11} />
-              </button>
+        {/* Col Centre : ESXi & Power Graph */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase' }}>Hôtes ESXi — Statut Temps Réel</div>
+              <span style={{ fontSize: 9, color: '#38bdf8', cursor: 'pointer' }} onClick={() => navigate('/clusters')}>Voir tout &gt;</span>
             </div>
-            {loading ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', padding: 16 }}>Chargement des hôtes…</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: 10 }}>
-                {(hosts || []).map(host => {
-                  // Support both field naming conventions
-                  const cpuUsedVal  = host.cpu?.usedCores  ?? host.cpu?.used  ?? 0;
-                  const cpuTotalVal = host.cpu?.totalCores ?? host.cpu?.total ?? 0;
-                  const cpuH = cpuTotalVal > 0 ? Math.round((cpuUsedVal / cpuTotalVal) * 100) : 0;
-                  const ramH = (host.ram?.totalGB > 0) ? Math.round(((host.ram.usedGB ?? 0) / host.ram.totalGB) * 100) : 0;
-                  const ok   = host.status !== 'offline' && host.status !== 'error';
-                  return (
-                    <div
-                      key={host.id}
-                      onClick={() => navigate(`/infrastructure/esxi/${host.id}`)}
-                      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: 13, cursor: 'pointer', transition: 'border-color 0.2s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = '#E30613'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                          {host.name || host.id}
-                        </span>
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: ok ? '#22d3a3' : '#ef4444', marginLeft: 5, flexShrink: 0 }} />
-                      </div>
-                      <CapBar label={`CPU  ${cpuH}%`} pct={cpuH} />
-                      <CapBar label={`RAM  ${ramH}%`} pct={ramH} />
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, display: 'flex', justifyContent: 'space-between' }}>
-                        <span>{host.vmCount ?? 0} VMs</span>
-                        <span>{host.ip || ''}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {(!hosts || hosts.length === 0) && (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Aucun hôte ESXi trouvé.</div>
-                )}
-              </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+              {(hosts || []).slice(0, 5).map(h => (
+                <EsxiMiniCard key={h.id} name={h.name} cpu={Math.round((h.cpu?.usedCores / h.cpu?.totalCores) * 100)} ram={Math.round((h.ram?.usedGB / h.ram?.totalGB) * 100)} vms={h.vmCount} />
+              ))}
+            </div>
           </div>
-
-          {/* Section Alimentation — Secteur / Onduleur / Groupe électrogène */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Zap size={13} color="#E30613" />
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Alimentation électrique</span>
-              </div>
-              <button onClick={() => navigate('/ups-diagram')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E30613', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                Schéma <ChevronRight size={9} />
-              </button>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginBottom: 10 }}>Alimentation Électrique</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+               <div style={{ fontSize: 10 }}>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>RÉSEAU SECTEUR</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{secteurKW?.toFixed(1)} <span style={{ fontSize: 9 }}>kW</span></div>
+                  <div style={{ fontSize: 8, color: '#22d3a3' }}>ECO / SBEE Réseau</div>
+               </div>
+               <div style={{ fontSize: 10 }}>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>ONDOLEURS (UPS)</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{upsKW?.toFixed(1)} <span style={{ fontSize: 9 }}>kW</span></div>
+                  <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>EcoFlow - SKVAH</div>
+               </div>
+               <div style={{ fontSize: 10 }}>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: 2 }}>GROUPE ÉLECTROGÈNE</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{genKW?.toFixed(1)} <span style={{ fontSize: 9 }}>kW</span></div>
+                  <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>Carburant : {genFuel}%</div>
+               </div>
             </div>
-
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-              <PowerCard icon={Plug}           label="Réseau secteur"   kw={secteurKW}  status="ok"        color="#22d3a3" sub="EDF / SBEE réseau" />
-              <PowerCard icon={BatteryCharging} label="Onduleurs (UPS)"  kw={upsKW}      status="ok"        color="#38bdf8" sub="EcoFlow + SUKAM" />
-              <PowerCard icon={Wind}            label="Groupe électrogène" kw={genKW}    status={genset?.status || 'stopped'} color={genRunning ? '#f59e0b' : 'var(--text-muted)'} sub={genFuel != null ? `Carburant : ${genFuel.toFixed(0)}%` : 'En veille'} />
-            </div>
-
-            {/* Graphe énergie multilignes */}
-            <div style={{ height: 160 }}>
+            <div style={{ height: 60 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={energyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                  <XAxis dataKey="t" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
-                  <YAxis hide />
-                  <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', fontSize: 10, color: 'var(--text-primary)', borderRadius: 6 }} />
-                  <Line type="monotone" dataKey="Secteur"    stroke="#22d3a3" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Onduleur"   stroke="#38bdf8" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Générateur" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray={genRunning ? undefined : '4 4'} />
+                  <Line type="monotone" dataKey="Secteur" stroke="#22d3a3" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Onduleur" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Générateur" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ display: 'flex', gap: 16, marginTop: 6, justifyContent: 'center' }}>
-              {[['Secteur','#22d3a3'],['Onduleur','#38bdf8'],['Générateur','#f59e0b']].map(([lbl, col]) => (
-                <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-muted)' }}>
-                  <div style={{ width: 18, height: 2, background: col, borderRadius: 1 }} />
-                  {lbl}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
-        {/* Col droite — Alarmes */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Bell size={12} color="#E30613" />
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Alarmes</span>
+        {/* Col Droite : Alarms & Recent */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginBottom: 10 }}>Alarmes <span style={{ float: 'right', color: 'var(--text-muted)' }}>Total {critCount + warnCount}</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ padding: '6px 8px', background: 'var(--danger-bg)', border: '1px solid var(--danger)20', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#ef4444' }}>Critique</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#ef4444' }}>{critCount}</span>
+              </div>
+              <div style={{ padding: '6px 8px', background: 'var(--warning-bg)', border: '1px solid var(--warning)20', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b' }}>Warning</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b' }}>{warnCount}</span>
+              </div>
             </div>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Total {alertList.length}</span>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-            <AlarmBadge count={critCount} label="Critique"  color="#ef4444" />
-            <AlarmBadge count={errCount}  label="Erreur"    color="#f97316" />
-            <AlarmBadge count={warnCount} label="Warning"   color="#f59e0b" />
-            <AlarmBadge count={infoCount} label="Info"      color="#3b82f6" />
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 7, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Récentes</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-              {loading ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Chargement…</div>
-              ) : recentAlerts.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#22d3a3', fontSize: 12 }}>
-                  <CheckCircle size={12} /> Aucune alerte active
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', marginBottom: 10 }}>Récentes</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentAlerts.slice(0, 3).map((a, i) => (
+                <div key={i} style={{ borderLeft: `2px solid ${SEV_COLOR[a.severity] || '#3b82f6'}`, paddingLeft: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: SEV_COLOR[a.severity] }}>{SEV_LABEL[a.severity]}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.2, margin: '2px 0' }}>{a.message}</div>
+                  <div style={{ fontSize: 8, color: 'var(--text-muted)' }}>{fmtClock(new Date(a.timestamp))}</div>
                 </div>
-              ) : (
-                recentAlerts.map((alert, i) => {
-                  const sev = alert.severity || 'info';
-                  const col = SEV_COLOR[sev] || '#3b82f6';
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => navigate('/alerts')}
-                      style={{ padding: '7px 9px', background: `${col}08`, border: `1px solid ${col}20`, borderRadius: 7, cursor: 'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = `${col}50`}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = `${col}20`}
-                    >
-                      <div style={{ fontSize: 9, color: col, fontWeight: 700, marginBottom: 2 }}>{SEV_LABEL[sev] || sev}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {alert.message || alert.msg || 'Alerte système'}
-                      </div>
-                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {alert.timestamp ? new Date(alert.timestamp).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                        {alert.source && ` · ${alert.source}`}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+              ))}
             </div>
+            <button onClick={() => navigate('/alerts')} style={{ width: '100%', marginTop: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 9, padding: '6px', borderRadius: 6, cursor: 'pointer' }}>
+               Voir toutes les alertes &gt;
+            </button>
           </div>
-
-          <button
-            onClick={() => navigate('/alerts')}
-            style={{ background: 'rgba(227,6,19,0.1)', border: '1px solid rgba(227,6,19,0.3)', color: '#E30613', borderRadius: 8, padding: '7px 0', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
-          >
-            Voir toutes les alertes <ChevronRight size={11} />
-          </button>
         </div>
       </div>
 
-      {/* ── ZONE D : Bottom Status Bar ───────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-
-        {/* Statut infrastructure */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Statut infrastructure</div>
-          {[
-            { label: 'Hôtes connectés',   value: (hosts || []).filter(h => h.status !== 'offline').length,  total: totalHosts,  color: '#22d3a3' },
-            { label: 'VMs sous tension',   value: totalVMs,  total: null, color: '#a855f7' },
-            { label: 'Alertes actives',    value: alertList.length, total: null, color: alertList.length > 0 ? '#ef4444' : '#22d3a3' },
-            { label: 'Équipements DC',     value: totalPhys, total: null, color: '#f59e0b', onClick: () => navigate('/datacenter-3d') },
-          ].map(({ label, value, total, color, onClick }) => (
-            <div
-              key={label}
-              onClick={onClick}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)', cursor: onClick ? 'pointer' : 'default' }}
-            >
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color }}>
-                {loading ? '—' : value}
-                {total !== null && !loading && <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}> / {total}</span>}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Health Check donut */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Health Check</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 80, height: 80, flexShrink: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={healthData} cx="50%" cy="50%" innerRadius={24} outerRadius={36} dataKey="value" stroke="none">
-                    {healthData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
-              {healthData.map(h => (
-                <div key={h.name} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: h.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{h.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: h.color }}>{h.value}</span>
-                </div>
-              ))}
-            </div>
+      {/* ── ZONE D : Synthèse & Activités ──────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1.5fr', gap: 10 }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', marginBottom: 10 }}>Statut Infrastructure</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: 'var(--text-muted)' }}>Hôtes connectés</span> <span style={{ fontWeight: 700, color: '#22d3a3' }}>{totalHosts}/{totalHosts}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: 'var(--text-muted)' }}>VMs sous tension</span> <span style={{ fontWeight: 700, color: '#a855f7' }}>{totalVmsOn}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: 'var(--text-muted)' }}>Alertes actives</span> <span style={{ fontWeight: 700, color: '#ef4444' }}>{critCount}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}><span style={{ color: 'var(--text-muted)' }}>Équipements DC</span> <span style={{ fontWeight: 700, color: '#f59e0b' }}>55</span></div>
           </div>
         </div>
-
-        {/* Activité récente */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Activité récente</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {loading ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Chargement…</div>
-            ) : (activity || []).length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Aucune activité récente.</div>
-            ) : (
-              (activity || []).slice(0, 5).map((act, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#E30613', marginTop: 5, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {act.action || act.message || act.event || 'Action système'}
-                    </div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>
-                      {act.user && <span>{act.user} · </span>}
-                      {act.timestamp ? new Date(act.timestamp).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', marginBottom: 10 }}>Health Check</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+             <div style={{ width: 64, height: 64 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                   <PieChart>
+                      <Pie data={healthData} cx="50%" cy="50%" innerRadius={20} outerRadius={32} dataKey="value" stroke="none">
+                         {healthData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                      </Pie>
+                   </PieChart>
+                </ResponsiveContainer>
+             </div>
+             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
+                {healthData.map(h => (
+                   <div key={h.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: h.color }} />
+                      <span style={{ color: 'var(--text-muted)', flex: 1 }}>{h.name}</span>
+                      <span style={{ fontWeight: 700, color: h.color }}>{h.value}</span>
+                   </div>
+                ))}
+             </div>
           </div>
         </div>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', marginBottom: 10 }}>Activité Récente</div>
+          <div style={{ display: 'flex', gap: 16 }}>
+             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {(activity || []).slice(0, 4).map((a, i) => (
+                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9 }}>
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#E30613' }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.action}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{i === 0 ? 'Il y a 2 min' : `Il y a ${i * 4 + 3} min`}</span>
+                   </div>
+                ))}
+             </div>
+             <div style={{ width: 100, height: 40 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                   <BarChart3 size={40} color="var(--accent-glow)" />
+                </ResponsiveContainer>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── ZONE E : Footer ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+         <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <ClipboardList size={11} /> HISTORIQUE INCIDENTS <ChevronRight size={10} />
+         </div>
+         <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={11} /> MAINTENANCES PLANIFIÉES <span style={{ marginLeft: 6, color: 'var(--text-muted)', opacity: 0.5 }}>Aucune maintenance à venir</span>
+         </div>
+         <div style={{ fontSize: 9, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end', cursor: 'pointer' }}>
+            EXPORTS & RAPPORTS <Download size={11} />
+         </div>
       </div>
 
       <FunctionMapModal open={showMap} onClose={() => setShowMap(false)} navigate={navigate} />

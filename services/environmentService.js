@@ -274,6 +274,21 @@ function getRoomSummary() {
   const hotAisle = sensors.filter(s => s.zone === 'hot').reduce((s, x) => s + x.tempC, 0) /
                    (sensors.filter(s => s.zone === 'hot').length || 1);
 
+  // HSM Simulation
+  const hsmStatus = Math.random() > 0.98 ? 'warning' : 'ok'; // Rarely fails for demo
+  
+  // Power Status Simulation (linking to physical UPS)
+  const upsOnBattery = Math.random() > 0.95; // 5% chance of simulating power issue
+
+  // Per-rack temperatures (simulated based on DC layout)
+  const rackTemps = [
+    { id: 'rack-1', name: 'IBM', temp: fluctuate(23, 2), status: 'ok' },
+    { id: 'rack-2', name: 'Intranet', temp: fluctuate(24, 3), status: 'ok' },
+    { id: 'rack-3', name: 'PREPAID', temp: fluctuate(22, 1), status: 'ok' },
+    { id: 'rack-4', name: 'Vidéo', temp: fluctuate(25, 4), status: 'ok' },
+    { id: 'rack-5', name: 'Telecom', temp: fluctuate(21, 1), status: 'ok' },
+  ];
+
   return {
     avgTempC:     avgTemp,
     temperature:  avgTemp, // Alias for dashboard KPI
@@ -283,6 +298,9 @@ function getRoomSummary() {
     humidity:     +avgHum, // Alias for dashboard KPI
     smokeAlert:   false,
     waterAlert:   false,
+    upsOnBattery,
+    hsmStatus,
+    rackTemps,
     ashrae: {
       compliant: avgTemp >= 18 && avgTemp <= 27,
       class: avgTemp <= 27 ? 'A1' : avgTemp <= 35 ? 'A2' : 'CRITICAL',

@@ -14,13 +14,15 @@ const SIM_CLUSTERS = [
     id: 'cl-sbeedg',
     name: 'SBEEDG',
     datacenter: 'DC-SBEE-Cotonou',
-    hosts: ['esxi01','esxi02','esxi03','esxi04','esxi05','esxi06','esxi07','esxi08','esxi09','esxi10','esxi11'],
-    cpu: { totalCores: 312, usedCores: 22, totalMhz: 359630, usedMhz: 22470 }, // 359.63 GHz total, 22.47 GHz used
-    ram: { totalGB: 1976.32, usedGB: 1048.93 }, // 1.93 TB total, 1.024 TB used -> 927.39 GB free
-    vmCount: 163,
+    hosts: ['esxi01','esxi02','esxi03','esxi04','esxi05','esxi06','esxi07','esxi08','esxi09','esxi10','esxi11','esxi12','esxi13'],
+    cpu: { totalCores: 312, usedCores: 22, totalMhz: 359630, usedMhz: 22470 }, 
+    ram: { totalGB: 2426.88, usedGB: 1117.56 }, 
+    vmCount: 198,
     status: 'online',
     haEnabled: true,
     drsEnabled: true,
+    vmsOn: 73,
+    vmsOff: 125,
   },
   {
     id: 'cl-sbeedr',

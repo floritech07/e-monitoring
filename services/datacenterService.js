@@ -362,6 +362,25 @@ function deleteDevice(deviceId) {
   throw new Error('Équipement introuvable');
 }
 
+function getPhysicalOccupancy() {
+  const dc = readDatacenter();
+  const racks = [];
+  dc.rooms.forEach(room => {
+    room.racks.forEach(rack => {
+      const usedU = rack.devices.reduce((sum, dev) => sum + (dev.uSize || 1), 0);
+      racks.push({
+        id: rack.id,
+        name: rack.name,
+        totalU: rack.uHeight || 42,
+        usedU,
+        freeU: (rack.uHeight || 42) - usedU,
+        pct: Math.round((usedU / (rack.uHeight || 42)) * 100),
+      });
+    });
+  });
+  return racks;
+}
+
 module.exports = {
   getDatacenter,
   getDeviceTypes,
@@ -373,4 +392,5 @@ module.exports = {
   addDevice,
   updateDevice,
   deleteDevice,
+  getPhysicalOccupancy,
 };
