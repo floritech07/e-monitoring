@@ -13,8 +13,11 @@ export default function Login({ onLogin, theme, onToggleTheme }) {
     setError('');
     setLoading(true);
     setTimeout(() => {
-      if (email === 'admin@sbee.bj' && password === 'admin') {
-        onLogin({ email, name: 'Administrateur', role: 'admin' });
+      const cleanEmail = email.trim().toLowerCase().replace(/\s/g, '');
+      const cleanPwd   = password.trim();
+      console.log('[Login Debug]', JSON.stringify({ cleanEmail, cleanPwd, emailLen: cleanEmail.length, pwdLen: cleanPwd.length }));
+      if (cleanEmail === 'admin@sbee.bj' && cleanPwd === 'admin') {
+        onLogin({ email: cleanEmail, name: 'Administrateur', role: 'admin' });
       } else {
         setError('Identifiants incorrects. Essayez admin@sbee.bj / admin');
         setLoading(false);
