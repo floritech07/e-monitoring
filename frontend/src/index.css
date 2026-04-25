@@ -16,9 +16,9 @@
   --text-secondary: #8891b0;
   --text-muted:     #545b78;
 
-  --accent:         #4f8ef7;
-  --accent-glow:    rgba(79, 142, 247, 0.15);
-  --accent-dark:    #1e3d7a;
+  --accent:         #E30613;
+  --accent-glow:    rgba(227, 6, 19, 0.15);
+  --accent-dark:    #8B0000;
 
   --success:        #22d3a3;
   --success-bg:     rgba(34, 211, 163, 0.1);
@@ -26,8 +26,8 @@
   --warning-bg:     rgba(245, 166, 35, 0.1);
   --danger:         #f5534b;
   --danger-bg:      rgba(245, 83, 75, 0.1);
-  --info:           #4f8ef7;
-  --info-bg:        rgba(79, 142, 247, 0.1);
+  --info:           #E30613;
+  --info-bg:        rgba(227, 6, 19, 0.1);
 
   /* Grid Layout Helpers */
   --grid-gap:       24px;
@@ -41,14 +41,14 @@
 
   --shadow-sm:  0 2px 8px rgba(0,0,0,0.4);
   --shadow-md:  0 4px 20px rgba(0,0,0,0.6);
-  --shadow-glow: 0 0 20px rgba(79,142,247,0.2);
+  --shadow-glow: 0 0 20px rgba(227,6,19,0.2);
   
   /* New Premium Tokens */
   --glass:         rgba(20, 22, 30, 0.7);
   --glass-border:  rgba(255, 255, 255, 0.08);
   --glass-stroke:  rgba(255, 255, 255, 0.03);
   
-  --accent-secondary: #c45ef7;
+  --accent-secondary: #FF6B6B;
   --accent-tertiary:  #22d3a3;
   
   --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
