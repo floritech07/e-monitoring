@@ -6,38 +6,49 @@ import {
   Layers, Database, Cpu, HardDrive, Bell, Phone,
   ArrowRight, Box, LayoutGrid, Monitor, Network,
   AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle,
-  Download, Battery, ZapOff, CpuIcon, Folder, List
+  Download, Battery, ZapOff, CpuIcon, User, Search, Settings, MoreVertical
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, BarChart, Bar
+  PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { api } from '../api';
 
 /**
- * SBEE ULTIMATE MONITORING — OPERATIONAL DASHBOARD
- * Tableau vCenter (Objets Alerfiques) + Logs d'activité en temps réel.
+ * SBEE SAAS PLATINUM EDITION
+ * Layout SaaS moderne avec structure par blocs, widgets latéraux et mode sombre.
  */
 
 // ── UI COMPONENTS ──────────────────────────────────────────────────────────
 
-const ResourceStat = ({ label, free, used, total, unit, color, icon: Icon }) => {
-  const percent = total > 0 ? (used / total) * 100 : 0;
-  return (
-    <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '11px', fontWeight: 700, marginBottom: 15, textTransform: 'uppercase' }}>
-         <Icon size={16} color={color} /> {label}
-      </div>
-      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: 15 }}>
-         {free} <span style={{ fontSize: '14px', color: '#64748b' }}>{unit} libres</span>
-      </div>
-      <div style={{ height: '4px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', marginBottom: 10, overflow: 'hidden' }}>
-         <div style={{ width: `${percent}%`, height: '100%', background: color }} />
-      </div>
-      <div style={{ fontSize: '11px', color: '#64748b' }}>{used} {unit} utilisés | {total} {unit} au total</div>
+const AssetCard = ({ label, value, trend, subLabel, color, icon: Icon }) => (
+  <div style={{ 
+    background: 'rgba(30, 41, 59, 0.4)', 
+    borderRadius: '24px', 
+    padding: '24px', 
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    flex: 1
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
+       <div style={{ background: `${color}20`, padding: '12px', borderRadius: '16px' }}>
+          <Icon size={20} color={color} />
+       </div>
+       <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700 }}>{label}</span>
     </div>
-  );
-};
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+       <span style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>{value}</span>
+       <span style={{ fontSize: '12px', color: trend.startsWith('+') ? '#48bb78' : '#f87171', fontWeight: 700 }}>
+          {trend} {trend.startsWith('+') ? '↑' : '↓'}
+       </span>
+    </div>
+    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: 15 }}>{subLabel}</div>
+    <div style={{ height: '4px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+       <div style={{ width: value.includes('%') ? value : '65%', height: '100%', background: color }} />
+    </div>
+  </div>
+);
+
+// ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 
 export default function Dashboard({ metrics, vms, alerts, connected }) {
   const navigate = useNavigate();
@@ -47,114 +58,152 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
     api.getEnvSummary().then(setEnv).catch(() => {});
   }, []);
 
-  const data = useMemo(() => ({
-    cpuTotal: 359.63, cpuUsed: 27.07 + (Math.random() * 2),
-    ramTotal: 1.93, ramUsed: 1.02,
-    storageTotal: 158.06, storageUsed: 71.37
-  }), [metrics]);
-
   return (
-    <div className="fade-in" style={{ padding: '40px', background: '#0b0e14', minHeight: 'calc(100vh - 60px)', color: '#e2e8f0', fontFamily: "'Inter', sans-serif" }}>
+    <div className="fade-in" style={{ 
+      padding: '32px', 
+      background: '#0b0e14', 
+      minHeight: 'calc(100vh - 60px)', 
+      fontFamily: "'Inter', sans-serif",
+      color: '#e2e8f0',
+      display: 'grid',
+      gridTemplateColumns: '1fr 340px',
+      gap: 32
+    }}>
       
-      {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32 }}>
-        <div>
-           <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', margin: 0 }}>SBEE <span style={{ color: '#3b82f6' }}>MONITORING</span></h1>
-           <div style={{ fontSize: '13px', color: '#64748b', marginTop: 4 }}>Centre de Commandes Opérationnel · vCenter Hybrid</div>
-        </div>
-        <button className="btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px' }}>
-           <Download size={16} style={{ marginRight: 8 }} /> Rapports
-        </button>
-      </div>
-
-      {/* ── RESOURCE BAND ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-         <ResourceStat label="CPU" free={(data.cpuTotal - data.cpuUsed).toFixed(2)} used={data.cpuUsed.toFixed(2)} total={data.cpuTotal} unit="GHz" color="#3b82f6" icon={Cpu} />
-         <ResourceStat label="Mémoire" free={(data.ramTotal - data.ramUsed).toFixed(2)} used={data.ramUsed.toFixed(2)} total={data.ramTotal} unit="To" color="#a78bfa" icon={Layers} />
-         <ResourceStat label="Stockage" free={(data.storageTotal - data.storageUsed).toFixed(2)} used={data.storageUsed.toFixed(2)} total={data.storageTotal} unit="To" color="#fb923c" icon={HardDrive} />
-      </div>
-
-      {/* ── INVENTORY & ENERGY ──────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '12px', fontWeight: 800, marginBottom: 20 }}>
-               <Monitor size={16} /> INVENTAIRE VMs
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-               <div><div style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>163</div><div style={{ fontSize: '10px', color: '#64748b' }}>TOTAL</div></div>
-               <div><div style={{ fontSize: '24px', fontWeight: 900, color: '#48bb78' }}>66</div><div style={{ fontSize: '10px', color: '#64748b' }}>ON</div></div>
-               <div><div style={{ fontSize: '24px', fontWeight: 900, color: '#f87171' }}>97</div><div style={{ fontSize: '10px', color: '#64748b' }}>OFF</div></div>
-            </div>
-         </div>
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(251, 146, 60, 0.1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fb923c', fontSize: '12px', fontWeight: 800, marginBottom: 20 }}>
-               <Zap size={16} /> SYSTÈME ÉNERGÉTIQUE
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-               <div style={{ fontSize: '14px', fontWeight: 700 }}>Batteries: <span style={{ color: '#48bb78' }}>98%</span></div>
-               <div style={{ fontSize: '14px', fontWeight: 700 }}>Délivré: <span style={{ color: '#fff' }}>450 kW</span></div>
-            </div>
-         </div>
-      </div>
-
-      {/* ── OPERATIONAL SECTION: TABLE + LOGS ───────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.4fr', gap: 24 }}>
+      {/* ── MAIN CONTENT (LEFT) ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
          
-         {/* TABLEAU DES OBJETS (Image Style) */}
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-               <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Shield size={18} /> Objets présentant le plus d'alertes
-               </div>
-               <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 700 }}>10</span>
+         {/* Welcome Banner */}
+         <div style={{ 
+            background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)', 
+            borderRadius: '24px', 
+            padding: '40px', 
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            position: 'relative',
+            overflow: 'hidden'
+         }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+               <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#fff', margin: 0 }}>Welcome back, Admin</h1>
+               <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: 12, maxWidth: '400px', lineHeight: 1.6 }}>
+                  L'infrastructure SBEE est actuellement à <span style={{ color: '#48bb78', fontWeight: 800 }}>98% de disponibilité</span>. 
+                  Toutes les vCenter Nodes sont synchronisées.
+               </p>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead>
-                  <tr style={{ textAlign: 'left', fontSize: '11px', color: '#64748b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                     <th style={{ padding: '12px 8px' }}>Élément</th>
-                     <th style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={14} color="#f87171" /> Alertes</th>
-                     <th><AlertTriangle size={14} color="#fb923c" /> Avertissements</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {[
-                     { name: 'vcsa.sbee.local', alerts: 3, warns: 0, type: 'folder' },
-                     { name: 'esxi-noc.sbee.local', alerts: 2, warns: 0, type: 'server' },
-                     { name: 'drmcesxi.sbee.local', alerts: 2, warns: 0, type: 'server' },
-                     { name: 'drbaesxi.sbee.local', alerts: 1, warns: 1, type: 'server' },
-                     { name: 'VMDGMAIL_replica (1)', alerts: 1, warns: 1, type: 'vm' }
-                  ].map((item, idx) => (
-                     <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', fontSize: '13px' }}>
-                        <td style={{ padding: '12px 8px', color: '#22d3ee', display: 'flex', alignItems: 'center', gap: 10 }}>
-                           {item.type === 'folder' ? <Folder size={16} /> : item.type === 'server' ? <Server size={16} /> : <Monitor size={16} />}
-                           {item.name}
-                        </td>
-                        <td style={{ color: item.alerts > 0 ? '#fff' : '#64748b' }}>{item.alerts}</td>
-                        <td style={{ color: item.warns > 0 ? '#fff' : '#64748b' }}>{item.warns}</td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
+            {/* Background Illustration Decor */}
+            <div style={{ position: 'absolute', right: -20, top: -20, opacity: 0.1 }}>
+               <Server size={200} color="#fff" />
+            </div>
          </div>
 
-         {/* LOGS D'ACTIVITÉ */}
-         <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '15px', fontWeight: 800, marginBottom: 24 }}>
-               <List size={18} /> Logs d'activité récents
+         {/* Asset Cards Grid */}
+         <div style={{ display: 'flex', gap: 24 }}>
+            <AssetCard label="CPU" value={`${metrics?.cpu?.usage || 4.8}%`} trend="+6.5%" subLabel="Avg usage last 24h" color="#6366f1" icon={Cpu} />
+            <AssetCard label="RAM" value={`${metrics?.ram?.percent || 4.2}%`} trend="-8.5%" subLabel="Avg usage last 24h" color="#ec4899" icon={Layers} />
+            <AssetCard label="DISK" value="5.8GB" trend="+3.6%" subLabel="SAN utilization" color="#8b5cf6" icon={HardDrive} />
+            <AssetCard label="SERVICES" value="3.5KB" trend="+4.8%" subLabel="Network traffic" color="#f59e0b" icon={Network} />
+         </div>
+
+         {/* Main Chart: Server Traffic */}
+         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>Server Traffic Source</h2>
+               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', color: '#94a3b8' }}>This Year</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '300px', overflowY: 'auto', paddingRight: '10px' }}>
-               {alerts.slice(0, 6).map((alert, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 15, fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 12 }}>
-                     <div style={{ color: alert.severity === 'critical' ? '#f87171' : '#fb923c' }}>
-                        {alert.severity === 'critical' ? <AlertCircle size={14} /> : <AlertTriangle size={14} />}
-                     </div>
-                     <div style={{ flex: 1 }}>
-                        <div style={{ color: '#fff', fontWeight: 700 }}>{alert.sourceId}</div>
-                        <div style={{ color: '#94a3b8', marginTop: 4 }}>{alert.message}</div>
-                     </div>
-                     <div style={{ color: '#475569', fontSize: '10px' }}>{new Date().toLocaleTimeString()}</div>
-                  </div>
-               ))}
+            <div style={{ height: '300px' }}>
+               <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={Array.from({length: 12}, (_, i) => ({ name: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i], value: 40 + Math.random()*60 }))}>
+                     <defs>
+                        <linearGradient id="trafficGrad" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
+                           <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                        </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#475569' }} dy={10} />
+                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#475569' }} />
+                     <Tooltip contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff' }} />
+                     <Area type="monotone" dataKey="value" stroke="#f97316" strokeWidth={3} fill="url(#trafficGrad)" />
+                  </AreaChart>
+               </ResponsiveContainer>
+            </div>
+         </div>
+      </div>
+
+      {/* ── SIDEBAR WIDGETS (RIGHT) ─────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+         
+         {/* Mini Metrics */}
+         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <div style={{ marginBottom: 20 }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>Loads</span>
+                  <span style={{ fontSize: '13px', color: '#94a3b8' }}>Online Participant</span>
+               </div>
+               <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+                  <div style={{ width: '85%', height: '100%', background: '#f87171', borderRadius: '3px' }} />
+               </div>
+            </div>
+            <div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>Requests</span>
+                  <span style={{ fontSize: '13px', color: '#94a3b8' }}>Offline Participant</span>
+               </div>
+               <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
+                  <div style={{ width: '62%', height: '100%', background: '#6366f1', borderRadius: '3px' }} />
+               </div>
+            </div>
+         </div>
+
+         {/* Storage Circular */}
+         <div style={{ background: '#f97316', borderRadius: '24px', padding: '30px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+               <div style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>
+                  75
+               </div>
+               <div>
+                  <div style={{ fontSize: '16px', fontWeight: 800 }}>Storage Usage</div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, marginTop: 4 }}>594,875,625</div>
+                  <div style={{ fontSize: '11px', opacity: 0.8, marginTop: 2 }}>Online Users Capacity</div>
+               </div>
+            </div>
+         </div>
+
+         {/* Security Threat Card */}
+         <div style={{ background: '#4f46e5', borderRadius: '24px', padding: '30px', color: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
+               <Shield size={32} />
+               <div style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1.2 }}>Unauthorized Threats has been Terminated</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, opacity: 0.9 }}>
+               <div style={{ fontSize: '13px' }}>• 5 Unnecessary Data</div>
+               <div style={{ fontSize: '13px' }}>• 12 Unidentified Source Data</div>
+               <div style={{ fontSize: '13px' }}>• 8 Unused Images</div>
+            </div>
+            <button style={{ width: '100%', marginTop: 24, background: '#fff', color: '#4f46e5', border: 'none', borderRadius: '12px', padding: '12px', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+               View More
+            </button>
+         </div>
+
+         {/* Disk Usage Donut */}
+         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '30px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginBottom: 20 }}>Disk Usage</h3>
+            <div style={{ height: '140px', position: 'relative' }}>
+               <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                     <Pie data={[{v: 70}, {v: 30}]} innerRadius={50} outerRadius={65} paddingAngle={5} dataKey="v">
+                        <Cell fill="#22d3ee" />
+                        <Cell fill="rgba(255,255,255,0.05)" />
+                     </Pie>
+                  </PieChart>
+               </ResponsiveContainer>
+               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>70%</div>
+               </div>
+            </div>
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#f87171' }}><span>• Max Usage</span></div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8' }}><span>• Average Usage</span></div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#22d3ee' }}><span>• Minimum Usage</span></div>
             </div>
          </div>
 
