@@ -347,13 +347,13 @@ const SIM_SUREBACKUP = [
 ];
 
 const SIM_REPLICATION = [
-  { src: 'VM-AD-01', srcHost: 'esxi-01', rep: 'VM-AD-01_REP', dstHost: 'esxi-03', lagMin: 3, lastSync: '2026-04-24 08:30', ok: true },
-  { src: 'VM-EXCHANGE', srcHost: 'esxi-01', rep: 'VM-EXCHANGE_REP', dstHost: 'esxi-03', lagMin: 7, lastSync: '2026-04-24 08:25', ok: true }
+  { src: 'VM-AD-01', srcHost: 'ESXi-01-SBEE', rep: 'VM-AD-01_REP', dstHost: 'ESXi-03-BACKUP', lagMin: 3, lastSync: '2026-04-24 08:30', ok: true },
+  { src: 'VM-EXCHANGE', srcHost: 'ESXi-01-SBEE', rep: 'VM-EXCHANGE_REP', dstHost: 'ESXi-03-BACKUP', lagMin: 7, lastSync: '2026-04-24 08:25', ok: true }
 ];
 
 const SIM_UNPROTECTED_VMS = [
-  { name: 'VM-TEST-SGBD',   host: 'esxi-02-sbee', os: 'Ubuntu 22.04', lastBackupDays: 45, diskGB: 120, vcpu: 4, ramGB: 8 },
-  { name: 'VM-DEV-WEBAPP',  host: 'esxi-01-sbee', os: 'Debian 11',    lastBackupDays: 12, diskGB: 60,  vcpu: 2, ramGB: 4 }
+  { name: 'VM-TEST-SGBD',   host: 'ESXi-02-SBEE', os: 'Ubuntu 22.04', lastBackupDays: 45, diskGB: 120, vcpu: 4, ramGB: 8 },
+  { name: 'VM-DEV-WEBAPP',  host: 'ESXi-01-SBEE', os: 'Debian 11',    lastBackupDays: 12, diskGB: 60,  vcpu: 2, ramGB: 4 }
 ];
 
 const SIM_OBJECT_STORAGE = {

@@ -276,9 +276,11 @@ function getRoomSummary() {
 
   return {
     avgTempC:     avgTemp,
+    temperature:  avgTemp, // Alias for dashboard KPI
     maxTempC:     +maxTemp.toFixed(1),
     hotAisleTempC: +hotAisle.toFixed(1),
     avgHumidity:  +avgHum,
+    humidity:     +avgHum, // Alias for dashboard KPI
     smokeAlert:   false,
     waterAlert:   false,
     ashrae: {

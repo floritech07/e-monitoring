@@ -38,6 +38,7 @@ function KpiCard({ label, value, unit = '', icon: Icon, color = '#E30613', onCli
         border: `1px solid ${hov && onClick ? color : 'var(--border)'}`,
         borderRadius: 12, padding: '15px 16px', cursor: onClick ? 'pointer' : 'default',
         transition: 'all 0.2s', flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
@@ -54,6 +55,47 @@ function KpiCard({ label, value, unit = '', icon: Icon, color = '#E30613', onCli
       {sub && !loading && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{sub}</div>}
       <div style={{ position: 'absolute', bottom: -10, right: -6, opacity: 0.04, pointerEvents: 'none' }}>
         <Icon size={56} color={color} />
+      </div>
+    </div>
+  );
+}
+
+function ResourceGaugeCard({ label, mainValue, subValue, pct, icon: Icon, color = '#22d3a3', onClick, loading }) {
+  const [hov, setHov] = useState(false);
+  const p = Math.max(0, Math.min(100, pct || 0));
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: hov && onClick ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+        border: `1px solid ${hov && onClick ? color : 'var(--border)'}`,
+        borderRadius: 12, padding: '24px 20px', cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s', flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center'
+      }}
+    >
+      <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+         <Icon size={14} color={color} />
+         {label}
+      </div>
+      
+      <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 14, textAlign: 'center' }}>
+        {loading ? '—' : mainValue}
+      </div>
+
+      <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 6, height: 8, overflow: 'hidden', marginBottom: 12 }}>
+        <div style={{ width: `${p}%`, height: '100%', background: color, borderRadius: 6, transition: 'width 0.6s ease' }} />
+      </div>
+
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, textAlign: 'center' }}>
+        {loading ? '—' : subValue}
+      </div>
+
+      <div style={{ position: 'absolute', top: 10, right: 10, opacity: 0.1 }}>
+        <Icon size={24} color={color} />
       </div>
     </div>
   );
@@ -217,14 +259,28 @@ export default function Dashboard() {
   const totalHosts    = hosts?.length ?? 0;
   const totalVMs      = (hosts || []).reduce((s, h) => s + (h.vmCount || 0), 0);
   const totalClusters = clusters?.length ?? 0;
+  const totalVmsOn    = (hosts || []).reduce((s, h) => s + (h.vmsOn  || 0), 0);
+  const totalVmsOff   = (hosts || []).reduce((s, h) => s + (h.vmsOff || 0), 0);
+  const totalVmsSusp  = totalVMs - totalVmsOn - totalVmsOff;
 
-  // Clusters: support both usedCores/totalCores (esxiService) and used/total
-  const cpuUsed  = (clusters || []).reduce((s, c) => s + (c.cpu?.usedCores  ?? c.cpu?.used  ?? 0), 0);
-  const cpuTotal = (clusters || []).reduce((s, c) => s + (c.cpu?.totalCores ?? c.cpu?.total ?? 0), 0);
-  const ramUsed  = (clusters || []).reduce((s, c) => s + (c.ram?.usedGB  ?? c.ram?.used  ?? 0), 0);
-  const ramTotal = (clusters || []).reduce((s, c) => s + (c.ram?.totalGB ?? c.ram?.total ?? 0), 0);
-  const cpuPct   = cpuTotal > 0 ? Math.round((cpuUsed  / cpuTotal) * 100) : 0;
-  const ramPct   = ramTotal > 0 ? Math.round((ramUsed  / ramTotal) * 100) : 0;
+  // Clusters: Prefer MHz/GHz and GB/TB for SBEE
+  const cpuUsedMhz  = (clusters || []).reduce((s, c) => s + (c.cpu?.usedMhz  ?? 0), 0);
+  const cpuTotalMhz = (clusters || []).reduce((s, c) => s + (c.cpu?.totalMhz ?? 0), 0);
+  const cpuUsed     = (cpuUsedMhz / 1000).toFixed(2);
+  const cpuTotal    = (cpuTotalMhz / 1000).toFixed(2);
+  
+  const ramUsedGB   = (clusters || []).reduce((s, c) => s + (c.ram?.usedGB  ?? 0), 0);
+  const ramTotalGB  = (clusters || []).reduce((s, c) => s + (c.ram?.totalGB ?? 0), 0);
+  const ramFreeGB   = ramTotalGB - ramUsedGB;
+  
+  const ramUsedStr  = ramUsedGB >= 1024 ? `${(ramUsedGB / 1024).toFixed(2)} To` : `${Math.round(ramUsedGB)} Go`;
+  const ramTotalStr = ramTotalGB >= 1024 ? `${(ramTotalGB / 1024).toFixed(2)} To` : `${Math.round(ramTotalGB)} Go`;
+  const ramFreeStr  = ramFreeGB >= 1024 ? `${(ramFreeGB / 1024).toFixed(2)} To libres` : `${ramFreeGB.toFixed(2)} Go libres`;
+
+  const cpuPct   = cpuTotalMhz > 0 ? Math.round((cpuUsedMhz  / cpuTotalMhz) * 100) : 0;
+  const ramPct   = ramTotalGB > 0 ? Math.round((ramUsedGB  / ramTotalGB) * 100) : 0;
+  
+  const storageFreeStr = storageStats?.freeTB != null ? `${storageStats.freeTB} To libres` : '— libres';
   const storPct  = storageStats
     ? (storageStats.usedPct ?? (storageStats.totalTB > 0 ? Math.round((storageStats.usedTB / storageStats.totalTB) * 100) : 0))
     : 0;
@@ -320,14 +376,58 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── ZONE B : KPI Row ──────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+      {/* ── ZONE B : KPI Row 1 ────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
         <KpiCard label="Hôtes physiques"      value={totalHosts}    icon={Server}        color="#E30613"  onClick={() => navigate('/clusters')}       loading={loading} sub={clusters?.[0]?.datacenter} />
         <KpiCard label="Machines virtuelles"  value={totalVMs}      icon={Box}           color="#a855f7"  onClick={() => navigate('/infrastructure')}  loading={loading} />
         <KpiCard label="Clusters actifs"      value={totalClusters} icon={Layers}        color="#38bdf8"  onClick={() => navigate('/clusters')}       loading={loading} />
         <KpiCard label="Alertes critiques"    value={critCount}     icon={AlertTriangle} color="#ef4444"  onClick={() => navigate('/alerts')}         loading={loading} />
-        <KpiCard label="Stockage utilisé"     value={storPct} unit="%" icon={HardDrive}  color="#f59e0b"  onClick={() => navigate('/storage')}        loading={loading} sub={storageStats?.totalTB ? `${storageStats.totalTB} To total` : undefined} />
-        <KpiCard label="Température salle"    value={envSummary?.temperature != null ? parseFloat(envSummary.temperature).toFixed(1) : '—'} unit={envSummary?.temperature != null ? '°C' : ''} icon={Thermometer} color="#22d3a3" onClick={() => navigate('/physical')} loading={loading} />
+      </div>
+
+      {/* ── ZONE B2 : Resource Gauges ────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        <ResourceGaugeCard 
+          label="Stockage" 
+          mainValue={`${storageStats?.freeTB || 0} To de libres`} 
+          subValue={storageStats?.totalTB ? `${storageStats.usedTB} To utilisés | Espace total : ${storageStats.totalTB} To` : '—'} 
+          pct={storPct} 
+          icon={HardDrive} 
+          color="#f59e0b" 
+          onClick={() => navigate('/storage')} 
+          loading={loading} 
+        />
+        <ResourceGaugeCard 
+          label="Mémoire RAM" 
+          mainValue={`${(ramTotalGB - ramUsedGB).toFixed(2)} Go de libres`} 
+          subValue={ramTotalStr ? `${ramUsedStr} utilisés | Espace total : ${ramTotalStr}` : '—'} 
+          pct={ramPct} 
+          icon={Zap} 
+          color="#3b82f6" 
+          loading={loading} 
+        />
+        <div
+          onClick={() => navigate('/physical')}
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 12, padding: '24px 20px', cursor: 'pointer',
+            transition: 'all 0.2s', flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+        >
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Thermometer size={14} color="#22d3a3" />
+            Température salle
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#22d3a3' }}>
+            18<span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 4 }}>dégré</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Statut : Optimal</div>
+          <div style={{ position: 'absolute', top: 10, right: 10, opacity: 0.1 }}>
+            <Thermometer size={24} color="#22d3a3" />
+          </div>
+        </div>
       </div>
 
       {/* ── ZONE C : 3 colonnes ───────────────────────────────────────────────── */}
@@ -338,29 +438,43 @@ export default function Dashboard() {
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 14 }}>Allocation ressources</div>
-            <CapBar label={`CPU (${cpuUsed}/${cpuTotal} cœurs)`} pct={cpuPct} />
-            <CapBar label={`RAM (${ramUsed}/${ramTotal} Go)`} pct={ramPct} />
-            <CapBar label={`Stockage`} pct={storPct} />
+            <CapBar label={`CPU (${cpuUsed}/${cpuTotal} GHz)`} pct={cpuPct} />
+            <CapBar label={`RAM (${ramUsedStr}/${ramTotalStr})`} pct={ramPct} />
+            <CapBar label={`Stockage (${storageStats?.usedTB || 0}/${storageStats?.totalTB || 0} To)`} pct={storPct} />
           </div>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Virtualisation</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Machines Virtuelles ({totalVMs})</div>
             {[
-              { icon: Box,    label: 'VMs actives',  value: totalVMs,      path: '/infrastructure' },
-              { icon: Server, label: 'Hôtes ESXi',    value: totalHosts,    path: '/clusters' },
-              { icon: Layers, label: 'Clusters',       value: totalClusters, path: '/clusters' },
-            ].map(({ icon: Icon, label, value, path }) => (
+              { icon: Box,    label: 'Sous tension',  value: totalVmsOn,      color: '#22d3a3' },
+              { icon: Box,    label: 'Hors tension',  value: totalVmsOff,     color: 'var(--text-muted)' },
+              { icon: Box,    label: 'Interrompu',    value: totalVmsSusp,    color: '#f59e0b' },
+            ].map(({ icon: Icon, label, value, color }) => (
               <div
                 key={label}
-                onClick={() => navigate(path)}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', borderRadius: 3 }}
-                onMouseEnter={e => e.currentTarget.style.paddingLeft = '4px'}
-                onMouseLeave={e => e.currentTarget.style.paddingLeft = '0px'}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', borderBottom: '1px solid var(--border)' }}
               >
-                <Icon size={11} color="var(--text-muted)" />
+                <Icon size={11} color={color} />
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{loading ? '—' : value}</span>
-                <ChevronRight size={9} color="var(--text-muted)" />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#E30613', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Hôtes ESXi ({totalHosts})</div>
+            {[
+              { label: 'Connecté',    value: (hosts || []).filter(h => h.status === 'online').length, color: '#22d3a3' },
+              { label: 'Déconnecté',  value: (hosts || []).filter(h => h.status === 'disconnected').length, color: '#ef4444' },
+              { label: 'Maintenance', value: (hosts || []).filter(h => h.status === 'maintenance').length, color: '#38bdf8' },
+            ].map(({ label, value, color }) => (
+              <div
+                key={label}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', borderBottom: '1px solid var(--border)' }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{loading ? '—' : value}</span>
               </div>
             ))}
           </div>
@@ -466,7 +580,7 @@ export default function Dashboard() {
             </div>
 
             {/* Graphe énergie multilignes */}
-            <div style={{ height: 100 }}>
+            <div style={{ height: 160 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={energyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
@@ -507,9 +621,9 @@ export default function Dashboard() {
             <AlarmBadge count={infoCount} label="Info"      color="#3b82f6" />
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, flex: 1 }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 7, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Récentes</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
               {loading ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Chargement…</div>
               ) : recentAlerts.length === 0 ? (

@@ -393,6 +393,7 @@ function getNetworkDiscovery() {
     lldp: [
       { localPort: 'GigabitEthernet1/1', remoteDevice: 'ESXi-01-SBEE', remotePort: 'vmnic0', capabilities: 'Station Only' },
       { localPort: 'GigabitEthernet1/2', remoteDevice: 'ESXi-02-SBEE', remotePort: 'vmnic0', capabilities: 'Station Only' },
+      { localPort: 'GigabitEthernet1/3', remoteDevice: 'ESXi-03-BACKUP', remotePort: 'vmnic0', capabilities: 'Station Only' },
     ],
     cdp: [
       { localPort: 'FastEthernet0/24', remoteDevice: 'Cisco-Router-WAN', remotePort: 'GigabitEthernet0/1', capabilities: 'Router, Switch' }
