@@ -15,27 +15,33 @@ import {
 import { api } from '../api';
 
 /**
- * SBEE HCI CENTER — PIXEL PERFECT REPRODUCTION
- * Reproduction exacte de l'interface de référence HCI.
+ * SBEE HCI CENTER — HIGH-FIDELITY PRESTIGE VERSION
+ * Focus sur l'esthétique, la profondeur et l'expérience utilisateur premium.
  */
 
-// ── UI COMPONENTS ──────────────────────────────────────────────────────────
+// ── UI COMPONENTS — PRESTIGE STYLE ─────────────────────────────────────────
 
 const ProgressBar = ({ label, value, unit, total, color }) => {
   const percent = total > 0 ? Math.min(100, (value / total) * 100) : 0;
   return (
-    <div style={{ marginBottom: 15 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#8e8e8e', marginBottom: 5 }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 12, height: 12, background: `${color}20`, borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <div style={{ width: 6, height: 6, background: color }} />
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#a0aec0', marginBottom: 6, fontWeight: 500 }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 14, height: 14, background: `${color}10`, borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${color}30` }}>
+               <div style={{ width: 6, height: 6, background: color, boxShadow: `0 0 8px ${color}` }} />
             </div>
-            {label}
+            <span style={{ letterSpacing: '0.5px' }}>{label}</span>
          </div>
-         <div>{percent.toFixed(2)}% ({value.toFixed(3)}/{total.toFixed(3)} {unit})</div>
+         <div style={{ color: '#fff', fontWeight: 700 }}>{percent.toFixed(2)}% <span style={{ color: '#4a5568', fontWeight: 400, fontSize: '10px' }}>({value.toFixed(1)}/{total.toFixed(1)} {unit})</span></div>
       </div>
-      <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px' }}>
-         <div style={{ width: `${percent}%`, height: '100%', background: color }} />
+      <div style={{ height: '3px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', overflow: 'hidden' }}>
+         <div style={{ 
+           width: `${percent}%`, 
+           height: '100%', 
+           background: `linear-gradient(90deg, ${color}, ${color}dd)`, 
+           borderRadius: '2px',
+           boxShadow: `0 0 10px ${color}44`
+         }} />
       </div>
     </div>
   );
@@ -43,17 +49,27 @@ const ProgressBar = ({ label, value, unit, total, color }) => {
 
 const AlarmTab = ({ label, count, color, active, onClick }) => (
   <div onClick={onClick} style={{ 
-    padding: '8px 12px', 
+    padding: '10px 16px', 
     cursor: 'pointer', 
-    borderBottom: active ? `2px solid ${color}` : 'none',
-    color: active ? '#fff' : '#8e8e8e',
+    borderBottom: `2px solid ${active ? color : 'transparent'}`,
+    background: active ? `${color}08` : 'transparent',
+    color: active ? '#fff' : '#718096',
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    fontSize: '11px'
+    gap: 8,
+    fontSize: '11px',
+    fontWeight: active ? 700 : 500,
+    transition: 'all 0.2s ease',
+    borderRadius: '4px 4px 0 0'
   }}>
-    <span style={{ color: active ? color : '#8e8e8e' }}>{label}</span>
-    <span style={{ color: active ? color : '#8e8e8e', fontWeight: 800 }}>{count}</span>
+    <span>{label}</span>
+    <span style={{ 
+      background: active ? color : 'rgba(255,255,255,0.05)', 
+      color: active ? '#fff' : '#718096',
+      padding: '1px 6px',
+      borderRadius: '10px',
+      fontSize: '10px'
+    }}>{count}</span>
   </div>
 );
 
@@ -70,20 +86,20 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
 
   const stats = useMemo(() => ({
     vmCount: vms.length,
-    hostCount: 1, // Default standalone ESXi
+    hostCount: 1,
     clusterCount: 1,
     storageTotal: 8.0,
     storageUsed: (metrics?.storage?.usedPct || 64) * 0.08,
-    cpuTotal: 12.0, // GHz
+    cpuTotal: 12.0,
     cpuUsed: (metrics?.cpu?.usage || 26) * 0.12,
-    ramTotal: 64.0, // GB
+    ramTotal: 64.0,
     ramUsed: (metrics?.ram?.percent || 58) * 0.64
   }), [metrics, vms]);
 
   const taskData = [
-    { name: 'Execution error', value: 5, color: '#f5534b' },
-    { name: 'Not executed', value: 0, color: '#545b78' },
-    { name: 'Success', value: 11, color: '#22d3a3' },
+    { name: 'Execution error', value: 5, color: '#f56565' },
+    { name: 'Not executed', value: 0, color: '#4a5568' },
+    { name: 'Success', value: 11, color: '#48bb78' },
   ];
 
   const filteredAlerts = alerts.filter(a => {
@@ -93,238 +109,242 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
 
   return (
     <div className="fade-in" style={{ 
-      background: '#11151c', 
+      background: '#0d1117', 
       minHeight: 'calc(100vh - 60px)', 
       display: 'flex', 
       flexDirection: 'column',
-      color: '#e8eaf0',
-      fontFamily: 'Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+      color: '#cbd5e0',
+      fontFamily: "'Inter', system-ui, sans-serif"
     }}>
       
-      {/* ── TOP AREA (HCI MAP) ────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 340px', gap: 1, background: 'rgba(255,255,255,0.05)', flex: 1 }}>
+      {/* ── TOP SECTION: HCI PERSPECTIVE SCENE ────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 360px', gap: 2, background: 'rgba(255,255,255,0.03)', flex: 1 }}>
         
-        {/* Panel Gauche: Allocation */}
-        <div style={{ background: '#11151c', padding: '20px' }}>
-           <h2 style={{ fontSize: '13px', color: '#8e8e8e', marginBottom: 20 }}>Data Centers</h2>
-           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 30 }}>
-              <Building2 size={24} color="#8e8e8e" />
+        {/* Panneau Gauche: Navigation & Allocation */}
+        <div style={{ background: '#0d1117', padding: '24px', borderRight: '1px solid rgba(255,255,255,0.02)' }}>
+           <h2 style={{ fontSize: '11px', fontWeight: 700, color: '#4a5568', marginBottom: 20, textTransform: 'uppercase', letterSpacing: '1px' }}>Data Centers</h2>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 40, padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #2a4365 0%, #1a365d 100%)', padding: '10px', borderRadius: '8px' }}>
+                 <Building2 size={24} color="#63b3ed" />
+              </div>
               <div>
-                 <div style={{ fontSize: '18px', fontWeight: 700 }}>1</div>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Data centers</div>
+                 <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff' }}>1</div>
+                 <div style={{ fontSize: '10px', color: '#718096', fontWeight: 600 }}>Data centers</div>
               </div>
            </div>
 
-           <h3 style={{ fontSize: '12px', color: '#8e8e8e', marginBottom: 20, textTransform: 'uppercase' }}>Resource Allocation</h3>
-           <ProgressBar label="CPU Alloc..." value={stats.cpuUsed} total={stats.cpuTotal} unit="GHz" color="#4f8ef7" />
-           <ProgressBar label="Memory ..." value={stats.ramUsed} total={stats.ramTotal} unit="GB" color="#4f8ef7" />
-           <ProgressBar label="Storage C..." value={stats.storageUsed} total={stats.storageTotal} unit="TB" color="#4f8ef7" />
+           <h3 style={{ fontSize: '11px', fontWeight: 700, color: '#4a5568', marginBottom: 20, textTransform: 'uppercase', letterSpacing: '1px' }}>Resource Allocation</h3>
+           <ProgressBar label="CPU Allocation" value={stats.cpuUsed} total={stats.cpuTotal} unit="GHz" color="#3182ce" />
+           <ProgressBar label="Memory Allocation" value={stats.ramUsed} total={stats.ramTotal} unit="GB" color="#3182ce" />
+           <ProgressBar label="Storage Capacity" value={stats.storageUsed} total={stats.storageTotal} unit="TB" color="#3182ce" />
 
-           <h3 style={{ fontSize: '12px', color: '#8e8e8e', marginTop: 30, marginBottom: 20, textTransform: 'uppercase' }}>Virtualization</h3>
+           <h3 style={{ fontSize: '11px', fontWeight: 700, color: '#4a5568', marginTop: 40, marginBottom: 20, textTransform: 'uppercase', letterSpacing: '1px' }}>Virtualization</h3>
            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <Monitor size={20} color="#8e8e8e" />
-                 <div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{stats.vmCount}</div>
-                    <div style={{ fontSize: '10px', color: '#8e8e8e' }}>VMs</div>
-                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <Server size={20} color="#8e8e8e" />
-                 <div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{stats.hostCount}</div>
-                    <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Host Machines</div>
-                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <Layers size={20} color="#8e8e8e" />
-                 <div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{stats.clusterCount}</div>
-                    <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Clusters</div>
-                 </div>
-              </div>
+              {[
+                { icon: Monitor, label: 'VMs', value: stats.vmCount },
+                { icon: Server, label: 'Hosts', value: stats.hostCount },
+                { icon: Layers, label: 'Clusters', value: stats.clusterCount }
+              ].map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                   <item.icon size={18} color="#4a5568" />
+                   <div>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>{item.value}</div>
+                      <div style={{ fontSize: '9px', color: '#718096', fontWeight: 600 }}>{item.label}</div>
+                   </div>
+                </div>
+              ))}
            </div>
         </div>
 
-        {/* Panel Central: Isometric Visualizer */}
-        <div style={{ background: '#141a23', position: 'relative', overflow: 'hidden' }}>
-           <div style={{ position: 'absolute', top: 20, left: 20, fontSize: '13px', color: '#8e8e8e' }}>Data Centers</div>
+        {/* Panneau Central: Scene Isométrique immersive */}
+        <div style={{ 
+          background: 'radial-gradient(circle at center, #1a202c 0%, #0d1117 100%)', 
+          position: 'relative', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+           <div style={{ position: 'absolute', top: 24, left: 24, fontSize: '13px', fontWeight: 600, color: '#4a5568' }}>Infrastructure View</div>
            
-           <svg width="100%" height="100%" viewBox="0 0 600 450">
-              {/* Grille de perspective */}
+           <svg width="100%" height="100%" viewBox="0 0 600 450" style={{ filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))' }}>
+              {/* Perspective Grid */}
               <defs>
-                 <pattern id="hciGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
+                 <pattern id="prestigeGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(79, 142, 247, 0.05)" strokeWidth="1"/>
                  </pattern>
+                 <linearGradient id="nodeTop" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2c5282" />
+                    <stop offset="100%" stopColor="#1a365d" />
+                 </linearGradient>
+                 <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                 </filter>
               </defs>
-              <rect width="100%" height="100%" fill="url(#hciGrid)" transform="skewX(-15) scale(1, 0.8) translate(50, 50)" opacity="0.5" />
+              <rect width="100%" height="100%" fill="url(#prestigeGrid)" transform="skewX(-15) scale(1, 0.8) translate(50, 50)" opacity="0.4" />
 
               {/* STORAGE Node */}
               <g transform="translate(300, 80)">
-                 <path d="M0 20 L50 0 L100 20 L50 40 Z" fill="#1a1d27" stroke="#4f8ef7" strokeWidth="1" />
-                 <path d="M0 20 L0 70 L50 90 L50 40 Z" fill="#13151c" stroke="#4f8ef7" strokeWidth="1" />
-                 <path d="M50 90 L100 70 L100 20 L50 40 Z" fill="#0d0e12" stroke="#4f8ef7" strokeWidth="1" />
-                 <text x="50" y="-10" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800">1</text>
-                 <text x="50" y="5" textAnchor="middle" fill="#8e8e8e" fontSize="10">Storage</text>
+                 <ellipse cx="50" cy="50" rx="60" ry="30" fill="rgba(49, 130, 206, 0.1)" filter="url(#glow)" />
+                 <path d="M0 20 L50 0 L100 20 L50 40 Z" fill="url(#nodeTop)" stroke="#63b3ed" strokeWidth="1" />
+                 <path d="M0 20 L0 70 L50 90 L50 40 Z" fill="#171923" stroke="#2a4365" strokeWidth="1" />
+                 <path d="M50 90 L100 70 L100 20 L50 40 Z" fill="#101116" stroke="#2a4365" strokeWidth="1" />
+                 <text x="50" y="-15" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="900" filter="url(#glow)">1</text>
+                 <text x="50" y="5" textAnchor="middle" fill="#63b3ed" fontSize="10" fontWeight="700">STORAGE</text>
               </g>
 
               {/* SERVERS Node */}
-              <g transform="translate(150, 200)">
-                 <path d="M0 20 L40 0 L80 20 L40 40 Z" fill="#1a1d27" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M0 20 L0 60 L40 80 L40 40 Z" fill="#13151c" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M40 80 L80 60 L80 20 L40 40 Z" fill="#0d0e12" stroke="#8e8e8e" strokeWidth="1" />
-                 <text x="40" y="-10" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800">0</text>
-                 <text x="40" y="5" textAnchor="middle" fill="#8e8e8e" fontSize="10">Servers</text>
+              <g transform="translate(120, 200)">
+                 <path d="M0 20 L45 0 L90 20 L45 40 Z" fill="#2d3748" stroke="#4a5568" strokeWidth="1" />
+                 <path d="M0 20 L0 65 L45 85 L45 40 Z" fill="#1a202c" stroke="#2d3748" strokeWidth="1" />
+                 <path d="M45 85 L90 65 L90 20 L45 40 Z" fill="#101116" stroke="#2d3748" strokeWidth="1" />
+                 <text x="45" y="-15" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="900">0</text>
+                 <text x="45" y="5" textAnchor="middle" fill="#a0aec0" fontSize="10" fontWeight="700">SERVERS</text>
               </g>
 
               {/* HCI Node */}
-              <g transform="translate(300, 300)">
-                 <path d="M0 20 L40 0 L80 20 L40 40 Z" fill="#1a1d27" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M0 20 L0 60 L40 80 L40 40 Z" fill="#13151c" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M40 80 L80 60 L80 20 L40 40 Z" fill="#0d0e12" stroke="#8e8e8e" strokeWidth="1" />
-                 <text x="40" y="-10" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800">0</text>
-                 <text x="40" y="5" textAnchor="middle" fill="#8e8e8e" fontSize="10">HCI</text>
+              <g transform="translate(300, 310)">
+                 <path d="M0 20 L45 0 L90 20 L45 40 Z" fill="#2d3748" stroke="#4a5568" strokeWidth="1" />
+                 <path d="M0 20 L0 65 L45 85 L45 40 Z" fill="#1a202c" stroke="#2d3748" strokeWidth="1" />
+                 <path d="M45 85 L90 65 L90 20 L45 40 Z" fill="#101116" stroke="#2d3748" strokeWidth="1" />
+                 <text x="45" y="-15" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="900">0</text>
+                 <text x="45" y="5" textAnchor="middle" fill="#a0aec0" fontSize="10" fontWeight="700">HCI</text>
               </g>
 
               {/* SWITCHES Node */}
-              <g transform="translate(450, 200)">
-                 <path d="M0 15 L40 0 L80 15 L40 30 Z" fill="#1a1d27" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M0 15 L0 45 L40 60 L40 30 Z" fill="#13151c" stroke="#8e8e8e" strokeWidth="1" />
-                 <path d="M40 60 L80 45 L80 15 L40 30 Z" fill="#0d0e12" stroke="#8e8e8e" strokeWidth="1" />
-                 <text x="40" y="-10" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800">0</text>
-                 <text x="40" y="5" textAnchor="middle" fill="#8e8e8e" fontSize="10">Switches</text>
+              <g transform="translate(480, 200)">
+                 <path d="M0 20 L45 0 L90 20 L45 40 Z" fill="#2d3748" stroke="#4a5568" strokeWidth="1" />
+                 <path d="M0 20 L0 65 L45 85 L45 40 Z" fill="#1a202c" stroke="#2d3748" strokeWidth="1" />
+                 <path d="M45 85 L90 65 L90 20 L45 40 Z" fill="#101116" stroke="#2d3748" strokeWidth="1" />
+                 <text x="45" y="-15" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="900">0</text>
+                 <text x="45" y="5" textAnchor="middle" fill="#a0aec0" fontSize="10" fontWeight="700">SWITCHES</text>
               </g>
 
-              {/* Lignes de connexion */}
-              <path d="M350 140 L190 220" stroke="rgba(79, 142, 247, 0.2)" strokeWidth="1" />
-              <path d="M350 140 L490 220" stroke="rgba(79, 142, 247, 0.2)" strokeWidth="1" />
-              <path d="M190 260 L320 320" stroke="rgba(79, 142, 247, 0.2)" strokeWidth="1" />
-              <path d="M490 260 L380 320" stroke="rgba(79, 142, 247, 0.2)" strokeWidth="1" />
+              {/* Connecting Glow Lines */}
+              <path d="M350 140 L210 220" stroke="rgba(99, 179, 237, 0.15)" strokeWidth="1.5" strokeDasharray="4,4" />
+              <path d="M350 140 L520 220" stroke="rgba(99, 179, 237, 0.15)" strokeWidth="1.5" strokeDasharray="4,4" />
            </svg>
         </div>
 
-        {/* Panel Droite: Alarmes */}
-        <div style={{ background: '#11151c', display: 'flex', flexDirection: 'column' }}>
-           <div style={{ padding: '20px' }}>
-              <h2 style={{ fontSize: '13px', color: '#fff', marginBottom: 15 }}>Alarms</h2>
-              <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 10 }}>
-                 <AlarmTab label="All" count={alerts.length} color="#4f8ef7" active={alarmFilter === 'all'} onClick={() => setAlarmFilter('all')} />
-                 <AlarmTab label="Critical" count={alerts.filter(a => a.severity === 'critical').length} color="#f5534b" active={alarmFilter === 'critical'} onClick={() => setAlarmFilter('critical')} />
-                 <AlarmTab label="Major" count={alerts.filter(a => a.severity === 'warning').length} color="#fb923c" active={alarmFilter === 'warning'} onClick={() => setAlarmFilter('warning')} />
-                 <AlarmTab label="Minor" count={0} color="#f5a623" active={alarmFilter === 'minor'} onClick={() => setAlarmFilter('minor')} />
-                 <AlarmTab label="Info" count={alerts.filter(a => a.severity === 'info').length} color="#38bdf8" active={alarmFilter === 'info'} onClick={() => setAlarmFilter('info')} />
+        {/* Panneau Droite: Alarms & Check */}
+        <div style={{ background: '#0d1117', display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.02)' }}>
+           <div style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', marginBottom: 20 }}>Alarms</h2>
+              <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 15 }}>
+                 <AlarmTab label="All" count={alerts.length} color="#3182ce" active={alarmFilter === 'all'} onClick={() => setAlarmFilter('all')} />
+                 <AlarmTab label="Critical" count={alerts.filter(a => a.severity === 'critical').length} color="#e53e3e" active={alarmFilter === 'critical'} onClick={() => setAlarmFilter('critical')} />
+                 <AlarmTab label="Major" count={alerts.filter(a => a.severity === 'warning').length} color="#dd6b20" active={alarmFilter === 'warning'} onClick={() => setAlarmFilter('warning')} />
               </div>
            </div>
            
-           <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
-              {filteredAlerts.slice(0, 10).map(alert => (
-                 <div key={alert.key} style={{ padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: alert.severity === 'critical' ? '#f5534b' : '#fb923c' }} />
-                          <span style={{ fontSize: '11px', fontWeight: 600 }}>{alert.message}</span>
+           <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px' }}>
+              {filteredAlerts.slice(0, 12).map(alert => (
+                 <div key={alert.key} style={{ padding: '12px', background: 'rgba(255,255,255,0.01)', borderRadius: '8px', marginBottom: 10, border: '1px solid rgba(255,255,255,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: alert.severity === 'critical' ? '#e53e3e' : '#dd6b20', boxShadow: `0 0 10px ${alert.severity === 'critical' ? '#e53e3e' : '#dd6b20'}55` }} />
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0' }}>{alert.sourceId}</span>
                        </div>
-                       <button className="btn-link" style={{ fontSize: '10px', color: '#4f8ef7' }}>Details</button>
+                       <ArrowRight size={12} color="#4a5568" />
                     </div>
-                    <div style={{ fontSize: '9px', color: '#8e8e8e', marginTop: 4 }}>{new Date(alert.timestamp).toLocaleString()}</div>
+                    <div style={{ fontSize: '11px', color: '#718096', lineHeight: 1.4 }}>{alert.message}</div>
+                    <div style={{ fontSize: '9px', color: '#4a5568', marginTop: 8, fontWeight: 700 }}>{new Date(alert.timestamp).toLocaleTimeString()}</div>
                  </div>
               ))}
-              <div style={{ textAlign: 'center', padding: '15px' }}>
-                 <button className="btn-link" style={{ fontSize: '11px', color: '#4f8ef7' }} onClick={() => navigate('/alerts')}>View All</button>
-              </div>
            </div>
 
-           <div style={{ padding: '20px', background: 'rgba(0,0,0,0.1)' }}>
-              <h2 style={{ fontSize: '12px', color: '#8e8e8e', marginBottom: 15 }}>Check Results</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Ca... 0</div>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Fa... 0</div>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Pe... 0</div>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>Co... 0</div>
-                 <div style={{ fontSize: '10px', color: '#8e8e8e' }}>O... 0</div>
+           <div style={{ padding: '24px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+              <h2 style={{ fontSize: '11px', fontWeight: 700, color: '#4a5568', marginBottom: 15, textTransform: 'uppercase' }}>Check Results</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                 {['Ca.. 0', 'Fa.. 0', 'Pe.. 0', 'Co.. 0', 'O.. 0'].map((txt, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10px', color: '#718096' }}>
+                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: i===1 ? '#e53e3e' : '#3182ce' }} /> {txt}
+                    </div>
+                 ))}
               </div>
            </div>
         </div>
       </div>
 
-      {/* ── BOTTOM AREA ──────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'rgba(255,255,255,0.05)', height: '200px' }}>
+      {/* ── BOTTOM SECTION: OPERATIONAL STATUS & TASKS ───────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'rgba(255,255,255,0.03)', height: '220px' }}>
         
-        {/* Status */}
-        <div style={{ background: '#11151c', padding: '20px' }}>
-           <h2 style={{ fontSize: '12px', color: '#8e8e8e', marginBottom: 20 }}>Status</h2>
-           <div style={{ display: 'flex', gap: 20 }}>
+        {/* Module Status */}
+        <div style={{ background: '#0d1117', padding: '24px' }}>
+           <h2 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: 24 }}>Status</h2>
+           <div style={{ display: 'flex', gap: 30 }}>
               <div style={{ flex: 1 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <Monitor size={16} color="#4f8ef7" />
-                    <span style={{ fontSize: '11px' }}>VMs {stats.vmCount}</span>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <Monitor size={16} color="#3182ce" />
+                       <span style={{ fontSize: '12px', fontWeight: 600 }}>VMs {stats.vmCount}</span>
+                    </div>
                  </div>
-                 <div style={{ display: 'flex', gap: 4 }}>
-                    <div style={{ flex: 1, height: 4, background: '#22d3a3' }} />
-                    <div style={{ flex: 1, height: 4, background: '#f5534b' }} />
-                    <div style={{ flex: 1, height: 4, background: '#545b78' }} />
+                 <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: '80%', background: '#48bb78' }} />
+                    <div style={{ width: '15%', background: '#f56565' }} />
+                    <div style={{ width: '5%', background: '#4a5568' }} />
                  </div>
               </div>
               <div style={{ flex: 1 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <Server size={16} color="#4f8ef7" />
-                    <span style={{ fontSize: '11px' }}>Host Machines {stats.hostCount}</span>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <Server size={16} color="#3182ce" />
+                       <span style={{ fontSize: '12px', fontWeight: 600 }}>Hosts {stats.hostCount}</span>
+                    </div>
                  </div>
-                 <div style={{ display: 'flex', gap: 4 }}>
-                    <div style={{ flex: 1, height: 4, background: '#22d3a3' }} />
-                 </div>
+                 <div style={{ display: 'flex', height: '6px', borderRadius: '3px', background: '#48bb78' }} />
               </div>
            </div>
         </div>
 
-        {/* Health Check */}
-        <div style={{ background: '#11151c', padding: '20px' }}>
-           <h2 style={{ fontSize: '12px', color: '#8e8e8e', marginBottom: 20 }}>Health Check</h2>
+        {/* Module Health Check */}
+        <div style={{ background: '#0d1117', padding: '24px', borderLeft: '1px solid rgba(255,255,255,0.02)' }}>
+           <h2 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: 24 }}>Health Check</h2>
            <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center' }}>
               <div>
-                 <div style={{ fontSize: '18px', fontWeight: 700 }}>1 <span style={{ fontSize: '10px', color: '#8e8e8e', fontWeight: 400 }}>Items</span></div>
-                 <div style={{ fontSize: '9px', color: '#f5534b' }}>Poor (0 to 79)</div>
+                 <div style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>1</div>
+                 <div style={{ fontSize: '9px', color: '#f56565', fontWeight: 700, marginTop: 4 }}>POOR (0-79)</div>
               </div>
               <div>
-                 <div style={{ fontSize: '18px', fontWeight: 700 }}>1 <span style={{ fontSize: '10px', color: '#8e8e8e', fontWeight: 400 }}>Items</span></div>
-                 <div style={{ fontSize: '9px', color: '#fb923c' }}>Fair (80 to 94)</div>
+                 <div style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>1</div>
+                 <div style={{ fontSize: '9px', color: '#ed8936', fontWeight: 700, marginTop: 4 }}>FAIR (80-94)</div>
               </div>
               <div>
-                 <div style={{ fontSize: '18px', fontWeight: 700 }}>0 <span style={{ fontSize: '10px', color: '#8e8e8e', fontWeight: 400 }}>Items</span></div>
-                 <div style={{ fontSize: '9px', color: '#22d3a3' }}>Good (95 to 100)</div>
+                 <div style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>0</div>
+                 <div style={{ fontSize: '9px', color: '#48bb78', fontWeight: 700, marginTop: 4 }}>GOOD (95-100)</div>
               </div>
            </div>
-           <div style={{ fontSize: '9px', color: '#8e8e8e', marginTop: 15 }}>Bottom 5 Health Scores</div>
         </div>
 
-        {/* Tasks */}
-        <div style={{ background: '#11151c', padding: '20px', display: 'flex', gap: 20 }}>
+        {/* Module Tasks */}
+        <div style={{ background: '#0d1117', padding: '24px', borderLeft: '1px solid rgba(255,255,255,0.02)', display: 'flex', gap: 20 }}>
            <div style={{ flex: 1 }}>
-              <h2 style={{ fontSize: '12px', color: '#8e8e8e', marginBottom: 15 }}>Tasks</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h2 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: 20 }}>Tasks</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                       <div style={{ width: 8, height: 8, background: '#f5534b' }} /> Execution error
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <div style={{ width: 8, height: 8, background: '#f56565', borderRadius: '2px' }} /> Execution error
                     </div>
-                    <span style={{ fontWeight: 700 }}>5</span>
+                    <span style={{ fontWeight: 800 }}>5</span>
                  </div>
                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                       <div style={{ width: 8, height: 8, background: '#545b78' }} /> Not executed
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <div style={{ width: 8, height: 8, background: '#4a5568', borderRadius: '2px' }} /> Not executed
                     </div>
-                    <span style={{ fontWeight: 700 }}>0</span>
+                    <span style={{ fontWeight: 800 }}>0</span>
                  </div>
               </div>
            </div>
-           <div style={{ width: 100, height: 100 }}>
+           <div style={{ width: 110, height: 110, position: 'relative' }}>
               <ResponsiveContainer width="100%" height="100%">
                  <PieChart>
-                    <Pie data={taskData} innerRadius={35} outerRadius={45} paddingAngle={2} dataKey="value">
-                       {taskData.map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}
+                    <Pie data={taskData} innerRadius={38} outerRadius={50} paddingAngle={3} dataKey="value" stroke="none">
+                       {taskData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                  </PieChart>
               </ResponsiveContainer>
-              <div style={{ textAlign: 'center', marginTop: -65, fontSize: '16px', fontWeight: 800 }}>11</div>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, color: '#fff' }}>11</div>
            </div>
         </div>
 
