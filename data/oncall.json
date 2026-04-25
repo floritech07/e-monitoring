@@ -1,0 +1,1576 @@
+{
+  "incidents": [
+    {
+      "id": "incident-1777117706642",
+      "ticketRef": "INC-2026-0049",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T11:48:26.642Z",
+      "updatedAt": "2026-04-25T11:48:26.642Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T11:48:26.642Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777108710737",
+      "ticketRef": "INC-2026-0048",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T09:18:30.738Z",
+      "updatedAt": "2026-04-25T09:18:30.738Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T09:18:30.738Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777107392674",
+      "ticketRef": "INC-2026-0047",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T08:56:32.674Z",
+      "updatedAt": "2026-04-25T08:56:32.674Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T08:56:32.674Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777106764646",
+      "ticketRef": "INC-2026-0046",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T08:46:04.646Z",
+      "updatedAt": "2026-04-25T08:46:04.646Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T08:46:04.646Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777105222773",
+      "ticketRef": "INC-2026-0045",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T08:20:22.773Z",
+      "updatedAt": "2026-04-25T08:20:22.773Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T08:20:22.773Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777103536660",
+      "ticketRef": "INC-2026-0044",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T07:52:16.660Z",
+      "updatedAt": "2026-04-25T07:52:16.660Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T07:52:16.660Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777103284783",
+      "ticketRef": "INC-2026-0043",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T07:48:04.783Z",
+      "updatedAt": "2026-04-25T07:48:04.783Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T07:48:04.783Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777101528725",
+      "ticketRef": "INC-2026-0042",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T07:18:48.725Z",
+      "updatedAt": "2026-04-25T07:18:48.725Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T07:18:48.725Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777099722725",
+      "ticketRef": "INC-2026-0041",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T06:48:42.725Z",
+      "updatedAt": "2026-04-25T06:48:42.725Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T06:48:42.725Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777099156875",
+      "ticketRef": "INC-2026-0040",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T06:39:16.875Z",
+      "updatedAt": "2026-04-25T06:39:16.875Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T06:39:16.875Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777099032718",
+      "ticketRef": "INC-2026-0039",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T06:37:12.718Z",
+      "updatedAt": "2026-04-25T06:37:12.718Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T06:37:12.718Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777098444748",
+      "ticketRef": "INC-2026-0038",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T06:27:24.748Z",
+      "updatedAt": "2026-04-25T06:27:24.748Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T06:27:24.748Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777098134743",
+      "ticketRef": "INC-2026-0037",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T06:22:14.743Z",
+      "updatedAt": "2026-04-25T06:22:14.743Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T06:22:14.743Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777094772722",
+      "ticketRef": "INC-2026-0036",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T05:26:12.722Z",
+      "updatedAt": "2026-04-25T05:26:12.722Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T05:26:12.722Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777092648796",
+      "ticketRef": "INC-2026-0035",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:50:48.796Z",
+      "updatedAt": "2026-04-25T04:50:48.796Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:50:48.796Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777092464712",
+      "ticketRef": "INC-2026-0034",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:47:44.712Z",
+      "updatedAt": "2026-04-25T04:47:44.712Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:47:44.712Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777092032757",
+      "ticketRef": "INC-2026-0033",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:40:32.757Z",
+      "updatedAt": "2026-04-25T04:40:32.757Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:40:32.757Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777091344713",
+      "ticketRef": "INC-2026-0032",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:29:04.713Z",
+      "updatedAt": "2026-04-25T04:29:04.713Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:29:04.713Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777090882856",
+      "ticketRef": "INC-2026-0031",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:21:22.856Z",
+      "updatedAt": "2026-04-25T04:21:22.856Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:21:22.856Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777090604890",
+      "ticketRef": "INC-2026-0030",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:16:44.890Z",
+      "updatedAt": "2026-04-25T04:16:44.890Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:16:44.890Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777090138668",
+      "ticketRef": "INC-2026-0029",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T04:08:58.668Z",
+      "updatedAt": "2026-04-25T04:08:58.668Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T04:08:58.668Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777087822724",
+      "ticketRef": "INC-2026-0028",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T03:30:22.724Z",
+      "updatedAt": "2026-04-25T03:30:22.724Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T03:30:22.724Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777086506742",
+      "ticketRef": "INC-2026-0027",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T03:08:26.742Z",
+      "updatedAt": "2026-04-25T03:08:26.742Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T03:08:26.742Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777085582702",
+      "ticketRef": "INC-2026-0026",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T02:53:02.702Z",
+      "updatedAt": "2026-04-25T02:53:02.702Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T02:53:02.702Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777081276704",
+      "ticketRef": "INC-2026-0025",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T01:41:16.704Z",
+      "updatedAt": "2026-04-25T01:41:16.704Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T01:41:16.704Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777078842811",
+      "ticketRef": "INC-2026-0024",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T01:00:42.811Z",
+      "updatedAt": "2026-04-25T01:00:42.811Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T01:00:42.811Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777078626752",
+      "ticketRef": "INC-2026-0023",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T00:57:06.752Z",
+      "updatedAt": "2026-04-25T00:57:06.752Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T00:57:06.752Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777077942745",
+      "ticketRef": "INC-2026-0022",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T00:45:42.746Z",
+      "updatedAt": "2026-04-25T00:45:42.746Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T00:45:42.746Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777077468716",
+      "ticketRef": "INC-2026-0021",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T00:37:48.716Z",
+      "updatedAt": "2026-04-25T00:37:48.716Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T00:37:48.716Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777075998657",
+      "ticketRef": "INC-2026-0020",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T00:13:18.657Z",
+      "updatedAt": "2026-04-25T00:13:18.657Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T00:13:18.657Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777075932761",
+      "ticketRef": "INC-2026-0019",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-25T00:12:12.761Z",
+      "updatedAt": "2026-04-25T00:12:12.761Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-25T00:12:12.761Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777074220720",
+      "ticketRef": "INC-2026-0018",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T23:43:40.720Z",
+      "updatedAt": "2026-04-24T23:43:40.720Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T23:43:40.720Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777073442788",
+      "ticketRef": "INC-2026-0017",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T23:30:42.788Z",
+      "updatedAt": "2026-04-24T23:30:42.788Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T23:30:42.788Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777073132760",
+      "ticketRef": "INC-2026-0016",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T23:25:32.760Z",
+      "updatedAt": "2026-04-24T23:25:32.760Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T23:25:32.760Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777071972687",
+      "ticketRef": "INC-2026-0015",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T23:06:12.687Z",
+      "updatedAt": "2026-04-24T23:06:12.687Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T23:06:12.687Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777070698711",
+      "ticketRef": "INC-2026-0014",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T22:44:58.711Z",
+      "updatedAt": "2026-04-24T22:44:58.711Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T22:44:58.711Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777070232794",
+      "ticketRef": "INC-2026-0013",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T22:37:12.794Z",
+      "updatedAt": "2026-04-24T22:37:12.794Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T22:37:12.794Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777069104923",
+      "ticketRef": "INC-2026-0012",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T22:18:24.923Z",
+      "updatedAt": "2026-04-24T22:18:24.923Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T22:18:24.923Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777067106948",
+      "ticketRef": "INC-2026-0011",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T21:45:06.949Z",
+      "updatedAt": "2026-04-24T21:45:06.949Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T21:45:06.950Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777063534917",
+      "ticketRef": "INC-2026-0010",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T20:45:34.917Z",
+      "updatedAt": "2026-04-24T20:45:34.917Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T20:45:34.917Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777061788869",
+      "ticketRef": "INC-2026-0009",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T20:16:28.869Z",
+      "updatedAt": "2026-04-24T20:16:28.869Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T20:16:28.873Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777061074935",
+      "ticketRef": "INC-2026-0008",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T20:04:34.935Z",
+      "updatedAt": "2026-04-24T20:04:34.935Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T20:04:34.939Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777058682887",
+      "ticketRef": "INC-2026-0007",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T19:24:42.887Z",
+      "updatedAt": "2026-04-24T19:24:42.887Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T19:24:42.887Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777058310874",
+      "ticketRef": "INC-2026-0006",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T19:18:30.874Z",
+      "updatedAt": "2026-04-24T19:18:30.874Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T19:18:30.874Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777058056904",
+      "ticketRef": "INC-2026-0005",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T19:14:16.904Z",
+      "updatedAt": "2026-04-24T19:14:16.904Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T19:14:16.904Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777056756852",
+      "ticketRef": "INC-2026-0004",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T18:52:36.852Z",
+      "updatedAt": "2026-04-24T18:52:36.852Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T18:52:36.852Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777055636885",
+      "ticketRef": "INC-2026-0003",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T18:33:56.885Z",
+      "updatedAt": "2026-04-24T18:33:56.885Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T18:33:56.886Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777053219171",
+      "ticketRef": "INC-2026-0002",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T17:53:39.172Z",
+      "updatedAt": "2026-04-24T17:53:39.172Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T17:53:39.172Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    },
+    {
+      "id": "incident-1777052528714",
+      "ticketRef": "INC-2026-0001",
+      "title": "[undefined] ups-sukam-01 — ",
+      "description": "",
+      "source": "auto",
+      "alertKey": "r003::ups-sukam-01",
+      "priority": 3,
+      "status": "nouveau",
+      "assignedTo": "Raoul CHAKOUN",
+      "createdAt": "2026-04-24T17:42:08.714Z",
+      "updatedAt": "2026-04-24T17:42:08.714Z",
+      "resolvedAt": null,
+      "closedAt": null,
+      "notes": [],
+      "escalations": [
+        {
+          "level": "N1",
+          "person": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "notifiedAt": "2026-04-24T17:42:08.714Z",
+          "method": "auto"
+        }
+      ],
+      "sla": {
+        "responseTarget": 30,
+        "resolutionTarget": 120,
+        "responseBreached": false,
+        "resolutionBreached": false
+      }
+    }
+  ],
+  "schedules": [
+    {
+      "id": "rotation-n1",
+      "name": "Astreinte N1 — Exploitation",
+      "level": "N1",
+      "rotation": [
+        {
+          "name": "Raoul CHAKOUN",
+          "phone": "+22961000001",
+          "email": "raoulchakoun@gmail.com"
+        },
+        {
+          "name": "Technicien SBEE",
+          "phone": "+22961000002",
+          "email": "dsitd@sbee.bj"
+        }
+      ],
+      "currentIndex": 0,
+      "rotateEveryDays": 7,
+      "startDate": "2026-04-24"
+    },
+    {
+      "id": "rotation-n2",
+      "name": "Astreinte N2 — Expertise",
+      "level": "N2",
+      "rotation": [
+        {
+          "name": "Chef Département DSITD",
+          "phone": "+22961000010",
+          "email": "dsi@sbee.bj"
+        }
+      ],
+      "currentIndex": 0,
+      "rotateEveryDays": 30,
+      "startDate": "2026-04-24"
+    },
+    {
+      "id": "rotation-n3",
+      "name": "Astreinte N3 — Direction",
+      "level": "N3",
+      "rotation": [
+        {
+          "name": "Directeur Général SBEE",
+          "phone": "+22961000020",
+          "email": "dg@sbee.bj"
+        }
+      ],
+      "currentIndex": 0,
+      "rotateEveryDays": 30,
+      "startDate": "2026-04-24"
+    }
+  ],
+  "overrides": []
+}

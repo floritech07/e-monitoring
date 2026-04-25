@@ -1,0 +1,40 @@
+{
+  "silences": [
+    {
+      "id": "sil_1776459064304",
+      "ruleId": null,
+      "assetId": "192.168.1.254",
+      "category": "network",
+      "reason": "Alerte #21",
+      "createdAt": 1776459064304,
+      "endsAt": 1776462664304
+    },
+    {
+      "id": "sil_1776459066389",
+      "ruleId": null,
+      "assetId": "192.168.1.254",
+      "category": "network",
+      "reason": "Alerte #21",
+      "createdAt": 1776459066389,
+      "endsAt": 1776473466389
+    },
+    {
+      "id": "sil_1776459067732",
+      "ruleId": null,
+      "assetId": "192.168.1.254",
+      "category": "network",
+      "reason": "Alerte #21",
+      "createdAt": 1776459067732,
+      "endsAt": 1776462667732
+    },
+    {
+      "id": "sil_1776459068868",
+      "ruleId": null,
+      "assetId": "192.168.1.254",
+      "category": "network",
+      "reason": "Alerte #21",
+      "createdAt": 1776459068868,
+      "endsAt": 1776473468868
+    }
+  ]
+}

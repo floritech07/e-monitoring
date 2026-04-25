@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "id": "prepaid_drop",
+      "type": "PREPAID",
+      "operator": "MOOV",
+      "threshold": 10,
+      "intervalMin": 60,
+      "enabled": true,
+      "severity": "critical",
+      "sound": "alarm-1"
+    }
+  ]
+}

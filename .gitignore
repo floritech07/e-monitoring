@@ -22,13 +22,5 @@ yarn-error.log*
 frontend/node_modules/
 frontend/dist/
 
-# Local databases and logs
-data/*.json
-!data/datacenter.json
+# Local logs only (data files are tracked)
 data/logs/
-*.json
-# But keep package.json
-!package.json
-!package-lock.json
-!frontend/package.json
-!.env.example
