@@ -221,12 +221,12 @@ const SENSOR_POSITIONS = [
 ];
 
 const BASE_TEMPS = {
-  'cold-north':  21.0,
-  'cold-south':  20.5,
-  'hot':         32.0,
-  'crac-a':      17.5,
-  'crac-b':      18.0,
-  'room':        22.0,
+  'cold-north':  16.5,
+  'cold-south':  16.0,
+  'hot':         21.0,
+  'crac-a':      15.5,
+  'crac-b':      16.0,
+  'room':        18.0,
 };
 
 const BASE_HUMIDITY = {

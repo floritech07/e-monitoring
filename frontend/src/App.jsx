@@ -71,13 +71,17 @@ function Sidebar({ alertCount, collapsed }) {
     { type: 'link',  to: '/datacenter-3d',icon: Box,             label: 'Salle serveur 3D'    },
     { type: 'link',  to: '/alerts',       icon: Bell,            label: 'Alertes', badge: alertCount },
     
-    { 
+    {
       type: 'group', label: 'Infrastructure', icon: Layers,
       items: [
+        { to: '/infrastructure', label: 'Vue d\'ensemble' },
         { to: '/clusters',       label: 'Clusters & Pools' },
         { to: '/storage',        label: 'Stockage & Datastores' },
         { to: '/network-fabric', label: 'Fabric réseau' },
+        { to: '/topology',       label: 'Topologie réseau' },
         { to: '/services',       label: 'Carte des services' },
+        { to: '/room-map',       label: 'Plan de salle' },
+        { to: '/datastore',      label: 'Navigateur datastores' },
       ]
     },
     {
@@ -95,7 +99,9 @@ function Sidebar({ alertCount, collapsed }) {
         { to: '/service-checks',  label: 'Vérif. services' },
         { to: '/oncall',          label: 'Astreinte & ITIL' },
         { to: '/capacity',        label: 'Capacity Planning' },
-        { to: '/veeam/gfs',      label: 'Sauvegardes GFS' },
+        { to: '/reports',         label: 'Rapports' },
+        { to: '/executive',       label: 'Tableau exécutif' },
+        { to: '/veeam/gfs',       label: 'Sauvegardes GFS' },
         { to: '/actions',         label: 'Actions à distance' },
       ]
     },
@@ -168,7 +174,7 @@ function Sidebar({ alertCount, collapsed }) {
                       style={({ isActive }) => ({
                         fontSize: 12, padding: '8px 12px', borderRadius: 4, textDecoration: 'none',
                         color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                        backgroundColor: isActive ? 'rgba(50, 116, 217, 0.05)' : 'transparent'
+                        backgroundColor: isActive ? 'rgba(227, 6, 19, 0.1)' : 'transparent'
                       })}
                     >
                       {sub.label}

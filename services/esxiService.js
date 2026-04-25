@@ -11,83 +11,176 @@ const { getEndpoints } = require('./storageService');
 
 const SIM_CLUSTERS = [
   {
-    id: 'cl-prod',
-    name: 'Cluster Production',
+    id: 'cl-sbeedg',
+    name: 'SBEEDG',
     datacenter: 'DC-SBEE-Cotonou',
-    hosts: ['esxi-01', 'esxi-02'],
-    cpu: { totalCores: 96, usedCores: 43, totalMhz: 230400, usedMhz: 103500 },
-    ram: { totalGB: 384, usedGB: 211 },
-    vmCount: 12,
-    status: 'online',
+    hosts: ['esxi01','esxi02','esxi03','esxi04','esxi07','esxi08'],
+    cpu: { totalCores: 144, usedCores: 9, totalMhz: 345600, usedMhz: 19800 },
+    ram: { totalGB: 1536, usedGB: 968 },
+    vmCount: 140,
+    status: 'warning',
     haEnabled: true,
     drsEnabled: true,
   },
   {
-    id: 'cl-backup',
-    name: 'Cluster Backup / DMZ',
-    datacenter: 'DC-SBEE-Cotonou',
-    hosts: ['esxi-03'],
-    cpu: { totalCores: 32, usedCores: 8, totalMhz: 76800, usedMhz: 19200 },
-    ram: { totalGB: 128, usedGB: 46 },
-    vmCount: 5,
+    id: 'cl-sbeedr',
+    name: 'SBEEDR',
+    datacenter: 'DC-SBEE-DR',
+    hosts: ['drmcesxi','drbaesxi'],
+    cpu: { totalCores: 44, usedCores: 2, totalMhz: 52400, usedMhz: 2930 },
+    ram: { totalGB: 448, usedGB: 77 },
+    vmCount: 23,
     status: 'online',
-    haEnabled: false,
+    haEnabled: true,
     drsEnabled: false,
   },
 ];
 
 const SIM_HOSTS = [
+  // ── Cluster SBEEDG (Production) ─────────────────────────────────────────────
   {
-    id: 'esxi-01',
-    name: 'ESXi-01-SBEE',
+    id: 'esxi01',
+    name: 'esxi01.sbee.local',
     ip: '192.168.10.11',
     model: 'HPE ProLiant DL380 Gen10',
     vendor: 'HPE',
-    version: 'VMware ESXi 7.0 U3',
-    cluster: 'cl-prod',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
     datacenter: 'DC-SBEE-Cotonou',
-    cpu: { totalCores: 48, usedCores: 22, mhz: 2400, sockets: 2, coresPerSocket: 24 },
-    ram: { totalGB: 192, usedGB: 112 },
-    vmCount: 6,
-    status: 'online',
+    cpu: { totalCores: 24, usedCores: 2, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 3800 },
+    ram: { totalGB: 256, usedGB: 180 },
+    vmCount: 23,
+    status: 'error',
     uptime: 8640000,
     datastores: ['ds-san-prod', 'ds-nas-shared', 'ds-local-01'],
     vswitches: ['vSwitch0', 'vSwitch1'],
     nics: ['vmnic0','vmnic1','vmnic2','vmnic3'],
   },
   {
-    id: 'esxi-02',
-    name: 'ESXi-02-SBEE',
+    id: 'esxi02',
+    name: 'esxi02.sbee.local',
     ip: '192.168.10.12',
     model: 'HPE ProLiant DL380 Gen10',
     vendor: 'HPE',
-    version: 'VMware ESXi 7.0 U3',
-    cluster: 'cl-prod',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
     datacenter: 'DC-SBEE-Cotonou',
-    cpu: { totalCores: 48, usedCores: 21, mhz: 2400, sockets: 2, coresPerSocket: 24 },
-    ram: { totalGB: 192, usedGB: 99 },
-    vmCount: 6,
-    status: 'online',
+    cpu: { totalCores: 24, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 3500 },
+    ram: { totalGB: 256, usedGB: 172 },
+    vmCount: 20,
+    status: 'error',
     uptime: 7200000,
     datastores: ['ds-san-prod', 'ds-nas-shared', 'ds-local-02'],
     vswitches: ['vSwitch0', 'vSwitch1'],
     nics: ['vmnic0','vmnic1','vmnic2','vmnic3'],
   },
   {
-    id: 'esxi-03',
-    name: 'ESXi-03-BACKUP',
+    id: 'esxi03',
+    name: 'esxi03.sbee.local',
     ip: '192.168.10.13',
+    model: 'HPE ProLiant DL380 Gen10',
+    vendor: 'HPE',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
+    datacenter: 'DC-SBEE-Cotonou',
+    cpu: { totalCores: 24, usedCores: 2, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 4200 },
+    ram: { totalGB: 256, usedGB: 210 },
+    vmCount: 25,
+    status: 'error',
+    uptime: 5184000,
+    datastores: ['ds-san-prod', 'ds-nas-shared', 'ds-local-03'],
+    vswitches: ['vSwitch0', 'vSwitch1'],
+    nics: ['vmnic0','vmnic1','vmnic2','vmnic3'],
+  },
+  {
+    id: 'esxi04',
+    name: 'esxi04.sbee.local',
+    ip: '192.168.10.14',
+    model: 'HPE ProLiant DL380 Gen10',
+    vendor: 'HPE',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
+    datacenter: 'DC-SBEE-Cotonou',
+    cpu: { totalCores: 24, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 3100 },
+    ram: { totalGB: 256, usedGB: 195 },
+    vmCount: 22,
+    status: 'warning',
+    uptime: 9720000,
+    datastores: ['ds-san-prod', 'ds-nas-shared', 'ds-local-04'],
+    vswitches: ['vSwitch0', 'vSwitch1'],
+    nics: ['vmnic0','vmnic1','vmnic2','vmnic3'],
+  },
+  {
+    id: 'esxi07',
+    name: 'esxi07.sbee.local',
+    ip: '192.168.10.17',
     model: 'HPE ProLiant DL360 Gen10',
     vendor: 'HPE',
-    version: 'VMware ESXi 7.0 U2',
-    cluster: 'cl-backup',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
     datacenter: 'DC-SBEE-Cotonou',
-    cpu: { totalCores: 32, usedCores: 8, mhz: 2400, sockets: 2, coresPerSocket: 16 },
-    ram: { totalGB: 128, usedGB: 46 },
-    vmCount: 5,
+    cpu: { totalCores: 24, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 3000 },
+    ram: { totalGB: 256, usedGB: 128 },
+    vmCount: 7,
+    status: 'error',
+    uptime: 3600000,
+    datastores: ['esxi07-datastore', 'esxi07-store', 'NFSDatastore'],
+    vswitches: ['vSwitch0'],
+    nics: ['vmnic0','vmnic1'],
+    activeAlarm: 'VM total disk latency — VMDGMAIL',
+  },
+  {
+    id: 'esxi08',
+    name: 'esxi08.sbee.local',
+    ip: '192.168.10.18',
+    model: 'HPE ProLiant DL360 Gen10',
+    vendor: 'HPE',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedg',
+    datacenter: 'DC-SBEE-Cotonou',
+    cpu: { totalCores: 24, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 57600, usedMhz: 2200 },
+    ram: { totalGB: 256, usedGB: 83 },
+    vmCount: 23,
+    status: 'warning',
+    uptime: 12960000,
+    datastores: ['ds-san-prod', 'ds-nas-shared', 'ds-local-08'],
+    vswitches: ['vSwitch0', 'vSwitch1'],
+    nics: ['vmnic0','vmnic1','vmnic2','vmnic3'],
+  },
+  // ── Cluster SBEEDR (Disaster Recovery) ──────────────────────────────────────
+  {
+    id: 'drmcesxi',
+    name: 'drmcesxi.sbee.local',
+    ip: '10.10.10.11',
+    model: 'HPE ProLiant DL380 Gen9',
+    vendor: 'HPE',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedr',
+    datacenter: 'DC-SBEE-DR',
+    cpu: { totalCores: 24, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 12, totalMhz: 28800, usedMhz: 1800 },
+    ram: { totalGB: 224, usedGB: 42 },
+    vmCount: 20,
     status: 'online',
-    uptime: 5184000,
-    datastores: ['ds-nas-backup', 'ds-local-03'],
+    uptime: 18000000,
+    datastores: ['ds-dr-san', 'ds-dr-local-mc'],
+    vswitches: ['vSwitch0'],
+    nics: ['vmnic0','vmnic1'],
+  },
+  {
+    id: 'drbaesxi',
+    name: 'drbaesxi.sbee.local',
+    ip: '10.10.10.12',
+    model: 'HPE ProLiant DL380 Gen9',
+    vendor: 'HPE',
+    version: 'VMware ESXi 6.7.0',
+    cluster: 'cl-sbeedr',
+    datacenter: 'DC-SBEE-DR',
+    cpu: { totalCores: 20, usedCores: 1, mhz: 2400, sockets: 2, coresPerSocket: 10, totalMhz: 23600, usedMhz: 1130 },
+    ram: { totalGB: 224, usedGB: 35 },
+    vmCount: 23,
+    status: 'online',
+    uptime: 17280000,
+    datastores: ['ds-dr-san', 'ds-dr-local-ba'],
     vswitches: ['vSwitch0'],
     nics: ['vmnic0','vmnic1'],
   },
@@ -95,46 +188,52 @@ const SIM_HOSTS = [
 
 const SIM_VMS = [
   // ESXi-01
-  { id:'vm-001', name:'SICA-APP-01',      hostId:'esxi-01', os:'Windows Server 2019', ip:'192.168.1.10', state:'on',  cpu:{usage:38,cores:8},  ram:{usedGB:14,totalGB:32},  snapshots:2, uptime:720000 },
-  { id:'vm-002', name:'SICA-DB-01',       hostId:'esxi-01', os:'Windows Server 2019', ip:'192.168.1.11', state:'on',  cpu:{usage:55,cores:8},  ram:{usedGB:28,totalGB:48},  snapshots:1, uptime:720000 },
-  { id:'vm-003', name:'AD-DC-01',         hostId:'esxi-01', os:'Windows Server 2022', ip:'192.168.1.20', state:'on',  cpu:{usage:12,cores:4},  ram:{usedGB:6,totalGB:16},   snapshots:0, uptime:5000000 },
-  { id:'vm-004', name:'EXCHANGE-01',      hostId:'esxi-01', os:'Windows Server 2019', ip:'192.168.1.30', state:'on',  cpu:{usage:22,cores:8},  ram:{usedGB:22,totalGB:64},  snapshots:1, uptime:800000 },
-  { id:'vm-005', name:'PASSERELLE-PAY-01',hostId:'esxi-01', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.40', state:'on',  cpu:{usage:41,cores:4},  ram:{usedGB:7,totalGB:16},   snapshots:3, uptime:600000 },
-  { id:'vm-006', name:'DNS-DHCP-01',      hostId:'esxi-01', os:'Windows Server 2016', ip:'192.168.1.50', state:'on',  cpu:{usage:5, cores:2},  ram:{usedGB:3,totalGB:8},    snapshots:0, uptime:9000000 },
+  { id:'vm-001', name:'SICA-APP-01',      hostId:'esxi01', os:'Windows Server 2019', ip:'192.168.1.10', state:'on',  cpu:{usage:38,cores:8},  ram:{usedGB:14,totalGB:32},  snapshots:2, uptime:720000 },
+  { id:'vm-002', name:'SICA-DB-01',       hostId:'esxi01', os:'Windows Server 2019', ip:'192.168.1.11', state:'on',  cpu:{usage:55,cores:8},  ram:{usedGB:28,totalGB:48},  snapshots:1, uptime:720000 },
+  { id:'vm-003', name:'AD-DC-01',         hostId:'esxi01', os:'Windows Server 2022', ip:'192.168.1.20', state:'on',  cpu:{usage:12,cores:4},  ram:{usedGB:6,totalGB:16},   snapshots:0, uptime:5000000 },
+  { id:'vm-004', name:'EXCHANGE-01',      hostId:'esxi01', os:'Windows Server 2019', ip:'192.168.1.30', state:'on',  cpu:{usage:22,cores:8},  ram:{usedGB:22,totalGB:64},  snapshots:1, uptime:800000 },
+  { id:'vm-005', name:'PASSERELLE-PAY-01',hostId:'esxi01', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.40', state:'on',  cpu:{usage:41,cores:4},  ram:{usedGB:7,totalGB:16},   snapshots:3, uptime:600000 },
+  { id:'vm-006', name:'DNS-DHCP-01',      hostId:'esxi01', os:'Windows Server 2016', ip:'192.168.1.50', state:'on',  cpu:{usage:5, cores:2},  ram:{usedGB:3,totalGB:8},    snapshots:0, uptime:9000000 },
   // ESXi-02
-  { id:'vm-007', name:'SICA-APP-02',      hostId:'esxi-02', os:'Windows Server 2019', ip:'192.168.1.12', state:'on',  cpu:{usage:35,cores:8},  ram:{usedGB:13,totalGB:32},  snapshots:2, uptime:700000 },
-  { id:'vm-008', name:'SICA-DB-02',       hostId:'esxi-02', os:'Windows Server 2019', ip:'192.168.1.13', state:'on',  cpu:{usage:48,cores:8},  ram:{usedGB:25,totalGB:48},  snapshots:1, uptime:710000 },
-  { id:'vm-009', name:'AD-DC-02',         hostId:'esxi-02', os:'Windows Server 2022', ip:'192.168.1.21', state:'on',  cpu:{usage:10,cores:4},  ram:{usedGB:5,totalGB:16},   snapshots:0, uptime:4900000 },
-  { id:'vm-010', name:'ERP-FINANCE-01',   hostId:'esxi-02', os:'Windows Server 2016', ip:'192.168.1.60', state:'on',  cpu:{usage:29,cores:8},  ram:{usedGB:18,totalGB:32},  snapshots:2, uptime:500000 },
-  { id:'vm-011', name:'SBEE-MONITOR',     hostId:'esxi-02', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.70', state:'on',  cpu:{usage:8, cores:4},  ram:{usedGB:5,totalGB:16},   snapshots:1, uptime:300000 },
-  { id:'vm-012', name:'PROXY-WEB',        hostId:'esxi-02', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.80', state:'off', cpu:{usage:0, cores:2},  ram:{usedGB:0,totalGB:8},    snapshots:0, uptime:0 },
+  { id:'vm-007', name:'SICA-APP-02',      hostId:'esxi02', os:'Windows Server 2019', ip:'192.168.1.12', state:'on',  cpu:{usage:35,cores:8},  ram:{usedGB:13,totalGB:32},  snapshots:2, uptime:700000 },
+  { id:'vm-008', name:'SICA-DB-02',       hostId:'esxi02', os:'Windows Server 2019', ip:'192.168.1.13', state:'on',  cpu:{usage:48,cores:8},  ram:{usedGB:25,totalGB:48},  snapshots:1, uptime:710000 },
+  { id:'vm-009', name:'AD-DC-02',         hostId:'esxi02', os:'Windows Server 2022', ip:'192.168.1.21', state:'on',  cpu:{usage:10,cores:4},  ram:{usedGB:5,totalGB:16},   snapshots:0, uptime:4900000 },
+  { id:'vm-010', name:'ERP-FINANCE-01',   hostId:'esxi02', os:'Windows Server 2016', ip:'192.168.1.60', state:'on',  cpu:{usage:29,cores:8},  ram:{usedGB:18,totalGB:32},  snapshots:2, uptime:500000 },
+  { id:'vm-011', name:'SBEE-MONITOR',     hostId:'esxi02', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.70', state:'on',  cpu:{usage:8, cores:4},  ram:{usedGB:5,totalGB:16},   snapshots:1, uptime:300000 },
+  { id:'vm-012', name:'PROXY-WEB',        hostId:'esxi02', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.80', state:'off', cpu:{usage:0, cores:2},  ram:{usedGB:0,totalGB:8},    snapshots:0, uptime:0 },
   // ESXi-03 (backup)
-  { id:'vm-013', name:'VEEAM-BR-01',      hostId:'esxi-03', os:'Windows Server 2019', ip:'192.168.2.10', state:'on',  cpu:{usage:18,cores:8},  ram:{usedGB:20,totalGB:64},  snapshots:0, uptime:400000 },
-  { id:'vm-014', name:'BACKUP-REPO-01',   hostId:'esxi-03', os:'Ubuntu 22.04 LTS',    ip:'192.168.2.11', state:'on',  cpu:{usage:6, cores:4},  ram:{usedGB:8,totalGB:32},   snapshots:0, uptime:350000 },
-  { id:'vm-015', name:'DMZ-WEB-01',       hostId:'esxi-03', os:'Ubuntu 22.04 LTS',    ip:'10.0.0.10',    state:'on',  cpu:{usage:14,cores:2},  ram:{usedGB:2,totalGB:8},    snapshots:1, uptime:200000 },
-  { id:'vm-016', name:'DMZ-WEB-02',       hostId:'esxi-03', os:'Ubuntu 22.04 LTS',    ip:'10.0.0.11',    state:'on',  cpu:{usage:11,cores:2},  ram:{usedGB:2,totalGB:8},    snapshots:1, uptime:190000 },
-  { id:'vm-017', name:'VPN-GATEWAY',      hostId:'esxi-03', os:'pfSense 2.7',         ip:'10.0.0.1',     state:'on',  cpu:{usage:3, cores:2},  ram:{usedGB:1,totalGB:4},    snapshots:0, uptime:9500000 },
+  { id:'vm-013', name:'VEEAM-BR-01',      hostId:'esxi03', os:'Windows Server 2019', ip:'192.168.2.10', state:'on',  cpu:{usage:18,cores:8},  ram:{usedGB:20,totalGB:64},  snapshots:0, uptime:400000 },
+  { id:'vm-014', name:'BACKUP-REPO-01',   hostId:'esxi03', os:'Ubuntu 22.04 LTS',    ip:'192.168.2.11', state:'on',  cpu:{usage:6, cores:4},  ram:{usedGB:8,totalGB:32},   snapshots:0, uptime:350000 },
+  { id:'vm-015', name:'DMZ-WEB-01',       hostId:'esxi03', os:'Ubuntu 22.04 LTS',    ip:'10.0.0.10',    state:'on',  cpu:{usage:14,cores:2},  ram:{usedGB:2,totalGB:8},    snapshots:1, uptime:200000 },
+  { id:'vm-016', name:'DMZ-WEB-02',       hostId:'esxi03', os:'Ubuntu 22.04 LTS',    ip:'10.0.0.11',    state:'on',  cpu:{usage:11,cores:2},  ram:{usedGB:2,totalGB:8},    snapshots:1, uptime:190000 },
+  { id:'vm-017', name:'VPN-GATEWAY',      hostId:'esxi03', os:'pfSense 2.7',         ip:'10.0.0.1',     state:'on',  cpu:{usage:3, cores:2},  ram:{usedGB:1,totalGB:4},    snapshots:0, uptime:9500000 },
+  // ESXi07 — VM avec alerte disk latency (confirmé VeeamONE 25/04/2026)
+  { id:'vm-018', name:'VMDGMAIL',         hostId:'esxi07', os:'Windows Server 2019', ip:'192.168.1.90', state:'on',  cpu:{usage:22,cores:4},  ram:{usedGB:12,totalGB:32},  snapshots:1, uptime:1200000, diskLatencyAlert:true },
+  { id:'vm-019', name:'SBEE-MAIL-01',     hostId:'esxi07', os:'Windows Server 2019', ip:'192.168.1.91', state:'on',  cpu:{usage:8, cores:4},  ram:{usedGB:18,totalGB:32},  snapshots:0, uptime:2100000 },
+  { id:'vm-020', name:'SBEE-INTRANET',    hostId:'esxi07', os:'Ubuntu 22.04 LTS',    ip:'192.168.1.95', state:'on',  cpu:{usage:5, cores:2},  ram:{usedGB:6,totalGB:16},   snapshots:1, uptime:3600000 },
+  { id:'vm-021', name:'SBEEDR-REP-01',    hostId:'drmcesxi', os:'Windows Server 2019', ip:'10.10.10.20', state:'on',  cpu:{usage:4, cores:4},  ram:{usedGB:8,totalGB:32},   snapshots:0, uptime:8640000 },
+  { id:'vm-022', name:'SBEEDR-REP-02',    hostId:'drbaesxi', os:'Ubuntu 22.04 LTS',    ip:'10.10.10.21', state:'on',  cpu:{usage:2, cores:2},  ram:{usedGB:4,totalGB:16},   snapshots:0, uptime:8640000 },
 ];
 
 const SIM_STORAGE = {
-  'esxi-01': [
+  'esxi01': [
     { id:'ds-san-prod',    name:'SAN-PROD-LUN01',   type:'VMFS',  transportType:'FC',  capacityGB:4096, usedGB:2800, vms:['vm-001','vm-002','vm-004','vm-005'], host:'HPE MSA 2060' },
     { id:'ds-nas-shared',  name:'NAS-SHARED-NFS01', type:'NFS',   transportType:'NFS', capacityGB:8192, usedGB:3500, vms:['vm-003','vm-006'], host:'Synology RS3621xs+' },
     { id:'ds-local-01',    name:'Datastore-Local-01',type:'VMFS', transportType:'Local',capacityGB:1800, usedGB:450,  vms:[], host:'ESXi-01-SBEE' },
   ],
-  'esxi-02': [
+  'esxi02': [
     { id:'ds-san-prod',    name:'SAN-PROD-LUN01',   type:'VMFS',  transportType:'FC',  capacityGB:4096, usedGB:2800, vms:['vm-007','vm-008','vm-010'], host:'HPE MSA 2060' },
     { id:'ds-nas-shared',  name:'NAS-SHARED-NFS01', type:'NFS',   transportType:'NFS', capacityGB:8192, usedGB:3500, vms:['vm-009','vm-011','vm-012'], host:'Synology RS3621xs+' },
     { id:'ds-local-02',    name:'Datastore-Local-02',type:'VMFS', transportType:'Local',capacityGB:1800, usedGB:380,  vms:[], host:'ESXi-02-SBEE' },
   ],
-  'esxi-03': [
+  'esxi03': [
     { id:'ds-nas-backup',  name:'NAS-BACKUP-NFS01', type:'NFS',   transportType:'NFS', capacityGB:16384, usedGB:9800, vms:['vm-013','vm-014'], host:'Synology RS3621xs+' },
     { id:'ds-local-03',    name:'Datastore-Local-03',type:'VMFS', transportType:'Local',capacityGB:1200, usedGB:290,  vms:['vm-015','vm-016','vm-017'], host:'ESXi-03-BACKUP' },
   ],
 };
 
 const SIM_NETWORK = {
-  'esxi-01': {
+  'esxi01': {
     vswitches: [
       {
         name: 'vSwitch0', ports: 128, mtu: 1500,
@@ -155,7 +254,7 @@ const SIM_NETWORK = {
       },
     ],
   },
-  'esxi-02': {
+  'esxi02': {
     vswitches: [
       {
         name: 'vSwitch0', ports: 128, mtu: 1500,
@@ -176,7 +275,7 @@ const SIM_NETWORK = {
       },
     ],
   },
-  'esxi-03': {
+  'esxi03': {
     vswitches: [
       {
         name: 'vSwitch0', ports: 64, mtu: 1500,
@@ -212,15 +311,15 @@ const SIM_VSAN = {
 };
 
 const SIM_MULTIPATHING = {
-  'esxi-01': [
+  'esxi01': [
     { target: 'iqn.1992-04.com.hp:storage.msa2060', status: 'Active (I/O)', paths: 4, activePaths: 2, policy: 'Round Robin' },
     { target: 'iqn.2000-01.com.synology:rs3621xs', status: 'Active', paths: 2, activePaths: 1, policy: 'Fixed' }
   ],
-  'esxi-02': [
+  'esxi02': [
     { target: 'iqn.1992-04.com.hp:storage.msa2060', status: 'Active (I/O)', paths: 4, activePaths: 2, policy: 'Round Robin' },
     { target: 'iqn.2000-01.com.synology:rs3621xs', status: 'Active', paths: 2, activePaths: 1, policy: 'Fixed' }
   ],
-  'esxi-03': []
+  'esxi03': []
 };
 
 const SIM_NSX = {
