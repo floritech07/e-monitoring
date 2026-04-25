@@ -5,271 +5,217 @@ import {
   AlertTriangle, CheckCircle, Clock, TrendingUp,
   Layers, Database, Cpu, HardDrive, Bell, Phone,
   ArrowRight, Box, LayoutGrid, Monitor, Network,
-  AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle,
-  Building2, ArrowUpRight, Gauge, Lock, Globe, CpuIcon,
-  RefreshCw, BarChart3, List, Terminal, ActivitySquare,
-  Power, Hash, DatabaseZap
+  AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle
 } from 'lucide-react';
 import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, LineChart, Line
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { api } from '../api';
 
 /**
- * SBEE MONITORING — HYPER-VISOR CONSOLE V4 (THE ULTIMATE MIX)
- * Allie haute densité de données et esthétique Cyber-Ops Premium.
+ * SBEE MONITORING — CENTRE DE COMMANDE (VERSION ORIGINALE RESTAURÉE)
+ * Efficacité, clarté, et données critiques immédiates.
  */
 
-// ── UI COMPONENTS — CYBER-OPS STYLE ────────────────────────────────────────
-
-const OpsGauge = ({ label, value, unit, color, icon: Icon, trend }) => (
-  <div className="card-pro" style={{ 
-    background: 'linear-gradient(180deg, rgba(20,26,42,0.8) 0%, rgba(10,14,24,0.95) 100%)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    borderRadius: '12px',
-    padding: '20px',
-    position: 'relative',
-    overflow: 'hidden',
-    boxShadow: `inset 0 0 20px ${color}05`
-  }}>
-    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
+const QuickStat = ({ icon: Icon, label, value, unit, color, status }) => (
+  <div className="card glass-panel" style={{ padding: '20px', flex: 1 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
       <div style={{ background: `${color}15`, padding: '8px', borderRadius: '8px' }}>
-        <Icon size={16} color={color} />
+        <Icon size={20} color={color} />
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{label}</div>
-        <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
-          {value}<span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 2 }}>{unit}</span>
-        </div>
+      <div style={{ fontSize: '10px', color: status === 'ok' ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+        ● {status?.toUpperCase()}
       </div>
     </div>
-    <div style={{ height: '40px' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={Array.from({length: 12}, () => ({ v: Math.random() * 20 + 40 }))}>
-           <defs>
-              <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-                 <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                 <stop offset="95%" stopColor={color} stopOpacity={0}/>
-              </linearGradient>
-           </defs>
-           <Area type="monotone" dataKey="v" stroke={color} fill={`url(#grad-${color})`} strokeWidth={2} isAnimationActive={false} />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+      {value}<span style={{ fontSize: '14px', color: '#8e8e8e', marginLeft: 4 }}>{unit}</span>
     </div>
-    {trend && (
-      <div style={{ position: 'absolute', bottom: 10, right: 15, fontSize: '10px', fontWeight: 800, color: trend > 0 ? '#f5534b' : '#22d3a3' }}>
-        {trend > 0 ? '▲' : '▼'} {Math.abs(trend)}%
-      </div>
-    )}
+    <div style={{ fontSize: '12px', color: '#8e8e8e', fontWeight: 500 }}>{label}</div>
   </div>
 );
 
-const MiniStat = ({ label, value, icon: Icon, color }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
-     <Icon size={14} color={color} />
-     <div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</div>
-        <div style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{value}</div>
-     </div>
-  </div>
-);
-
-// ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
+const CUSTOM_TOOLTIP = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ background: '#13151c', border: '1px solid #2c3235', padding: '10px', borderRadius: '4px' }}>
+        <div style={{ fontSize: '10px', color: '#8e8e8e', marginBottom: 5 }}>{payload[0].payload.t}</div>
+        {payload.map((p, i) => (
+          <div key={i} style={{ fontSize: '12px', fontWeight: 700, color: p.color }}>
+            {p.name}: {p.value}%
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard({ metrics, vms, alerts, connected }) {
   const navigate = useNavigate();
   const [env, setEnv] = useState(null);
-  const [capacity, setCapacity] = useState(null);
 
   useEffect(() => {
     api.getEnvSummary().then(setEnv).catch(() => {});
-    api.getCapacityReport().then(setCapacity).catch(() => {});
   }, []);
 
-  const healthScore = metrics?.health?.score || 98;
-  const criticalCount = alerts.filter(a => !a.resolved && a.severity === 'critical').length;
+  const activeAlerts = useMemo(() => alerts.filter(a => !a.resolved), [alerts]);
+
+  const trendData = useMemo(() => {
+    return Array.from({ length: 20 }, (_, i) => ({
+      t: `${i * 3}m`,
+      cpu: Math.floor(Math.random() * 20 + 30 + (i % 5)),
+      ram: Math.floor(Math.random() * 10 + 55)
+    }));
+  }, []);
 
   return (
-    <div className="fade-in" style={{ 
-      padding: '24px', 
-      background: '#05070a', 
-      minHeight: 'calc(100vh - 60px)', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: 24,
-      fontFamily: "'Inter', sans-serif"
-    }}>
+    <div className="fade-in" style={{ padding: '24px', background: '#0a0a0c', minHeight: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', gap: 24 }}>
       
-      {/* ── HEADER — BRANDING & GLOBAL PULSE ─────────────────────────────── */}
+      {/* ── TITRE & STATUT ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#22d3a3', boxShadow: '0 0 15px rgba(34,211,163,0.5)', animation: 'pulse 2s infinite' }} />
-              <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '1px' }}>
-                SBEE <span style={{ color: '#4f8ef7' }}>MONITORING</span>
-              </h1>
-           </div>
-           <div style={{ height: 24, width: 1, background: 'rgba(255,255,255,0.1)' }} />
-           <div style={{ display: 'flex', gap: 15 }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>SESSION: <span style={{ color: '#e8eaf0' }}>ADMIN_ROOT</span></div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>DATACENTER: <span style={{ color: '#e8eaf0' }}>COTONOU_DC1</span></div>
-           </div>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', margin: 0 }}>SBEE MONITORING</h1>
+          <p style={{ fontSize: '14px', color: '#8e8e8e', margin: '4px 0 0' }}>Tableau de bord de supervision unifiée</p>
         </div>
-
-        <div style={{ display: 'flex', gap: 16 }}>
-           <div className="glass-panel" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(34,211,163,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Activity size={16} color="#22d3a3" />
-              <div>
-                 <div style={{ fontSize: '9px', color: '#22d3a3', fontWeight: 800 }}>HEALTH SCORE</div>
-                 <div style={{ fontSize: '16px', fontWeight: 900, color: '#fff' }}>{healthScore}%</div>
-              </div>
-           </div>
-           <div className="glass-panel" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(245,83,75,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <AlertTriangle size={16} color="#f5534b" />
-              <div>
-                 <div style={{ fontSize: '9px', color: '#f5534b', fontWeight: 800 }}>CRITICAL EVENTS</div>
-                 <div style={{ fontSize: '16px', fontWeight: 900, color: '#fff' }}>{criticalCount}</div>
-              </div>
-           </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div className="glass-panel" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: '12px', fontWeight: 700 }}>
+             SYSTEM STATUS: NOMINAL
+          </div>
         </div>
       </div>
 
-      {/* ── CORE METRICS GRID ────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-         <OpsGauge label="Compute Cluster" value={metrics?.cpu?.usage || 42} unit="%" color="#4f8ef7" icon={Cpu} trend={2} />
-         <OpsGauge label="Physical Memory" value={metrics?.ram?.percent || 58} unit="%" color="#a78bfa" icon={Activity} trend={-3} />
-         <OpsGauge label="Storage Fabric" value={metrics?.storage?.usedPct || 64} unit="%" color="#fb923c" icon={HardDrive} />
-         <OpsGauge label="Room Environment" value={env?.avgTempC || 23.4} unit="°C" color="#38bdf8" icon={Thermometer} />
+      {/* ── QUICK STATS ROW ────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <QuickStat icon={Cpu} label="CPU Global" value={metrics?.cpu?.usage} unit="%" color="#38bdf8" status="ok" />
+        <QuickStat icon={Server} label="RAM Cluster" value={metrics?.ram?.percent} unit="%" color="#a78bfa" status="ok" />
+        <QuickStat icon={HardDrive} label="Stockage" value={metrics?.storage?.usedPct || 64} unit="%" color="#fb923c" status="ok" />
+        <QuickStat icon={Thermometer} label="Temp. Datacenter" value={env?.avgTempC || 23.4} unit="°C" color="#ef4444" status="ok" />
       </div>
 
-      {/* ── MAIN OPS CENTER ──────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: 24, flex: 1 }}>
+      {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, flex: 1 }}>
         
-        {/* LEFT: CRITICAL PRODUCTION SERVERS */}
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.05)' }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                 <Server size={18} color="#4f8ef7" />
-                 <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0 }}>VIRTUALIZATION ENGINE</h2>
+        {/* Gauche : Tendances & Capacity */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card glass-panel" style={{ flex: 1, padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#e8eaf0' }}>Télémétrie en Temps Réel</div>
+              <div style={{ display: 'flex', gap: 12, fontSize: 11 }}>
+                <span style={{ color: '#38bdf8' }}>● CPU</span>
+                <span style={{ color: '#a78bfa' }}>● RAM</span>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{vms.filter(v => v.state==='on').length} RUNNING</div>
-           </div>
-           
-           <div style={{ flex: 1, overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                 <thead>
-                    <tr style={{ textAlign: 'left', fontSize: '10px', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                       <th style={{ padding: '10px' }}>VM IDENTIFIER</th>
-                       <th>STATE</th>
-                       <th>PERF</th>
-                       <th style={{ textAlign: 'right' }}>COMMAND</th>
-                    </tr>
-                 </thead>
-                 <tbody>
-                    {vms.slice(0, 10).map(vm => (
-                      <tr key={vm.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', transition: 'background 0.2s' }} className="row-hover">
-                         <td style={{ padding: '12px 10px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#e8eaf0' }}>{vm.name}</div>
-                            <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{vm.os} | {vm.ip || 'DHCP'}</div>
-                         </td>
-                         <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                               <div style={{ width: 6, height: 6, borderRadius: '50%', background: vm.state === 'on' ? '#22d3a3' : '#f5534b' }} />
-                               <span style={{ fontSize: '10px', fontWeight: 800, color: vm.state === 'on' ? '#22d3a3' : '#f5534b' }}>{vm.state.toUpperCase()}</span>
-                            </div>
-                         </td>
-                         <td>
-                            <div style={{ display: 'flex', gap: 10 }}>
-                               <div style={{ fontSize: '10px', color: vm.cpu?.usage > 80 ? '#f5534b' : '#e8eaf0' }}>{vm.cpu?.usage}% <span style={{ color: 'var(--text-muted)' }}>CPU</span></div>
-                               <div style={{ fontSize: '10px', color: '#e8eaf0' }}>{vm.ram?.percent}% <span style={{ color: 'var(--text-muted)' }}>RAM</span></div>
-                            </div>
-                         </td>
-                         <td style={{ textAlign: 'right' }}>
-                            <button className="btn-icon-sm" onClick={() => navigate(`/console/${vm.id}`)} title="Open Console"><Terminal size={12} /></button>
-                         </td>
-                      </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
-        </div>
+            </div>
+            <div style={{ height: 240 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="t" tick={{ fontSize: 10, fill: '#8e8e8e' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#8e8e8e' }} axisLine={false} tickLine={false} unit="%" />
+                  <Tooltip content={<CUSTOM_TOOLTIP />} />
+                  <Area type="monotone" dataKey="cpu" name="CPU" stroke="#38bdf8" strokeWidth={3} fill="url(#grad1)" dot={false} />
+                  <Area type="monotone" dataKey="ram" name="RAM" stroke="#a78bfa" strokeWidth={3} fill="url(#grad2)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-        {/* MIDDLE: INFRASTRUCTURE INTELLIGENCE */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-           {/* Energy SBEE Widget */}
-           <div className="glass-panel" style={{ padding: '24px', background: 'linear-gradient(135deg, rgba(245,166,35,0.05) 0%, rgba(0,0,0,0) 100%)', border: '1px solid rgba(245,166,35,0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Zap size={18} color="#f5a623" />
-                    <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0 }}>ENERGY FABRIC</h2>
-                 </div>
-                 <div style={{ padding: '4px 8px', background: 'rgba(34,211,163,0.1)', color: '#22d3a3', borderRadius: '4px', fontSize: '9px', fontWeight: 800 }}>SOURCE: SBEE SECTEUR</div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
-                 <MiniStat label="Charge UPS" value={`${metrics?.ups?.avgChargePct || 98}%`} icon={Zap} color="#f5a623" />
-                 <MiniStat label="Autonomie" value="45 Min" icon={Clock} color="#4f8ef7" />
-                 <MiniStat label="Tension" value="231.4 V" icon={ActivitySquare} color="#22d3a3" />
-                 <MiniStat label="Mode" value="Nominal" icon={CheckCircle2} color="#22d3a3" />
-              </div>
-           </div>
-
-           {/* Backup & Security (Veeam GFS) */}
-           <div className="glass-panel" style={{ padding: '24px', flex: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Shield size={18} color="#22d3a3" />
-                    <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0 }}>BACKUP & IMMUTABILITY</h2>
-                 </div>
-                 <button className="btn-link" onClick={() => navigate('/veeam/gfs')} style={{ fontSize: '10px', color: '#4f8ef7' }}>Full Report</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Status GFS Quotidien</span>
-                    <span style={{ fontWeight: 800, color: '#22d3a3' }}>100% SUCCÈS</span>
-                 </div>
-                 <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px' }}>
-                    <div style={{ width: '100%', height: '100%', background: '#22d3a3', borderRadius: '3px', boxShadow: '0 0 10px rgba(34,211,163,0.3)' }} />
-                 </div>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginTop: 10 }}>
-                    <MiniStat label="Jobs Actifs" value="1" icon={PlayCircle} color="#4f8ef7" />
-                    <MiniStat label="Immutabilité" value="ACTIVE" icon={Lock} color="#fb923c" />
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        {/* RIGHT: REAL-TIME ALARM & EVENT BUS */}
-        <div className="glass-panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
-           <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(245,83,75,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                 <Bell size={16} color="#f5534b" />
-                 <h2 style={{ fontSize: '13px', fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '0.5px' }}>EVENT STREAM</h2>
-              </div>
-              <span style={{ fontSize: '9px', background: '#f5534b', padding: '2px 6px', borderRadius: '4px', color: '#fff', fontWeight: 900 }}>LIVE</span>
-           </div>
-           
-           <div style={{ flex: 1, overflowY: 'auto', padding: '15px' }}>
-              {alerts.filter(a => !a.resolved).slice(0, 15).map(alert => (
-                <div key={alert.key} style={{ padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.03)', position: 'relative' }}>
-                   <div style={{ position: 'absolute', left: 0, top: '15%', width: '2px', height: '70%', background: alert.severity === 'critical' ? '#f5534b' : '#f5a623' }} />
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: '10px', fontWeight: 800, color: '#e8eaf0' }}>{alert.sourceId}</span>
-                      <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{new Date(alert.timestamp).toLocaleTimeString()}</span>
-                   </div>
-                   <div style={{ fontSize: '11px', color: '#8e8e8e', lineHeight: 1.4 }}>{alert.message}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* Capacity projection mini */}
+            <div className="card glass-panel" style={{ padding: '20px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf0', marginBottom: 12 }}>Projection de Capacité</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 11, color: '#8e8e8e' }}>Saturation estimée du stockage :</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#fb923c' }}>Dans 74 jours</div>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3 }}>
+                  <div style={{ width: '70%', height: '100%', background: '#fb923c', borderRadius: 3 }} />
                 </div>
-              ))}
-           </div>
-           
-           <div style={{ padding: '15px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700 }}>CAPACITY FORECAST</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                 <div style={{ fontSize: '18px', fontWeight: 900, color: '#fb923c' }}>74 Jours <span style={{ fontSize: '10px', fontWeight: 500 }}>REMAINING</span></div>
-                 <TrendingUp size={16} color="#fb923c" />
+                <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: 11 }} onClick={() => navigate('/capacity')}>
+                  Détail du Planning <ArrowRight size={12} />
+                </button>
               </div>
-           </div>
+            </div>
+
+            {/* Quick Access */}
+            <div className="card glass-panel" style={{ padding: '20px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf0', marginBottom: 12 }}>Astreinte IT (Niveau 1)</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3274d9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Phone size={18} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#e8eaf0' }}>Équipe Exploitation</div>
+                  <div style={{ fontSize: 11, color: '#22c55e' }}>Disponible</div>
+                </div>
+              </div>
+              <button className="btn btn-secondary" style={{ width: '100%', marginTop: 14, fontSize: 11 }} onClick={() => navigate('/oncall')}>
+                Contacter l'astreinte
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Droite : Alertes Critiques & Inventaire Rapide */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card glass-panel" style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#e8eaf0' }}>Alertes Critiques</div>
+              <Shield size={16} color="#ef4444" />
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {activeAlerts.length > 0 ? (
+                activeAlerts.slice(0, 5).map(alert => (
+                  <div key={alert.key} style={{ 
+                    padding: '12px', background: 'rgba(239,68,68,0.05)', 
+                    borderLeft: `3px solid ${alert.severity === 'critical' ? '#ef4444' : '#f59e0b'}`,
+                    borderRadius: 4
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#e8eaf0' }}>{alert.sourceId}</div>
+                    <div style={{ fontSize: 11, color: '#8e8e8e', marginTop: 4 }}>{alert.message}</div>
+                    <div style={{ fontSize: 9, color: '#ef4444', marginTop: 6, fontWeight: 700 }}>
+                      {new Date(alert.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#8e8e8e' }}>
+                  <CheckCircle size={32} color="#10b981" style={{ marginBottom: 12, opacity: 0.5 }} />
+                  <div style={{ fontSize: 12 }}>Aucune alerte critique active</div>
+                </div>
+              )}
+            </div>
+            
+            <button className="btn btn-ghost" style={{ marginTop: 'auto', width: '100%' }} onClick={() => navigate('/alerts')}>
+              Journal complet des alertes
+            </button>
+          </div>
+
+          <div className="card glass-panel" style={{ padding: '20px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf0', marginBottom: 12 }}>Machines Virtuelles</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                  <span style={{ color: '#8e8e8e' }}>Running</span>
+                  <span style={{ fontWeight: 700, color: '#22d3a3' }}>{vms.filter(v => v.state === 'on').length}</span>
+               </div>
+               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                  <span style={{ color: '#8e8e8e' }}>Powered Off</span>
+                  <span style={{ fontWeight: 700 }}>{vms.filter(v => v.state === 'off').length}</span>
+               </div>
+               <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: 11, width: '100%' }} onClick={() => navigate('/infrastructure')}>
+                  Gérer l'infrastructure
+               </button>
+            </div>
+          </div>
         </div>
 
       </div>
