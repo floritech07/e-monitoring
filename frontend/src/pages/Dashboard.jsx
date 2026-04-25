@@ -6,8 +6,7 @@ import {
   Layers, Database, Cpu, HardDrive, Bell, Phone,
   ArrowRight, Box, LayoutGrid, Monitor, Network,
   AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle,
-  Search, Filter, Download, Calendar, MoreHorizontal,
-  Power, CpuIcon, Gauge, ChevronDown, Battery, ZapOff
+  Download, Battery, ZapOff, CpuIcon
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -16,59 +15,58 @@ import {
 import { api } from '../api';
 
 /**
- * SBEE MONITORING — VCENTER DARK PLATINUM EDITION
- * Fusion de l'ergonomie vSphere et de l'esthétique Dark Premium.
+ * SBEE ULTIMATE MONITORING — DARK PLATINUM FUSION
+ * Le design Platinum (sombre/moderne) avec les détails vCenter.
  */
 
-// ── UI COMPONENTS — VCENTER STYLE ──────────────────────────────────────────
+// ── UI COMPONENTS — PLATINUM FUSION ───────────────────────────────────────
 
-const ResourceBlock = ({ label, free, used, total, unit, color }) => {
+const ResourceStat = ({ label, free, used, total, unit, color, icon: Icon }) => {
   const percent = total > 0 ? (used / total) * 100 : 0;
   return (
     <div style={{ 
       background: 'rgba(30, 41, 59, 0.4)', 
-      borderRadius: '4px', 
+      borderRadius: '16px', 
       padding: '24px', 
+      backdropFilter: 'blur(10px)',
       border: '1px solid rgba(255, 255, 255, 0.05)',
-      flex: 1 
+      flex: 1
     }}>
-      <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: 15, fontWeight: 600 }}>{label}</div>
-      <div style={{ textAlign: 'center', marginBottom: 20 }}>
-         <div style={{ fontSize: '28px', fontWeight: 300, color: '#fff' }}>
-            {free} <span style={{ fontSize: '18px' }}>{unit} libres</span>
-         </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '11px', fontWeight: 700, marginBottom: 15, textTransform: 'uppercase' }}>
+         <Icon size={16} color={color} /> {label}
       </div>
-      <div style={{ height: '10px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', marginBottom: 10, overflow: 'hidden' }}>
+      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: 15 }}>
+         {free} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>{unit} libres</span>
+      </div>
+      <div style={{ height: '4px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', marginBottom: 10, overflow: 'hidden' }}>
          <div style={{ width: `${percent}%`, height: '100%', background: color, boxShadow: `0 0 10px ${color}44` }} />
       </div>
-      <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', justifyContent: 'center', gap: 8 }}>
-         <span>{used} {unit} utilisés</span>
-         <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
-         <span>{total} {unit} au total</span>
+      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+         {used} {unit} utilisés <span style={{ color: 'rgba(255,255,255,0.1)', margin: '0 5px' }}>|</span> {total} {unit} au total
       </div>
     </div>
   );
 };
 
-const InventoryBlock = ({ label, total, icon: Icon, items }) => (
+const MiniStat = ({ label, total, breakdown, icon: Icon }) => (
   <div style={{ 
-    background: 'rgba(30, 41, 59, 0.4)', 
-    borderRadius: '4px', 
-    padding: '20px', 
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    flex: 1 
+    padding: '16px', 
+    background: 'rgba(255, 255, 255, 0.02)', 
+    borderRadius: '12px', 
+    border: '1px solid rgba(255, 255, 255, 0.03)',
+    flex: 1
   }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>
-          <Icon size={16} /> {label}
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', color: '#94a3b8', fontWeight: 700 }}>
+          <Icon size={14} /> {label}
        </div>
-       <div style={{ fontSize: '20px', fontWeight: 300, color: '#fff' }}>{total}</div>
+       <div style={{ fontSize: '14px', fontWeight: 900, color: '#fff' }}>{total}</div>
     </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-       {items.map((item, idx) => (
-          <div key={idx} style={{ textAlign: 'center', flex: 1 }}>
-             <div style={{ fontSize: '18px', fontWeight: 300, color: '#fff' }}>{item.value}</div>
-             <div style={{ fontSize: '10px', color: '#64748b', marginTop: 4 }}>{item.label}</div>
+    <div style={{ display: 'flex', gap: 15 }}>
+       {breakdown.map((b, i) => (
+          <div key={i}>
+             <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff' }}>{b.value}</div>
+             <div style={{ fontSize: '9px', color: '#64748b' }}>{b.label}</div>
           </div>
        ))}
     </div>
@@ -85,145 +83,174 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
     api.getEnvSummary().then(setEnv).catch(() => {});
   }, []);
 
-  const stats = useMemo(() => ({
+  const data = useMemo(() => ({
     cpuTotal: 359.63,
-    cpuUsed: 27.07 + (Math.random() * 5),
-    ramTotal: 1.93, // TB
-    ramUsed: 1.02, // TB
+    cpuUsed: 27.07 + (Math.random() * 2),
+    ramTotal: 1.93,
+    ramUsed: 1.02,
     storageTotal: 158.06,
-    storageUsed: 71.37,
-    vmCount: vms.length,
-    hostCount: 1,
-  }), [vms]);
+    storageUsed: 71.37
+  }), [metrics]);
 
   return (
     <div className="fade-in" style={{ 
-      padding: '20px', 
+      padding: '40px', 
       background: '#0b0e14', 
       minHeight: 'calc(100vh - 60px)', 
       fontFamily: "'Inter', sans-serif",
       color: '#e2e8f0'
     }}>
       
-      {/* ── BREADCRUMB HEADER ────────────────────────────────────────────── */}
-      <div style={{ marginBottom: 24 }}>
-         <h1 style={{ fontSize: '20px', fontWeight: 500, color: '#fff', margin: 0 }}>Accueil</h1>
-         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: '12px', color: '#22d3ee', fontWeight: 600 }}>
-            <div style={{ width: 14, height: 14, background: '#22d3ee20', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <Monitor size={10} color="#22d3ee" />
-            </div>
-            VCSA.SBEE.LOCAL <ChevronDown size={14} />
-         </div>
+      {/* ── HEADER ───────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32 }}>
+        <div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ background: '#3b82f6', width: 8, height: 24, borderRadius: 4, boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)' }} />
+              <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', margin: 0 }}>SBEE <span style={{ color: '#3b82f6' }}>MONITORING</span></h1>
+           </div>
+           <div style={{ fontSize: '13px', color: '#64748b' }}>Command Center · VCSA.SBEE.LOCAL</div>
+        </div>
+        <button className="btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '13px' }}>
+           <Download size={16} style={{ marginRight: 8 }} /> Rapports
+        </button>
       </div>
 
-      {/* ── RESOURCE BAND (TOP) ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-         <ResourceBlock label="CPU" free={(stats.cpuTotal - stats.cpuUsed).toFixed(2)} used={stats.cpuUsed.toFixed(2)} total={stats.cpuTotal} unit="GHz" color="#48bb78" />
-         <ResourceBlock label="Mémoire" free={(stats.ramTotal - stats.ramUsed).toFixed(2)} used={stats.ramUsed.toFixed(2)} total={stats.ramTotal} unit="To" color="#48bb78" />
-         <ResourceBlock label="Stockage" free={(stats.storageTotal - stats.storageUsed).toFixed(2)} used={stats.storageUsed.toFixed(2)} total={stats.storageTotal} unit="To" color="#48bb78" />
+      {/* ── TOP RESOURCE BAND (vCenter Details) ─────────────────────────── */}
+      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+         <ResourceStat label="CPU" free={(data.cpuTotal - data.cpuUsed).toFixed(2)} used={data.cpuUsed.toFixed(2)} total={data.cpuTotal} unit="GHz" color="#3b82f6" icon={Cpu} />
+         <ResourceStat label="Mémoire" free={(data.ramTotal - data.ramUsed).toFixed(2)} used={data.ramUsed.toFixed(2)} total={data.ramTotal} unit="To" color="#a78bfa" icon={Layers} />
+         <ResourceStat label="Stockage" free={(data.storageTotal - data.storageUsed).toFixed(2)} used={data.storageUsed.toFixed(2)} total={data.storageTotal} unit="To" color="#fb923c" icon={HardDrive} />
       </div>
 
       {/* ── INVENTORY ROW ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-         <InventoryBlock label="VM" total={163} icon={Monitor} items={[
+      <div style={{ display: 'flex', gap: 24, marginBottom: 32 }}>
+         <MiniStat label="VMs" total={163} icon={Monitor} breakdown={[
             { label: 'Sous tension', value: vms.filter(v=>v.state==='on').length + 60 },
             { label: 'Hors tension', value: 97 },
             { label: 'Interrompu', value: 0 }
          ]} />
-         <InventoryBlock label="Hôtes" total={13} icon={Server} items={[
+         <MiniStat label="Hôtes" total={13} icon={Server} breakdown={[
             { label: 'Connecté', value: 9 },
             { label: 'Déconnecté', value: 1 },
             { label: 'Maintenance', value: 0 }
          ]} />
-      </div>
-
-      {/* ── ENERGY SYSTEM (SBEE SPECIFIC) ────────────────────────────────── */}
-      <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px', padding: '24px', border: '1px solid rgba(251, 146, 60, 0.1)', marginBottom: 16 }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fb923c', fontSize: '13px', fontWeight: 600, marginBottom: 20 }}>
-            <Zap size={16} /> SYSTÈME ÉNERGÉTIQUE SBEE
-         </div>
-         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
+         <div style={{ flex: 1, padding: '16px', background: 'rgba(34, 211, 163, 0.05)', border: '1px solid rgba(34, 211, 163, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: 15 }}>
+            <Thermometer size={24} color="#22d3ee" />
             <div>
-               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Batteries</div>
-               <div style={{ fontSize: '20px', fontWeight: 300, color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Battery size={20} color="#48bb78" /> 98% <span style={{ fontSize: '12px', color: '#48bb78' }}>OPTIMAL</span>
-               </div>
-            </div>
-            <div>
-               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Total Délivré</div>
-               <div style={{ fontSize: '20px', fontWeight: 300, color: '#fff' }}>450.2 kW</div>
-            </div>
-            <div>
-               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Énergie Perdue</div>
-               <div style={{ fontSize: '20px', fontWeight: 300, color: '#f87171' }}>12.4 kW <span style={{ fontSize: '12px' }}>(2.7%)</span></div>
-            </div>
-            <div>
-               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Source</div>
-               <div style={{ fontSize: '20px', fontWeight: 300, color: '#22d3ee' }}>SECTEUR ACTIF</div>
+               <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>TEMP. DATACENTER</div>
+               <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>23.4 °C <span style={{ fontSize: '11px', color: '#48bb78', fontWeight: 500 }}>NOMINAL</span></div>
             </div>
          </div>
       </div>
 
-      {/* ── BOTTOM TABLES: CRITICAL SERVERS & ALERTS ─────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      {/* ── CENTRAL ANALYTICS & ENERGY ───────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: 32, marginBottom: 32 }}>
          
-         {/* SERVEURS CRITIQUES (vCenter Style) */}
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-               <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Shield size={16} color="#f87171" /> SERVEURS CRITIQUES (TIER-0)
+         {/* Performance Area (Design Platinum) */}
+         <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 40 }}>
+               <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>Télémétrie en Temps Réel</h2>
+               <div style={{ display: 'flex', gap: 15, fontSize: '10px', fontWeight: 800 }}>
+                  <span style={{ color: '#3b82f6' }}>● CPU</span>
+                  <span style={{ color: '#a78bfa' }}>● RAM</span>
                </div>
-               <span style={{ fontSize: '12px', color: '#64748b' }}>4 Éléments</span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead>
-                  <tr style={{ textAlign: 'left', fontSize: '11px', color: '#64748b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                     <th style={{ padding: '8px' }}>Serveur</th>
-                     <th>Charge</th>
-                     <th>Santé</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {vms.filter(v=>v.name.includes('PROD') || v.name.includes('SRV')).slice(0, 4).map(vm => (
-                     <tr key={vm.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', fontSize: '12px' }}>
-                        <td style={{ padding: '12px 8px', color: '#fff', fontWeight: 500 }}>{vm.name}</td>
-                        <td style={{ color: '#94a3b8' }}>{vm.cpu?.usage}% CPU</td>
-                        <td style={{ color: '#48bb78' }}>OPTIMAL</td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
+            <div style={{ height: '300px' }}>
+               <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={Array.from({length: 20}, (_, i) => ({
+                     t: i,
+                     cpu: 35 + Math.sin(i/2.5)*20 + Math.random()*8,
+                     ram: 58 + Math.cos(i/4)*10 + Math.random()*5
+                  }))}>
+                     <defs>
+                        <linearGradient id="cpuArea" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                           <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="ramArea" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3}/>
+                           <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
+                        </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                     <XAxis hide />
+                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#475569' }} />
+                     <Tooltip contentStyle={{ background: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff' }} />
+                     <Area type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={3} fill="url(#cpuArea)" />
+                     <Area type="monotone" dataKey="ram" stroke="#a78bfa" strokeWidth={3} fill="url(#ramArea)" />
+                  </AreaChart>
+               </ResponsiveContainer>
+            </div>
          </div>
 
-         {/* OBJETS PRÉSENTANT LE PLUS D'ALERTES */}
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-               <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Bell size={16} /> OBJETS PRÉSENTANT LE PLUS D'ALERTES
+         {/* Energie Section (Détails demandés) */}
+         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(251, 146, 60, 0.1)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fb923c', fontSize: '14px', fontWeight: 800, marginBottom: 24 }}>
+                  <Zap size={18} /> SYSTÈME ÉNERGÉTIQUE
                </div>
-               <span style={{ fontSize: '12px', color: '#64748b' }}>10</span>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  <div>
+                     <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 6 }}>BATTERIES</div>
+                     <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Battery size={16} color="#48bb78" /> 98%
+                     </div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 6 }}>TOTAL DÉLIVRÉ</div>
+                     <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>450.2 kW</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 6 }}>ÉNERGIE PERDUE</div>
+                     <div style={{ fontSize: '18px', fontWeight: 900, color: '#f87171' }}>2.7%</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 6 }}>SOURCE</div>
+                     <div style={{ fontSize: '16px', fontWeight: 900, color: '#22d3ee' }}>SBEE SECTEUR</div>
+                  </div>
+               </div>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead>
-                  <tr style={{ textAlign: 'left', fontSize: '11px', color: '#64748b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                     <th style={{ padding: '8px' }}>Élément</th>
-                     <th>Alertes</th>
-                     <th>Avertissements</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', fontSize: '12px' }}>
-                     <td style={{ padding: '12px 8px', color: '#fff' }}>vcsa.sbee.local</td>
-                     <td style={{ color: '#f87171' }}>3</td>
-                     <td style={{ color: '#fb923c' }}>0</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', fontSize: '12px' }}>
-                     <td style={{ padding: '12px 8px', color: '#fff' }}>esxi-noc.sbee.local</td>
-                     <td style={{ color: '#f87171' }}>2</td>
-                     <td style={{ color: '#fb923c' }}>0</td>
-                  </tr>
-               </tbody>
-            </table>
+
+            {/* Alertes Card */}
+            <div style={{ background: 'rgba(245, 101, 101, 0.05)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(245, 101, 101, 0.1)' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                  <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#f87171', margin: 0 }}>Alertes Critiques</h2>
+                  <Bell size={16} color="#f87171" />
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {alerts.filter(a => !a.resolved && a.severity === 'critical').slice(0, 2).map(alert => (
+                     <div key={alert.key} style={{ fontSize: '12px', color: '#94a3b8', padding: '10px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px' }}>
+                        <div style={{ fontWeight: 800, color: '#fff' }}>{alert.sourceId}</div>
+                        <div style={{ marginTop: 4 }}>{alert.message}</div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+      </div>
+
+      {/* ── SERVEURS CRITIQUES ────────────────────────────────────────────── */}
+      <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>Serveurs Critiques (Tier-0)</h2>
+            <button className="btn-link" style={{ fontSize: '13px', color: '#3b82f6', fontWeight: 700 }}>Inventaire Complet</button>
+         </div>
+         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+            {vms.filter(v=>v.name.includes('PROD') || v.name.includes('SRV')).slice(0, 4).map(vm => (
+               <div key={vm.id} style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 15 }}>
+                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3a3', boxShadow: '0 0 8px #22d3a3' }} />
+                     <div style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{vm.name}</div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: 8 }}>
+                     <span>Charge CPU</span>
+                     <span style={{ color: '#fff' }}>{vm.cpu?.usage}%</span>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                     <div style={{ width: `${vm.cpu?.usage}%`, height: '100%', background: '#3b82f6' }} />
+                  </div>
+               </div>
+            ))}
          </div>
       </div>
 
