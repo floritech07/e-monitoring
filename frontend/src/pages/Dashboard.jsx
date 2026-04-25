@@ -16,10 +16,10 @@ import { api } from '../api';
 
 /**
  * SBEE ULTIMATE MONITORING — DARK PLATINUM FUSION
- * Le design Platinum (sombre/moderne) avec les détails vCenter.
+ * Le design Platinum avec les détails vCenter et une vue Serveurs Critiques visible.
  */
 
-// ── UI COMPONENTS — PLATINUM FUSION ───────────────────────────────────────
+// ── UI COMPONENTS ──────────────────────────────────────────────────────────
 
 const ResourceStat = ({ label, free, used, total, unit, color, icon: Icon }) => {
   const percent = total > 0 ? (used / total) * 100 : 0;
@@ -83,6 +83,13 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
     api.getEnvSummary().then(setEnv).catch(() => {});
   }, []);
 
+  // Détermination des serveurs critiques (si pas de PROD, on prend les premières VMs)
+  const criticalServers = useMemo(() => {
+    let filtered = vms.filter(v => v.name.includes('PROD') || v.name.includes('SRV'));
+    if (filtered.length === 0) filtered = vms.slice(0, 4);
+    return filtered.slice(0, 4);
+  }, [vms]);
+
   const data = useMemo(() => ({
     cpuTotal: 359.63,
     cpuUsed: 27.07 + (Math.random() * 2),
@@ -115,7 +122,7 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
         </button>
       </div>
 
-      {/* ── TOP RESOURCE BAND (vCenter Details) ─────────────────────────── */}
+      {/* ── TOP RESOURCE BAND ───────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
          <ResourceStat label="CPU" free={(data.cpuTotal - data.cpuUsed).toFixed(2)} used={data.cpuUsed.toFixed(2)} total={data.cpuTotal} unit="GHz" color="#3b82f6" icon={Cpu} />
          <ResourceStat label="Mémoire" free={(data.ramTotal - data.ramUsed).toFixed(2)} used={data.ramUsed.toFixed(2)} total={data.ramTotal} unit="To" color="#a78bfa" icon={Layers} />
@@ -146,7 +153,6 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
       {/* ── CENTRAL ANALYTICS & ENERGY ───────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: 32, marginBottom: 32 }}>
          
-         {/* Performance Area (Design Platinum) */}
          <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(10px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 40 }}>
                <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>Télémétrie en Temps Réel</h2>
@@ -183,7 +189,6 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
             </div>
          </div>
 
-         {/* Energie Section (Détails demandés) */}
          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(251, 146, 60, 0.1)' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fb923c', fontSize: '14px', fontWeight: 800, marginBottom: 24 }}>
@@ -211,7 +216,6 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
                </div>
             </div>
 
-            {/* Alertes Card */}
             <div style={{ background: 'rgba(245, 101, 101, 0.05)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(245, 101, 101, 0.1)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                   <h2 style={{ fontSize: '14px', fontWeight: 800, color: '#f87171', margin: 0 }}>Alertes Critiques</h2>
@@ -229,26 +233,53 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
          </div>
       </div>
 
-      {/* ── SERVEURS CRITIQUES ────────────────────────────────────────────── */}
+      {/* ── SERVEURS CRITIQUES (TIER-0) — VUE DÉTAILLÉE ─────────────────── */}
       <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>Serveurs Critiques (Tier-0)</h2>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+               <Shield size={20} color="#f87171" />
+               <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>Serveurs Critiques (Tier-0)</h2>
+            </div>
             <button className="btn-link" style={{ fontSize: '13px', color: '#3b82f6', fontWeight: 700 }}>Inventaire Complet</button>
          </div>
-         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-            {vms.filter(v=>v.name.includes('PROD') || v.name.includes('SRV')).slice(0, 4).map(vm => (
-               <div key={vm.id} style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 15 }}>
-                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3a3', boxShadow: '0 0 8px #22d3a3' }} />
-                     <div style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{vm.name}</div>
+         
+         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
+            {criticalServers.map(vm => (
+               <div key={vm.id} style={{ 
+                  background: 'rgba(255, 255, 255, 0.02)', 
+                  padding: '24px', 
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 20
+               }}>
+                  <div style={{ background: 'rgba(34, 211, 163, 0.1)', padding: '12px', borderRadius: '12px' }}>
+                     <Monitor size={24} color="#22d3ee" />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginBottom: 8 }}>
-                     <span>Charge CPU</span>
-                     <span style={{ color: '#fff' }}>{vm.cpu?.usage}%</span>
+                  <div style={{ flex: 1 }}>
+                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{vm.name}</div>
+                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>{vm.ip || '10.20.1.X'} · VM VMware</div>
                   </div>
-                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-                     <div style={{ width: `${vm.cpu?.usage}%`, height: '100%', background: '#3b82f6' }} />
+                  <div style={{ width: '120px' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: 6, fontWeight: 800, color: '#94a3b8' }}>
+                        <span>CPU</span>
+                        <span style={{ color: '#fff' }}>{vm.cpu?.usage}%</span>
+                     </div>
+                     <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${vm.cpu?.usage}%`, height: '100%', background: '#3b82f6' }} />
+                     </div>
                   </div>
+                  <div style={{ width: '120px' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: 6, fontWeight: 800, color: '#94a3b8' }}>
+                        <span>RAM</span>
+                        <span style={{ color: '#fff' }}>{vm.ram?.percent}%</span>
+                     </div>
+                     <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${vm.ram?.percent}%`, height: '100%', background: '#a78bfa' }} />
+                     </div>
+                  </div>
+                  <ChevronRight size={18} color="rgba(255,255,255,0.1)" />
                </div>
             ))}
          </div>
