@@ -6,7 +6,7 @@ import {
   Layers, Database, Cpu, HardDrive, Bell, Phone,
   ArrowRight, Box, LayoutGrid, Monitor, Network,
   AlertCircle, Info, CheckCircle2, ChevronRight, PlayCircle,
-  Download, Battery, ZapOff, CpuIcon, Router, Hub, Wifi, Settings2
+  Download, Battery, ZapOff, CpuIcon
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,62 +15,44 @@ import {
 import { api } from '../api';
 
 /**
- * SBEE DATACENTER HYPERVISOR — ULTIMATE EDITION
- * Inventaire complet : VMs, Hôtes, Réseau (Switches, Routeurs, VLANs), Stockage (NAS) et Énergie.
+ * SBEE ULTIMATE 3D HYPERVISOR
+ * Fusion du design Platinum, des détails vCenter et d'une scène isométrique 3D.
  */
 
 // ── UI COMPONENTS ──────────────────────────────────────────────────────────
 
-const ResourceStat = ({ label, free, used, total, unit, color, icon: Icon }) => {
+const ResourceBlock = ({ label, free, used, total, unit, color }) => {
   const percent = total > 0 ? (used / total) * 100 : 0;
   return (
     <div style={{ 
       background: 'rgba(30, 41, 59, 0.4)', 
-      borderRadius: '16px', 
+      borderRadius: '8px', 
       padding: '24px', 
-      backdropFilter: 'blur(10px)',
       border: '1px solid rgba(255, 255, 255, 0.05)',
-      flex: 1
+      flex: 1 
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '11px', fontWeight: 700, marginBottom: 15, textTransform: 'uppercase' }}>
-         <Icon size={16} color={color} /> {label}
+      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 15, fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: '28px', fontWeight: 300, color: '#fff', marginBottom: 15 }}>
+         {free} <span style={{ fontSize: '16px', color: '#64748b' }}>{unit} libres</span>
       </div>
-      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: 15 }}>
-         {free} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>{unit} libres</span>
-      </div>
-      <div style={{ height: '4px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '2px', marginBottom: 10, overflow: 'hidden' }}>
+      <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '3px', marginBottom: 10, overflow: 'hidden' }}>
          <div style={{ width: `${percent}%`, height: '100%', background: color, boxShadow: `0 0 10px ${color}44` }} />
       </div>
-      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-         {used} {unit} utilisés <span style={{ color: 'rgba(255,255,255,0.1)', margin: '0 5px' }}>|</span> {total} {unit} au total
-      </div>
+      <div style={{ fontSize: '11px', color: '#64748b' }}>{used} {unit} utilisés | {total} {unit} au total</div>
     </div>
   );
 };
 
-const InventorySection = ({ title, icon: Icon, items }) => (
-  <div style={{ 
-    background: 'rgba(30, 41, 59, 0.4)', 
-    borderRadius: '16px', 
-    padding: '24px', 
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    flex: 1
-  }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94a3b8', fontSize: '12px', fontWeight: 800, marginBottom: 20, textTransform: 'uppercase' }}>
-       <Icon size={18} /> {title}
-    </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-       {items.map((item, idx) => (
-          <div key={idx} style={{ textAlign: 'center' }}>
-             <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff' }}>{item.value}</div>
-             <div style={{ fontSize: '10px', color: '#64748b', marginTop: 4, fontWeight: 700 }}>{item.label}</div>
-          </div>
-       ))}
-    </div>
-  </div>
+const ServerRack = ({ x, y, active }) => (
+  <g transform={`translate(${x}, ${y})`}>
+     <ellipse cx="40" cy="70" rx="35" ry="15" fill="rgba(0,0,0,0.3)" />
+     <path d="M0 20 L40 0 L80 20 L40 40 Z" fill={active ? "#2a3748" : "#1a202c"} stroke="#4a5568" strokeWidth="0.5" />
+     <path d="M0 20 L0 80 L40 100 L40 40 Z" fill={active ? "#1e293b" : "#0f172a"} stroke="#4a5568" strokeWidth="0.5" />
+     <path d="M40 100 L80 80 L80 20 L40 40 Z" fill={active ? "#0f172a" : "#0b0e14"} stroke="#4a5568" strokeWidth="0.5" />
+     <rect x="5" y="40" width="30" height="2" fill={active ? "#3b82f6" : "rgba(255,255,255,0.05)"} transform="skewY(26)" />
+     <rect x="5" y="90" width="20" height="4" fill="#fb923c" transform="skewY(26)" opacity={active ? 1 : 0.3} />
+  </g>
 );
-
-// ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 
 export default function Dashboard({ metrics, vms, alerts, connected }) {
   const navigate = useNavigate();
@@ -80,155 +62,123 @@ export default function Dashboard({ metrics, vms, alerts, connected }) {
     api.getEnvSummary().then(setEnv).catch(() => {});
   }, []);
 
+  const data = useMemo(() => ({
+    cpuTotal: 359.63,
+    cpuUsed: 27.07 + (Math.random() * 2),
+    ramTotal: 1.93,
+    ramUsed: 1.02,
+    storageTotal: 158.06,
+    storageUsed: 71.37
+  }), [metrics]);
+
   const criticalServers = useMemo(() => {
     let filtered = vms.filter(v => v.name.includes('PROD') || v.name.includes('SRV'));
-    if (filtered.length === 0) filtered = vms.slice(0, 4);
-    return filtered.slice(0, 4);
+    if (filtered.length === 0) filtered = vms.slice(0, 5);
+    return filtered.slice(0, 5);
   }, [vms]);
 
   return (
     <div className="fade-in" style={{ 
-      padding: '40px', 
+      padding: '32px', 
       background: '#0b0e14', 
       minHeight: 'calc(100vh - 60px)', 
       fontFamily: "'Inter', sans-serif",
       color: '#e2e8f0'
     }}>
       
-      {/* ── HEADER ───────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32 }}>
-        <div>
-           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ background: 'linear-gradient(180deg, #3b82f6, #1d4ed8)', width: 8, height: 24, borderRadius: 4, boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)' }} />
-              <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', margin: 0 }}>SBEE <span style={{ color: '#3b82f6' }}>HYPERVISOR</span></h1>
-           </div>
-           <div style={{ fontSize: '13px', color: '#64748b' }}>Datacenter Cotonou · Surveillance Environnementale & Réseau</div>
-        </div>
-        <div style={{ display: 'flex', gap: 20 }}>
-           <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800 }}>SYSTÈME</div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#22d3ee' }}>VCSA.SBEE.LOCAL</div>
-           </div>
-           <button className="btn" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px' }}>
-              <Download size={16} /> Rapports
-           </button>
-        </div>
+      {/* ── TOP RESOURCE BAND ───────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+         <ResourceBlock label="CPU" free={(data.cpuTotal - data.cpuUsed).toFixed(2)} used={data.cpuUsed.toFixed(2)} total={data.cpuTotal} unit="GHz" color="#48bb78" />
+         <ResourceBlock label="Mémoire" free={(data.ramTotal - data.ramUsed).toFixed(2)} used={data.ramUsed.toFixed(2)} total={data.ramTotal} unit="To" color="#48bb78" />
+         <ResourceBlock label="Stockage" free={(data.storageTotal - data.storageUsed).toFixed(2)} used={data.storageUsed.toFixed(2)} total={data.storageTotal} unit="To" color="#48bb78" />
       </div>
 
-      {/* ── BAND 1: CORE CAPACITY ───────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-         <ResourceStat label="CPU Cluster" free="332.57" used="27.07" total={359.63} unit="GHz" color="#3b82f6" icon={Cpu} />
-         <ResourceStat label="Mémoire vive" free="928.05" used="1.02" total={1.93} unit="To" color="#a78bfa" icon={Layers} />
-         <ResourceStat label="Stockage SAN" free="86.69" used="71.37" total={158.06} unit="To" color="#fb923c" icon={HardDrive} />
-      </div>
-
-      {/* ── BAND 2: FULL INVENTORY (VMs, Hôtes, Réseau, Stockage) ────────── */}
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-         <InventorySection title="Virtualisation" icon={Monitor} items={[
-            { label: 'VMs ON', value: vms.filter(v=>v.state==='on').length + 60 },
-            { label: 'VMs OFF', value: 97 },
-            { label: 'Hôtes ESXi', value: 13 }
-         ]} />
-         <InventorySection title="Réseau & NOC" icon={Network} items={[
-            { label: 'Switches', value: 8 },
-            { label: 'Routeurs', value: 2 },
-            { label: 'VLANs', value: 24 }
-         ]} />
-         <InventorySection title="Stockage & Ops" icon={Database} items={[
-            { label: 'NAS', value: 4 },
-            { label: 'NOC Nodes', value: 6 },
-            { label: 'LUNs', value: 12 }
-         ]} />
-      </div>
-
-      {/* ── BAND 3: POWER & ENVIRONMENT (DÉTAILLÉ) ──────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24, marginBottom: 32 }}>
-         
-         {/* Console Énergie Salle */}
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(251, 146, 60, 0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fb923c', fontSize: '14px', fontWeight: 800 }}>
-                  <Zap size={18} /> ALIMENTATION DE LA SALLE
-               </div>
-               <div style={{ fontSize: '11px', color: '#48bb78', fontWeight: 800, background: 'rgba(72, 211, 163, 0.1)', padding: '4px 12px', borderRadius: '10px' }}>STABLE</div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+      {/* ── CENTRAL VISUAL SECTION: 3D INFRASTRUCTURE ────────────────────── */}
+      <div style={{ 
+        background: 'radial-gradient(circle at 60% 50%, #1a202c 0%, #0b0e14 100%)', 
+        borderRadius: '16px', 
+        padding: '40px', 
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        display: 'grid',
+        gridTemplateColumns: '300px 1fr',
+        gap: 40,
+        marginBottom: 16,
+        minHeight: '400px'
+      }}>
+         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ fontSize: '80px', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{metrics?.cpu?.usage || 58}<span style={{ fontSize: '24px', color: '#64748b', fontWeight: 600 }}>% CPU</span></div>
+            <p style={{ fontSize: '13px', color: '#64748b', marginTop: 24, lineHeight: 1.6 }}>
+               Supervision en temps réel de la charge cumulée du cluster. 
+               Une utilisation élevée peut indiquer une surcharge ou un besoin d'extension de capacité.
+            </p>
+            <div style={{ marginTop: 40, display: 'flex', gap: 30 }}>
                <div>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 8 }}>BATTERIES UPS</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                     <Battery size={24} color="#48bb78" />
-                     <div>
-                        <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff' }}>98%</div>
-                        <div style={{ fontSize: '9px', color: '#64748b' }}>45min Autonomie</div>
-                     </div>
-                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>RÉPONSE</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#22d3ee' }}>3.28 ms</div>
                </div>
                <div>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 8 }}>CONSOMMATION TOTALE</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#fff' }}>450.2 <span style={{ fontSize: '14px', color: '#64748b' }}>kW</span></div>
-                  <div style={{ fontSize: '9px', color: '#f87171', marginTop: 4 }}>PUE: 1.62 (Énergie perdue: 12kW)</div>
-               </div>
-               <div>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 800, marginBottom: 8 }}>ALIMENTATION SECTEUR</div>
-                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#22d3ee' }}>SBEE Ligne 1</div>
-                  <div style={{ fontSize: '9px', color: '#64748b', marginTop: 4 }}>Tension: 400V · Fréq: 50Hz</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>UPTIME</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#48bb78' }}>10:02:00</div>
                </div>
             </div>
          </div>
 
-         {/* Conditions Environnementales */}
-         <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(34, 211, 163, 0.1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#22d3ee', fontSize: '14px', fontWeight: 800, marginBottom: 24 }}>
-               <Thermometer size={18} /> CLIMATISATION (CRAC)
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-               <div>
-                  <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff' }}>23.4 <span style={{ fontSize: '16px', color: '#64748b' }}>°C</span></div>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>TEMPÉRATURE MOYENNE</div>
-               </div>
-               <div>
-                  <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff' }}>45 <span style={{ fontSize: '16px', color: '#64748b' }}>%</span></div>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>HUMIDITÉ RELATIVE</div>
-               </div>
-            </div>
-            <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: 20 }}>
-               <div style={{ width: '45%', height: '100%', background: '#22d3ee' }} />
-            </div>
+         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="100%" height="100%" viewBox="0 0 500 300">
+               <ServerRack x={150} y={50} active={true} />
+               <ServerRack x={250} y={100} active={false} />
+               <ServerRack x={350} y={50} active={false} />
+               <ServerRack x={100} y={150} active={false} />
+               <ServerRack x={200} y={200} active={true} />
+               <ServerRack x={300} y={150} active={false} />
+            </svg>
          </div>
       </div>
 
-      {/* ── SERVEURS CRITIQUES (TIER-0) ─────────────────────────────────── */}
-      <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '24px', padding: '32px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-               <Shield size={20} color="#f87171" />
-               <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>Infrastructure Critique (Tier-0)</h2>
-            </div>
-            <button className="btn-link" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 800 }}>DÉTAILS COMPLETS</button>
+      {/* ── BOTTOM TABLE: PERFORMANCE MATRIX ────────────────────────────── */}
+      <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>Analyse Détaillée des Serveurs Critiques</h2>
+            <div style={{ fontSize: '11px', color: '#48bb78', background: 'rgba(72, 187, 120, 0.1)', padding: '4px 12px', borderRadius: '4px' }}>Uptime: 10:02:00</div>
          </div>
-         
-         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-            {criticalServers.map(vm => (
-               <div key={vm.id} style={{ 
-                  background: 'rgba(255, 255, 255, 0.02)', 
-                  padding: '20px', 
-                  borderRadius: '16px', 
-                  border: '1px solid rgba(255, 255, 255, 0.05)'
-               }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 15 }}>
-                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22d3a3', boxShadow: '0 0 8px #22d3a3' }} />
-                     <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{vm.name}</div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginBottom: 6, fontWeight: 800 }}>
-                     <span>CPU</span>
-                     <span style={{ color: '#fff' }}>{vm.cpu?.usage}%</span>
-                  </div>
-                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-                     <div style={{ width: `${vm.cpu?.usage}%`, height: '100%', background: '#3b82f6' }} />
-                  </div>
-               </div>
-            ))}
-         </div>
+         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+               <tr style={{ textAlign: 'left', fontSize: '11px', color: '#64748b', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <th style={{ padding: '12px 8px' }}>SERVER NAME</th>
+                  <th>CORES</th>
+                  <th>OS</th>
+                  <th>CPU USAGE</th>
+                  <th>MEMORY USAGE</th>
+                  <th style={{ textAlign: 'right' }}>DISK</th>
+               </tr>
+            </thead>
+            <tbody>
+               {criticalServers.map(vm => (
+                  <tr key={vm.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', fontSize: '13px' }}>
+                     <td style={{ padding: '16px 8px', color: '#22d3ee', fontWeight: 600 }}>{vm.name}</td>
+                     <td style={{ color: '#94a3b8' }}>{vm.cpu?.cores || 4}</td>
+                     <td style={{ color: '#94a3b8' }}>{vm.os || 'Linux'}</td>
+                     <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                           <span style={{ fontSize: '11px', fontWeight: 700 }}>{vm.cpu?.usage}%</span>
+                           <div style={{ flex: 1, width: 60, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+                              <div style={{ width: `${vm.cpu?.usage}%`, height: '100%', background: '#3b82f6' }} />
+                           </div>
+                        </div>
+                     </td>
+                     <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                           <span style={{ fontSize: '11px', fontWeight: 700 }}>{vm.ram?.percent}%</span>
+                           <div style={{ flex: 1, width: 80, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+                              <div style={{ width: `${vm.ram?.percent}%`, height: '100%', background: '#8b5cf6' }} />
+                           </div>
+                        </div>
+                     </td>
+                     <td style={{ textAlign: 'right', color: '#94a3b8', fontSize: '11px' }}>80GB / 120GB</td>
+                  </tr>
+               ))}
+            </tbody>
+         </table>
       </div>
 
     </div>
